@@ -188,10 +188,55 @@
   .ticket-divider{ border-top:1px dashed var(--ink); margin-top:12px; padding-top:12px; }
   .ticket-eta{ color:#5C574C; font-size:12px; margin:0; }
   .confirm-btn-wrap{ width:100%; margin-top:40px; }
+
+  /* Delivery location confirm sheet */
+  .loc-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:2000;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .loc-overlay.show{ display:flex; }
+  .loc-sheet{
+    width:100%; max-width:420px; background:var(--cloud); border-radius:20px 20px 0 0;
+    padding:24px; animation:locUp .25s ease-out;
+  }
+  @keyframes locUp{ from{ transform:translateY(30px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+  .loc-eyebrow{ color:var(--chili); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; margin:0; font-weight:700; }
+  .loc-title{ color:var(--ink); font-family:'Fraunces',serif; font-size:20px; font-weight:700; margin:4px 0 16px; }
+  .loc-current{ background:#fff; border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  .loc-current-label{ color:#5C574C; font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 4px; text-transform:uppercase; }
+  .loc-current-value{ color:var(--ink); font-size:14px; margin:0; font-weight:600; }
+  .loc-gps-btn{
+    width:100%; padding:12px; border:none; border-radius:10px; background:var(--leaf);
+    color:var(--cloud); font-size:14px; font-weight:600; cursor:pointer; margin-bottom:10px;
+    font-family:'Inter',sans-serif;
+  }
+  .loc-btn-row{ display:flex; gap:10px; }
+  .loc-btn-row .btn-primary{ background:var(--marigold); }
+  .loc-cancel-btn{
+    flex:1; padding:14px; border-radius:10px; background:none; border:1px solid var(--field-border);
+    color:var(--muted-2); font-weight:600; font-size:15px; font-family:'Inter',sans-serif; cursor:pointer;
+  }
 </style>
 </head>
 <body>
 <div id="app">
+
+  <!-- DELIVERY LOCATION CONFIRM -->
+  <div class="loc-overlay" id="loc-overlay">
+    <div class="loc-sheet">
+      <p class="loc-eyebrow">DELIVERY LOCATION</p>
+      <h2 class="loc-title">Where should this go?</h2>
+      <div class="loc-current">
+        <p class="loc-current-label">Delivering to</p>
+        <p class="loc-current-value" id="loc-current-value">Set location</p>
+      </div>
+      <button class="loc-gps-btn" id="loc-gps-btn">📍 Use my current location</button>
+      <div class="loc-btn-row">
+        <button class="loc-cancel-btn" id="loc-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="loc-confirm-btn" style="flex:1;">Confirm & place order</button>
+      </div>
+    </div>
+  </div>
 
   <!-- LOGIN -->
   <section class="screen active" id="screen-login">
@@ -240,7 +285,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <input id="reg-location" type="text" placeholder="Live location (area, city)" />
         </div>
-        <button class="gps-btn" onclick="document.getElementById('reg-location').value='Current location pinned'; document.getElementById('reg-location').dispatchEvent(new Event('input'));">Use GPS</button>
+        <button class="gps-btn" id="reg-gps-btn">Use GPS</button>
       </div>
       <div class="field">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -503,6 +548,33 @@ function validateRegister() {
   regSendOtpBtn.disabled = !valid;
 }
 [regName, regAddress, regLocation, regPassword].forEach(el => el.addEventListener('input', validateRegister));
+
+// ---------- Real GPS capture (registration) ----------
+const regGpsBtn = document.getElementById('reg-gps-btn');
+regGpsBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    regLocation.value = "Location unavailable on this device";
+    regLocation.dispatchEvent(new Event('input'));
+    return;
+  }
+  regGpsBtn.disabled = true;
+  regGpsBtn.textContent = "Locating…";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      regLocation.value = pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5);
+      regLocation.dispatchEvent(new Event('input'));
+      regGpsBtn.disabled = false;
+      regGpsBtn.textContent = "Use GPS";
+    },
+    () => {
+      regLocation.value = "Location permission denied";
+      regLocation.dispatchEvent(new Event('input'));
+      regGpsBtn.disabled = false;
+      regGpsBtn.textContent = "Use GPS";
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+});
 regNumber.addEventListener('input', () => {
   regNumber.value = digitsOnly(regNumber.value);
   validateRegister();
@@ -737,46 +809,127 @@ function updateCartBar() {
   }
 }
 
-cartBtn.addEventListener('click', async () => {
+// ---------- Delivery location confirm sheet ----------
+const locOverlay = document.getElementById('loc-overlay');
+const locCurrentValue = document.getElementById('loc-current-value');
+const locGpsBtn = document.getElementById('loc-gps-btn');
+const locCancelBtn = document.getElementById('loc-cancel-btn');
+const locConfirmBtn = document.getElementById('loc-confirm-btn');
+
+// Holds whatever location will actually be sent with the order. Pre-filled
+// from the user's saved profile location (parsed as lat,lng if possible),
+// then overwritten if they tap "Use my current location" inside the sheet.
+let pendingLocation = { text: "", lat: null, lng: null };
+
+function parseLatLng(str) {
+  if (!str) return null;
+  const m = String(str).trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+}
+
+function openLocationConfirm() {
+  const savedText = state.user?.location || "";
+  const parsed = parseLatLng(savedText);
+  pendingLocation = { text: savedText, lat: parsed?.lat ?? null, lng: parsed?.lng ?? null };
+  locCurrentValue.textContent = savedText || "No saved location — tap below to set one";
+  locGpsBtn.disabled = false;
+  locGpsBtn.textContent = "📍 Use my current location";
+  locConfirmBtn.disabled = false;
+  locConfirmBtn.textContent = "Confirm & place order";
+  locOverlay.classList.add('show');
+}
+
+function closeLocationConfirm() {
+  locOverlay.classList.remove('show');
+}
+
+locGpsBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    locCurrentValue.textContent = "Location unavailable on this device";
+    return;
+  }
+  locGpsBtn.disabled = true;
+  locGpsBtn.textContent = "Locating…";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      pendingLocation = { text: lat.toFixed(5) + ", " + lng.toFixed(5), lat, lng };
+      locCurrentValue.textContent = pendingLocation.text;
+      locGpsBtn.disabled = false;
+      locGpsBtn.textContent = "📍 Use my current location";
+    },
+    () => {
+      locCurrentValue.textContent = "Location permission denied";
+      locGpsBtn.disabled = false;
+      locGpsBtn.textContent = "📍 Use my current location";
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+});
+
+locCancelBtn.addEventListener('click', closeLocationConfirm);
+
+cartBtn.addEventListener('click', () => {
+  if (!state.selectedRestaurant) return;
+  openLocationConfirm();
+});
+
+locConfirmBtn.addEventListener('click', async () => {
   const r = state.selectedRestaurant;
+  if (!r) { closeLocationConfirm(); return; }
+  if (!pendingLocation.text) {
+    locCurrentValue.textContent = "Please set a delivery location first";
+    return;
+  }
+
   const orderNumber = "KOT-" + Math.floor(1000 + Math.random() * 9000);
   const orderItems = r.items
     .filter(it => state.cart[it.id])
     .map(it => ({ name: it.name, price: it.price, qty: state.cart[it.id] }));
   const total = orderItems.reduce((sum, it) => sum + it.price * it.qty, 0);
 
-  cartBtn.disabled = true;
-  const originalLabel = cartTotalText.textContent;
-  cartTotalText.textContent = "Placing order…";
+  locConfirmBtn.disabled = true;
+  locGpsBtn.disabled = true;
+  locConfirmBtn.textContent = "Placing order…";
 
   try {
     // Push the order into the restaurant's own node in Firebase. The
     // restaurant partner app has a live listener on this exact path and
-    // will pop up an alert with sound as soon as this write lands.
+    // will pop up an alert with sound as soon as this write lands. Lat/lng
+    // (when available) let the restaurant app open the exact pinned spot
+    // on the map instead of a text search.
     const { db, ref, push, set } = window.fb;
     const orderRef = push(ref(db, 'restaurants/' + r.id + '/orders'));
-    await set(orderRef, {
+    const orderPayload = {
       orderNumber,
       status: "pending",
       createdAt: Date.now(),
       customerName: state.user?.name || "Guest",
       customerPhone: state.user?.number || "",
       customerAddress: state.user?.address || "",
-      customerLocation: state.user?.location || "",
+      customerLocation: pendingLocation.text,
       items: orderItems,
       total
-    });
+    };
+    if (typeof pendingLocation.lat === 'number' && typeof pendingLocation.lng === 'number') {
+      orderPayload.customerLat = pendingLocation.lat;
+      orderPayload.customerLng = pendingLocation.lng;
+    }
+    await set(orderRef, orderPayload);
 
     document.getElementById('confirm-order-num').textContent = orderNumber;
     document.getElementById('confirm-rest-name').textContent = "from " + r.name;
     state.cart = {};
+    closeLocationConfirm();
     showScreen('placed');
   } catch (err) {
     console.error("Failed to place order:", err);
     alert("Couldn't place the order. Please check your connection and try again.");
   } finally {
-    cartBtn.disabled = false;
-    cartTotalText.textContent = originalLabel;
+    locConfirmBtn.disabled = false;
+    locGpsBtn.disabled = false;
+    locConfirmBtn.textContent = "Confirm & place order";
   }
 });
 
