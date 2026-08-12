@@ -356,7 +356,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, push, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCrM5wKwsnGtIc7HSTk_5R1d3dXEcYyd7o",
@@ -375,7 +375,7 @@
   // Exposed so the plain <script> below can push a new order straight into
   // the restaurant's node in Firebase. The restaurant partner app listens on
   // this same path and pops up an alert the moment a new order lands here.
-  window.fb = { db, ref, push, set };
+  window.fb = { db, ref, push, set, get };
 
   // Live-listens to restaurants added from the Restaurant Partner app and
   // keeps window.RESTAURANTS + the on-screen list in sync in real time.
@@ -426,17 +426,9 @@ let state = {
   cart: {}, // itemId -> qty
 };
 
-// ---------- Registered users (demo store, persisted in localStorage) ----------
-// keyed by mobile number (username) -> { name, address, location, number, password }
-let registeredUsers = {};
-try {
-  registeredUsers = JSON.parse(localStorage.getItem('tiffin_users') || '{}');
-} catch (e) {
-  registeredUsers = {};
-}
-function saveRegisteredUsers() {
-  try { localStorage.setItem('tiffin_users', JSON.stringify(registeredUsers)); } catch (e) {}
-}
+// ---------- Registered users: stored centrally in Firebase under
+// customers/{mobileNumber}, so accounts survive cache clears / new devices
+// instead of living only in this browser's localStorage. ----------
 
 // ---------- Helpers ----------
 function showScreen(id) {
@@ -464,22 +456,31 @@ loginNumberInput.addEventListener('input', () => {
 });
 loginPasswordInput.addEventListener('input', validateLogin);
 
-loginSubmitBtn.addEventListener('click', () => {
+loginSubmitBtn.addEventListener('click', async () => {
   const number = loginNumberInput.value;
   const password = loginPasswordInput.value;
-  const record = registeredUsers[number];
-  if (!record) {
-    showLoginError("No account found for this mobile number");
-    return;
+  loginSubmitBtn.disabled = true;
+  try {
+    const { db, ref, get } = window.fb;
+    const snap = await get(ref(db, 'customers/' + number));
+    if (!snap.exists()) {
+      showLoginError("No account found for this mobile number");
+      return;
+    }
+    const record = snap.val();
+    if (record.password !== password) {
+      showLoginError("Incorrect password");
+      return;
+    }
+    state.user = { name: record.name, address: record.address, location: record.location, number: record.number };
+    loginErrorEl.style.display = "none";
+    renderHome();
+    showScreen('home');
+  } catch (e) {
+    showLoginError("Couldn't log in — check your connection and try again.");
+  } finally {
+    loginSubmitBtn.disabled = false;
   }
-  if (record.password !== password) {
-    showLoginError("Incorrect password");
-    return;
-  }
-  state.user = { name: record.name, address: record.address, location: record.location, number: record.number };
-  loginErrorEl.style.display = "none";
-  renderHome();
-  showScreen('home');
 });
 
 function showLoginError(msg) {
@@ -506,14 +507,24 @@ regNumber.addEventListener('input', () => {
   regNumber.value = digitsOnly(regNumber.value);
   validateRegister();
 });
-regSendOtpBtn.addEventListener('click', () => {
-  if (registeredUsers[regNumber.value]) {
-    regErrorEl.textContent = "An account already exists for this mobile number";
+regSendOtpBtn.addEventListener('click', async () => {
+  regSendOtpBtn.disabled = true;
+  try {
+    const { db, ref, get } = window.fb;
+    const snap = await get(ref(db, 'customers/' + regNumber.value));
+    if (snap.exists()) {
+      regErrorEl.textContent = "An account already exists for this mobile number";
+      regErrorEl.style.display = "block";
+      return;
+    }
+    state.otpFlowFrom = "register";
+    startOtpFlow(regNumber.value);
+  } catch (e) {
+    regErrorEl.textContent = "Couldn't check that number — check your connection and try again.";
     regErrorEl.style.display = "block";
-    return;
+  } finally {
+    regSendOtpBtn.disabled = false;
   }
-  state.otpFlowFrom = "register";
-  startOtpFlow(regNumber.value);
 });
 
 // ---------- OTP ----------
@@ -548,7 +559,7 @@ otpBackBtn.addEventListener('click', () => {
   showScreen(state.otpFlowFrom === "register" ? "register" : "login");
 });
 
-otpVerifyBtn.addEventListener('click', () => {
+otpVerifyBtn.addEventListener('click', async () => {
   const code = otpBoxes.map(b => b.value).join('');
   if (code.length < 4) {
     showOtpError("Enter all 4 digits");
@@ -566,9 +577,17 @@ otpVerifyBtn.addEventListener('click', () => {
       number: regNumber.value,
       password: regPassword.value,
     };
-    registeredUsers[newUser.number] = newUser;
-    saveRegisteredUsers();
-    state.user = { name: newUser.name, address: newUser.address, location: newUser.location, number: newUser.number };
+    otpVerifyBtn.disabled = true;
+    try {
+      const { db, ref, set } = window.fb;
+      await set(ref(db, 'customers/' + newUser.number), newUser);
+      state.user = { name: newUser.name, address: newUser.address, location: newUser.location, number: newUser.number };
+    } catch (e) {
+      showOtpError("Couldn't create your account — check your connection and try again.");
+      otpVerifyBtn.disabled = false;
+      return;
+    }
+    otpVerifyBtn.disabled = false;
   }
   otpErrorEl.style.display = "none";
   renderHome();
