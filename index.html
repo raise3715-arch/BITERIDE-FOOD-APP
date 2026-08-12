@@ -14,6 +14,8 @@
 <link rel="icon" href="icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{
     --ink:#1C1B19;
@@ -216,6 +218,15 @@
     flex:1; padding:14px; border-radius:10px; background:none; border:1px solid var(--field-border);
     color:var(--muted-2); font-weight:600; font-size:15px; font-family:'Inter',sans-serif; cursor:pointer;
   }
+  .loc-map-wrap{ position:relative; margin-bottom:10px; }
+  .loc-map{ width:100%; height:200px; border-radius:12px; overflow:hidden; background:#e7e2d6; }
+  .loc-map-hint{
+    position:absolute; bottom:8px; left:8px; right:8px; text-align:center;
+    background:rgba(28,27,25,.75); color:var(--cloud); font-size:11px; padding:5px 8px;
+    border-radius:6px; pointer-events:none; font-family:'Inter',sans-serif;
+  }
+  .loc-sheet .field{ margin-bottom:10px; }
+  .loc-field-label{ color:#5C574C; font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 6px; text-transform:uppercase; }
 </style>
 </head>
 <body>
@@ -226,11 +237,30 @@
     <div class="loc-sheet">
       <p class="loc-eyebrow">DELIVERY LOCATION</p>
       <h2 class="loc-title">Where should this go?</h2>
+
+      <div class="loc-map-wrap">
+        <div class="loc-map" id="loc-map"></div>
+        <p class="loc-map-hint">Tap or drag the pin to set the exact spot</p>
+      </div>
+
       <div class="loc-current">
         <p class="loc-current-label">Delivering to</p>
         <p class="loc-current-value" id="loc-current-value">Set location</p>
       </div>
       <button class="loc-gps-btn" id="loc-gps-btn">📍 Use my current location</button>
+
+      <p class="loc-field-label">Landmark</p>
+      <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C1432E" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+        <input id="loc-landmark" type="text" placeholder="e.g. Near St. Mary's Church, opposite bakery" style="color:var(--ink);" />
+      </div>
+
+      <p class="loc-field-label">Contact number for this order</p>
+      <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C1432E" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <input id="loc-contact" type="tel" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" style="color:var(--ink);" />
+      </div>
+
       <div class="loc-btn-row">
         <button class="loc-cancel-btn" id="loc-cancel-btn">Cancel</button>
         <button class="btn-primary" id="loc-confirm-btn" style="flex:1;">Confirm & place order</button>
@@ -815,11 +845,18 @@ const locCurrentValue = document.getElementById('loc-current-value');
 const locGpsBtn = document.getElementById('loc-gps-btn');
 const locCancelBtn = document.getElementById('loc-cancel-btn');
 const locConfirmBtn = document.getElementById('loc-confirm-btn');
+const locLandmarkInput = document.getElementById('loc-landmark');
+const locContactInput = document.getElementById('loc-contact');
 
 // Holds whatever location will actually be sent with the order. Pre-filled
 // from the user's saved profile location (parsed as lat,lng if possible),
-// then overwritten if they tap "Use my current location" inside the sheet.
+// then overwritten if they tap "Use my current location" or drag/tap the
+// pin on the map inside the sheet.
 let pendingLocation = { text: "", lat: null, lng: null };
+
+const DEFAULT_MAP_CENTER = { lat: 10.8505, lng: 76.2711 }; // Kerala, India fallback
+let locMap = null;
+let locMarker = null;
 
 function parseLatLng(str) {
   if (!str) return null;
@@ -828,16 +865,50 @@ function parseLatLng(str) {
   return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
 }
 
+function setPendingFromLatLng(lat, lng) {
+  pendingLocation = { text: lat.toFixed(5) + ", " + lng.toFixed(5), lat, lng };
+  locCurrentValue.textContent = pendingLocation.text;
+}
+
+// Lazily creates the Leaflet map the first time the sheet is opened
+// (the container must be visible/sized before Leaflet can measure it).
+function ensureLocMap(startLat, startLng) {
+  if (locMap) return;
+  locMap = L.map('loc-map', { zoomControl: false, attributionControl: false }).setView([startLat, startLng], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(locMap);
+  locMarker = L.marker([startLat, startLng], { draggable: true }).addTo(locMap);
+  locMarker.on('dragend', () => {
+    const pos = locMarker.getLatLng();
+    setPendingFromLatLng(pos.lat, pos.lng);
+  });
+  locMap.on('click', (e) => {
+    locMarker.setLatLng(e.latlng);
+    setPendingFromLatLng(e.latlng.lat, e.latlng.lng);
+  });
+}
+
 function openLocationConfirm() {
   const savedText = state.user?.location || "";
   const parsed = parseLatLng(savedText);
+  const startLat = parsed?.lat ?? DEFAULT_MAP_CENTER.lat;
+  const startLng = parsed?.lng ?? DEFAULT_MAP_CENTER.lng;
   pendingLocation = { text: savedText, lat: parsed?.lat ?? null, lng: parsed?.lng ?? null };
-  locCurrentValue.textContent = savedText || "No saved location — tap below to set one";
+  locCurrentValue.textContent = savedText || "No saved location — tap the map or use GPS below";
   locGpsBtn.disabled = false;
   locGpsBtn.textContent = "📍 Use my current location";
   locConfirmBtn.disabled = false;
   locConfirmBtn.textContent = "Confirm & place order";
+  locLandmarkInput.value = "";
+  locContactInput.value = digitsOnly(state.user?.number || "");
   locOverlay.classList.add('show');
+
+  // Give the sheet's slide-up animation a moment before sizing the map.
+  setTimeout(() => {
+    ensureLocMap(startLat, startLng);
+    locMap.invalidateSize();
+    locMap.setView([startLat, startLng], 16);
+    if (locMarker) locMarker.setLatLng([startLat, startLng]);
+  }, 60);
 }
 
 function closeLocationConfirm() {
@@ -854,8 +925,11 @@ locGpsBtn.addEventListener('click', () => {
   navigator.geolocation.getCurrentPosition(
     pos => {
       const lat = pos.coords.latitude, lng = pos.coords.longitude;
-      pendingLocation = { text: lat.toFixed(5) + ", " + lng.toFixed(5), lat, lng };
-      locCurrentValue.textContent = pendingLocation.text;
+      setPendingFromLatLng(lat, lng);
+      if (locMap) {
+        locMap.setView([lat, lng], 16);
+        locMarker.setLatLng([lat, lng]);
+      }
       locGpsBtn.disabled = false;
       locGpsBtn.textContent = "📍 Use my current location";
     },
@@ -866,6 +940,10 @@ locGpsBtn.addEventListener('click', () => {
     },
     { enableHighAccuracy: true, timeout: 8000 }
   );
+});
+
+locContactInput.addEventListener('input', () => {
+  locContactInput.value = digitsOnly(locContactInput.value).slice(0, 10);
 });
 
 locCancelBtn.addEventListener('click', closeLocationConfirm);
@@ -882,6 +960,14 @@ locConfirmBtn.addEventListener('click', async () => {
     locCurrentValue.textContent = "Please set a delivery location first";
     return;
   }
+  const contactNumber = locContactInput.value.trim();
+  if (contactNumber.length !== 10) {
+    locContactInput.focus();
+    locCurrentValue.textContent = pendingLocation.text; // keep location text as-is
+    alert("Please enter a valid 10-digit contact number for this order.");
+    return;
+  }
+  const landmark = locLandmarkInput.value.trim();
 
   const orderNumber = "KOT-" + Math.floor(1000 + Math.random() * 9000);
   const orderItems = r.items
@@ -906,9 +992,10 @@ locConfirmBtn.addEventListener('click', async () => {
       status: "pending",
       createdAt: Date.now(),
       customerName: state.user?.name || "Guest",
-      customerPhone: state.user?.number || "",
+      customerPhone: contactNumber,
       customerAddress: state.user?.address || "",
       customerLocation: pendingLocation.text,
+      customerLandmark: landmark,
       items: orderItems,
       total
     };
