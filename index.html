@@ -477,7 +477,7 @@ loginSubmitBtn.addEventListener('click', async () => {
     renderHome();
     showScreen('home');
   } catch (e) {
-    showLoginError("Couldn't log in — check your connection and try again.");
+    showLoginError("DEBUG: " + (e && e.message ? e.message : String(e)));
   } finally {
     loginSubmitBtn.disabled = false;
   }
