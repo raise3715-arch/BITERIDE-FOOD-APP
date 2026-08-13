@@ -7,6 +7,150 @@
     {
       "type": "Feature",
       "properties": {
+        "@id": "node/manual-place-9",
+        "place_name": "Virippadam",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.921833,
+          11.238025
+        ]
+      },
+      "id": "node/manual-place-9"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-8",
+        "place_name": "Oorkkadavu",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.922717,
+          11.243124
+        ]
+      },
+      "id": "node/manual-place-8"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-7",
+        "place_name": "Akode",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.913014,
+          11.235939
+        ]
+      },
+      "id": "node/manual-place-7"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-6",
+        "place_name": "Mundumuzhi",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.937754,
+          11.24519
+        ]
+      },
+      "id": "node/manual-place-6"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-5",
+        "place_name": "Korapadam",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.927525,
+          11.244485
+        ]
+      },
+      "id": "node/manual-place-5"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-4",
+        "place_name": "Vazhayur",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.911417,
+          11.226866
+        ]
+      },
+      "id": "node/manual-place-4"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-3",
+        "place_name": "Punchappadam",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.903547,
+          11.227421
+        ]
+      },
+      "id": "node/manual-place-3"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-2",
+        "place_name": "Vazhayur",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.910279,
+          11.218509
+        ]
+      },
+      "id": "node/manual-place-2"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-1",
+        "place_name": "Vazhayur",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.899833,
+          11.21748
+        ]
+      },
+      "id": "node/manual-place-1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "@id": "node/manual-channayil-bridge",
         "name": "Chennayil",
         "@geometry": "center"
@@ -14,8 +158,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          75.908850,
-          11.234110
+          75.90885,
+          11.23411
         ]
       },
       "id": "node/manual-channayil-bridge"

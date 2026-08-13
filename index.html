@@ -1198,10 +1198,18 @@ function loadLocalLandmarks() {
         const p = f.properties || {};
         const coords = f.geometry?.coordinates;
         if (!coords) return;
-        LOCAL_LANDMARKS.push({ n: landmarkLabelFromProps(p), t: landmarkTypeFromProps(p), lat: coords[1], lng: coords[0], named: !!p.name });
+        // Skip pure place-name markers (no building/amenity/name) from the
+        // landmark-suggestion list — they're locality anchors only.
+        const isLandmarkWorthy = p.name || p.amenity || p.shop || p.office || p.tourism || p.leisure || p.healthcare || p.man_made || p.building;
+        if (isLandmarkWorthy) {
+          LOCAL_LANDMARKS.push({ n: landmarkLabelFromProps(p), t: landmarkTypeFromProps(p), lat: coords[1], lng: coords[0], named: !!p.name });
+        }
         if (p['addr:city']) {
           const cityName = String(p['addr:city']).trim().replace(/\b\w/g, c => c.toUpperCase());
           LOCAL_LOCALITIES.push({ name: cityName, lat: coords[1], lng: coords[0] });
+        }
+        if (p.place_name) {
+          LOCAL_LOCALITIES.push({ name: String(p.place_name).trim(), lat: coords[1], lng: coords[0] });
         }
       });
       return LOCAL_LANDMARKS;
