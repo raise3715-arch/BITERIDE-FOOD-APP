@@ -354,6 +354,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
         <input id="loc-landmark" type="text" placeholder="e.g. Near St. Mary's Church, opposite bakery" style="color:var(--ink);" />
       </div>
+      <div class="loc-search-results" id="loc-landmark-suggestions"></div>
 
       <p class="loc-field-label">Contact number for this order</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
@@ -1102,6 +1103,148 @@ function parseLatLng(str) {
 function setPendingFromLatLng(lat, lng) {
   pendingLocation = { text: lat.toFixed(5) + ", " + lng.toFixed(5), lat, lng };
   locCurrentValue.textContent = pendingLocation.text;
+  scheduleNearbyLandmarks(lat, lng);
+}
+
+// ---------- Nearby landmark buildings via Overpass API (OpenStreetMap) ----------
+// Whenever the pin moves, we ask Overpass for named places (shops, offices,
+// places of worship, buildings, etc.) within ~250m so the user can just tap
+// one instead of typing a landmark.
+const locLandmarkSuggestionsEl = document.getElementById('loc-landmark-suggestions');
+let landmarkFetchDebounce = null;
+let landmarkFetchAbort = null;
+
+function hideLandmarkSuggestions() {
+  if (locLandmarkSuggestionsEl) {
+    locLandmarkSuggestionsEl.classList.remove('show');
+    locLandmarkSuggestionsEl.innerHTML = "";
+  }
+}
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function renderLandmarkSuggestions(places, lat, lng) {
+  if (!locLandmarkSuggestionsEl) return;
+  locLandmarkSuggestionsEl.innerHTML = "";
+  if (places.length === 0) {
+    hideLandmarkSuggestions();
+    return;
+  }
+  places.forEach(place => {
+    const item = document.createElement('div');
+    item.className = "loc-search-item";
+    const distText = place.dist < 1000 ? Math.round(place.dist) + "m away" : (place.dist / 1000).toFixed(1) + "km away";
+    item.innerHTML = `<div>${place.name}</div><div class="loc-search-item-sub">${place.type} • ${distText}</div>`;
+    item.addEventListener('click', () => {
+      locLandmarkInput.value = "Near " + place.name;
+      hideLandmarkSuggestions();
+    });
+    locLandmarkSuggestionsEl.appendChild(item);
+  });
+  locLandmarkSuggestionsEl.classList.add('show');
+}
+
+// Bundled local landmark dataset (exported from Overpass Turbo for our
+// coverage area) — used first so landmark lookup works instantly and
+// offline, with no per-search API call. Falls back to the live Overpass
+// API only if the pin is outside this dataset's coverage area.
+let LOCAL_LANDMARKS = null;
+let localLandmarksLoadPromise = null;
+const LOCAL_LANDMARKS_BOUNDS = { minLat: 11.2067833, maxLat: 11.2646564, minLng: 75.8857505, maxLng: 75.9473206 };
+
+function loadLocalLandmarks() {
+  if (localLandmarksLoadPromise) return localLandmarksLoadPromise;
+  localLandmarksLoadPromise = fetch('landmarks.json')
+    .then(res => res.json())
+    .then(data => { LOCAL_LANDMARKS = data; return data; })
+    .catch(() => { LOCAL_LANDMARKS = []; return []; });
+  return localLandmarksLoadPromise;
+}
+loadLocalLandmarks();
+
+function isWithinLocalCoverage(lat, lng) {
+  const b = LOCAL_LANDMARKS_BOUNDS;
+  return lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng;
+}
+
+function findLocalNearbyLandmarks(lat, lng, radius) {
+  return (LOCAL_LANDMARKS || [])
+    .map(p => ({ name: p.n, type: String(p.t).replace(/_/g, ' '), dist: haversineMeters(lat, lng, p.lat, p.lng), named: p.n !== 'Building' && !p.n.startsWith('Building (') }))
+    .filter(p => p.dist <= radius)
+    .sort((a, b) => (a.named === b.named) ? a.dist - b.dist : (a.named ? -1 : 1))
+    .slice(0, 8);
+}
+
+async function fetchNearbyLandmarks(lat, lng) {
+  if (!locLandmarkSuggestionsEl) return;
+  locLandmarkSuggestionsEl.innerHTML = `<p class="loc-search-loading">Finding nearby landmarks…</p>`;
+  locLandmarkSuggestionsEl.classList.add('show');
+
+  // Try the bundled local dataset first (instant, no network needed).
+  if (isWithinLocalCoverage(lat, lng)) {
+    await loadLocalLandmarks();
+    const localPlaces = findLocalNearbyLandmarks(lat, lng, 250);
+    if (localPlaces.length > 0 || LOCAL_LANDMARKS?.length) {
+      renderLandmarkSuggestions(localPlaces, lat, lng);
+      return;
+    }
+  }
+
+  try {
+    if (landmarkFetchAbort) landmarkFetchAbort.abort();
+    landmarkFetchAbort = new AbortController();
+    const radius = 250;
+    const query = `[out:json][timeout:15];(
+      nwr["name"]["amenity"](around:${radius},${lat},${lng});
+      nwr["name"]["shop"](around:${radius},${lat},${lng});
+      nwr["name"]["office"](around:${radius},${lat},${lng});
+      nwr["name"]["tourism"](around:${radius},${lat},${lng});
+      nwr["name"]["leisure"](around:${radius},${lat},${lng});
+      nwr["name"]["building"](around:${radius},${lat},${lng});
+    );out center 30;`;
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: "data=" + encodeURIComponent(query),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: landmarkFetchAbort.signal
+    });
+    const data = await res.json();
+    const seen = new Set();
+    const places = (data.elements || [])
+      .map(el => {
+        const elLat = el.lat ?? el.center?.lat;
+        const elLng = el.lon ?? el.center?.lon;
+        if (elLat == null || elLng == null || !el.tags?.name) return null;
+        const type = el.tags.amenity || el.tags.shop || el.tags.office || el.tags.tourism || el.tags.leisure || (el.tags.building && el.tags.building !== 'yes' ? el.tags.building : 'building');
+        return {
+          name: el.tags.name,
+          type: String(type).replace(/_/g, ' '),
+          dist: haversineMeters(lat, lng, elLat, elLng)
+        };
+      })
+      .filter(p => p && !seen.has(p.name) && seen.add(p.name))
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 8);
+    renderLandmarkSuggestions(places, lat, lng);
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      locLandmarkSuggestionsEl.innerHTML = `<p class="loc-search-empty">Couldn't load nearby landmarks — check your connection.</p>`;
+      locLandmarkSuggestionsEl.classList.add('show');
+    }
+  }
+}
+
+function scheduleNearbyLandmarks(lat, lng) {
+  clearTimeout(landmarkFetchDebounce);
+  landmarkFetchDebounce = setTimeout(() => fetchNearbyLandmarks(lat, lng), 500);
 }
 
 // Lazily creates the Leaflet map the first time the sheet is opened
@@ -1134,6 +1277,7 @@ function openLocationConfirm() {
   locConfirmBtn.textContent = "Confirm & place order";
   locLandmarkInput.value = "";
   locContactInput.value = digitsOnly(state.user?.number || "");
+  hideLandmarkSuggestions();
   locOverlay.classList.add('show');
 
   // Give the sheet's slide-up animation a moment before sizing the map.
@@ -1142,11 +1286,15 @@ function openLocationConfirm() {
     locMap.invalidateSize();
     locMap.setView([startLat, startLng], 16);
     if (locMarker) locMarker.setLatLng([startLat, startLng]);
+    if (parsed) scheduleNearbyLandmarks(startLat, startLng);
   }, 60);
 }
 
 function closeLocationConfirm() {
   locOverlay.classList.remove('show');
+  clearTimeout(landmarkFetchDebounce);
+  if (landmarkFetchAbort) landmarkFetchAbort.abort();
+  hideLandmarkSuggestions();
 }
 
 locGpsBtn.addEventListener('click', () => {
