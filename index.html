@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tiffin & Co.</title>
 <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#1C1B19" />
+<meta name="theme-color" content="#E23744" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -13,25 +13,29 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="icon" href="icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{
-    --ink:#1C1B19;
-    --marigold:#E8A33D;
-    --chili:#C1432E;
-    --leaf:#3F6B4F;
-    --cloud:#F7F3EA;
-    --muted:#B8B0A2;
-    --muted-2:#6E695F;
-    --field-bg:#25231F;
-    --field-border:#3A3733;
+    --bg:#FFFFFF;
+    --bg-outer:#F0EEEA;
+    --ink:#241F1B;
+    --marigold:#E23744;
+    --marigold-dark:#C81E2C;
+    --chili:#B0121F;
+    --leaf:#1BA672;
+    --cloud:#FFF9F2;
+    --muted:#948D80;
+    --muted-2:#5C574C;
+    --field-bg:#FFFFFF;
+    --field-border:#E7E2D8;
+    --card-shadow:0 2px 14px rgba(36,31,27,.08);
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
-    background:var(--ink);
+    background:var(--bg-outer);
     font-family:'Inter',sans-serif;
     display:flex;
     justify-content:center;
@@ -41,7 +45,7 @@
     width:100%;
     max-width:420px;
     min-height:100vh;
-    background:var(--ink);
+    background:var(--bg);
     position:relative;
   }
   .screen{ display:none; padding-bottom:24px; }
@@ -50,187 +54,207 @@
   .header{ padding:40px 24px 24px; }
   .eyebrow{
     color:var(--marigold);
-    font-family:'IBM Plex Mono',monospace;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
     font-size:12px;
-    letter-spacing:2px;
+    letter-spacing:1.5px;
     margin:0;
   }
   .title{
-    color:var(--cloud);
+    color:var(--ink);
     font-family:'Fraunces',serif;
     font-size:30px;
     font-weight:700;
     margin:4px 0 0;
   }
-  .subtitle{ color:var(--muted); font-size:14px; margin:0 0 4px; }
+  .subtitle{ color:var(--muted-2); font-size:14px; margin:0 0 4px; }
 
   .px{ padding-left:24px; padding-right:24px; }
   .stack > * + *{ margin-top:14px; }
 
   .field{
     display:flex; align-items:center; gap:8px;
-    padding:12px; border-radius:10px;
-    background:var(--field-bg); border:1px solid var(--field-border);
+    padding:13px 14px; border-radius:12px;
+    background:var(--field-bg); border:1.5px solid var(--field-border);
   }
   .field input{
     background:transparent; border:none; outline:none;
-    width:100%; font-size:14px; color:var(--cloud); font-family:'Inter',sans-serif;
+    width:100%; font-size:14px; color:var(--ink); font-family:'Inter',sans-serif;
   }
+  .field input::placeholder{ color:var(--muted); }
   .field svg{ flex-shrink:0; }
 
   .btn-primary{
-    width:100%; padding:14px; border:none; border-radius:10px;
-    background:var(--marigold); color:var(--ink); font-weight:600;
+    width:100%; padding:15px; border:none; border-radius:12px;
+    background:var(--marigold); color:#fff; font-weight:700;
     font-size:15px; font-family:'Inter',sans-serif; cursor:pointer;
-    transition:transform .1s;
+    letter-spacing:.2px; transition:transform .1s;
+    box-shadow:0 6px 16px rgba(226,55,68,.28);
   }
   .btn-primary:active{ transform:scale(0.98); }
-  .btn-primary:disabled{ background:#9C9384; opacity:.6; cursor:not-allowed; }
+  .btn-primary:disabled{ background:#E3DFD8; color:var(--muted); box-shadow:none; cursor:not-allowed; }
 
   .btn-link{
     width:100%; text-align:center; padding:8px; background:none; border:none;
-    color:var(--marigold); font-size:14px; cursor:pointer; font-family:'Inter',sans-serif;
+    color:var(--marigold); font-size:14px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;
   }
 
   .btn-back{ background:none; border:none; color:var(--marigold); cursor:pointer; padding:0; display:flex; }
 
   .gps-btn{
-    padding:12px 14px; border:none; border-radius:10px; background:var(--leaf);
-    color:var(--cloud); font-size:12px; font-weight:600; white-space:nowrap; cursor:pointer;
+    padding:12px 14px; border:none; border-radius:12px; background:var(--leaf);
+    color:#fff; font-size:12px; font-weight:700; white-space:nowrap; cursor:pointer;
   }
   .row-flex{ display:flex; align-items:center; gap:8px; }
   .flex-1{ flex:1; }
 
+  /* Solid, elevated Zomato-style card — used for restaurant & menu-item rows */
+  .card{
+    background:#fff; border:1px solid var(--field-border); border-radius:16px;
+    padding:16px; box-shadow:var(--card-shadow);
+  }
+
+  /* Dashed "kitchen ticket" card — kept as the one signature receipt motif,
+     reserved for order confirmation & tracking so it still feels distinct. */
   .chit{
-    background:var(--cloud); border:1.5px dashed var(--ink); border-radius:10px;
+    background:var(--cloud); border:1.5px dashed var(--marigold-dark); border-radius:14px;
     padding:16px;
   }
 
   .stamp{
-    display:inline-flex; align-items:center; gap:4px; padding:6px 8px;
-    border:2px solid var(--leaf); color:var(--leaf); border-radius:6px;
-    transform:rotate(-4deg); font-family:'IBM Plex Mono',monospace;
-    font-size:11px; letter-spacing:1px; font-weight:700;
+    display:inline-flex; align-items:center; gap:4px; padding:6px 10px;
+    border:1.5px solid var(--leaf); color:var(--leaf); border-radius:20px;
+    background:rgba(27,166,114,.08);
+    font-family:'Inter',sans-serif; font-weight:700;
+    font-size:11px; letter-spacing:.5px;
   }
 
   .otp-wrap{ display:flex; gap:12px; justify-content:center; padding:8px 0; }
   .otp-box{
-    width:48px; height:56px; text-align:center; font-size:20px; border-radius:10px;
-    background:var(--field-bg); border:1.5px solid var(--field-border); color:var(--cloud);
-    font-family:'IBM Plex Mono',monospace; outline:none;
+    width:48px; height:56px; text-align:center; font-size:20px; border-radius:12px;
+    background:var(--field-bg); border:1.5px solid var(--field-border); color:var(--ink);
+    font-family:'Poppins',sans-serif; font-weight:700; outline:none;
   }
   .otp-box.error{ border-color:var(--chili); }
   .error-text{ color:var(--chili); font-size:13px; margin:0; }
-  .hint-text{ color:var(--muted-2); font-size:12px; margin:0; }
+  .hint-text{ color:var(--muted); font-size:12px; margin:0; }
 
   .top-row{ padding:40px 24px 16px; display:flex; align-items:flex-start; justify-content:space-between; }
   .loc-row{ display:flex; align-items:center; gap:6px; margin-top:4px; }
-  .greeting{ padding:0 24px; color:var(--cloud); font-family:'Fraunces',serif; font-size:26px; font-weight:700; margin:0; }
+  .greeting{ padding:0 24px; color:var(--ink); font-family:'Fraunces',serif; font-size:26px; font-weight:700; margin:0; }
 
   .search-wrap{ padding:16px 24px 0; }
+  .search-wrap .field{ background:var(--cloud); border-color:var(--cloud); }
 
   .rest-list{ padding:24px 24px 0; display:flex; flex-direction:column; gap:16px; }
   .rest-card{ cursor:pointer; padding:0; border:none; width:100%; text-align:left; background:none; }
   .rest-top{ display:flex; align-items:center; gap:12px; }
   .rest-avatar{
-    width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center;
-    font-weight:700; font-family:'Fraunces',serif; color:var(--ink); font-size:20px; flex-shrink:0;
+    width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-family:'Poppins',sans-serif; color:#fff; font-size:20px; flex-shrink:0;
+    box-shadow:0 3px 8px rgba(36,31,27,.18);
   }
-  .rest-name{ color:var(--ink); font-weight:700; font-family:'Fraunces',serif; font-size:17px; margin:0; }
-  .rest-cuisine{ color:#5C574C; font-size:12px; margin:2px 0 0; }
-  .rest-meta{ display:flex; align-items:center; gap:16px; margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; }
-  .rest-rating{ display:flex; align-items:center; gap:4px; color:var(--leaf); }
-  .rest-time{ color:#5C574C; }
-  .empty-text{ color:var(--muted-2); font-size:14px; }
+  .rest-name{ color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:16px; margin:0; }
+  .rest-cuisine{ color:var(--muted-2); font-size:12px; margin:2px 0 0; }
+  .rest-meta{ display:flex; align-items:center; gap:10px; margin-top:12px; font-size:12px; }
+  .rest-rating{
+    display:flex; align-items:center; gap:3px; color:#fff; background:var(--leaf);
+    padding:3px 8px; border-radius:6px; font-weight:700; font-family:'Inter',sans-serif;
+  }
+  .rest-time{ color:var(--muted-2); font-family:'IBM Plex Mono',monospace; }
+  .empty-text{ color:var(--muted); font-size:14px; }
 
   .menu-header{ padding:32px 24px 0; display:flex; align-items:center; gap:12px; }
-  .menu-rest-name{ color:var(--cloud); font-family:'Fraunces',serif; font-size:20px; font-weight:700; margin:0; }
+  .menu-rest-name{ color:var(--ink); font-family:'Poppins',sans-serif; font-size:19px; font-weight:700; margin:0; }
   .menu-rest-meta{ color:var(--muted-2); font-size:12px; margin:2px 0 0; }
 
   .item-list{ padding:24px 24px 100px; display:flex; flex-direction:column; gap:12px; }
   .item-card{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .item-name{ color:var(--ink); font-weight:700; font-family:'Fraunces',serif; font-size:16px; margin:0; }
-  .item-desc{ color:#5C574C; font-size:12px; margin:2px 0 0; max-width:200px; }
-  .item-price{ color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:14px; margin:6px 0 0; }
+  .item-name{ color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:15px; margin:0; }
+  .item-desc{ color:var(--muted-2); font-size:12px; margin:4px 0 0; max-width:200px; }
+  .item-price{ color:var(--marigold-dark); font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:14px; margin:8px 0 0; }
 
   .add-btn{
-    padding:10px 16px; border-radius:10px; border:none; background:var(--marigold);
-    color:var(--ink); font-weight:600; font-size:14px; cursor:pointer; flex-shrink:0;
+    padding:10px 20px; border-radius:10px; border:1.5px solid var(--marigold);
+    background:#fff; color:var(--marigold); font-weight:700; font-size:13px;
+    letter-spacing:.5px; cursor:pointer; flex-shrink:0;
   }
   .qty-wrap{
-    display:flex; align-items:center; gap:12px; padding:6px 10px; border-radius:10px;
-    background:var(--ink); flex-shrink:0;
+    display:flex; align-items:center; gap:12px; padding:8px 12px; border-radius:10px;
+    background:var(--marigold); flex-shrink:0;
   }
-  .qty-wrap button{ background:none; border:none; color:var(--cloud); cursor:pointer; display:flex; padding:2px; }
-  .qty-num{ color:var(--cloud); font-family:'IBM Plex Mono',monospace; font-size:14px; min-width:12px; text-align:center; }
+  .qty-wrap button{ background:none; border:none; color:#fff; cursor:pointer; display:flex; padding:2px; }
+  .qty-num{ color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:14px; min-width:12px; text-align:center; }
 
   .cart-bar{
     position:fixed; bottom:0; width:100%; max-width:420px;
-    padding:12px 24px 24px; background:linear-gradient(to top, var(--ink) 60%, transparent);
+    padding:12px 24px 24px; background:linear-gradient(to top, var(--bg) 65%, transparent);
     display:none;
   }
   .cart-bar.visible{ display:block; }
   .cart-btn{
-    width:100%; padding:16px 20px; border-radius:10px; background:var(--leaf); border:none;
+    width:100%; padding:16px 20px; border-radius:12px; background:var(--leaf); border:none;
     display:flex; align-items:center; justify-content:space-between; cursor:pointer;
+    box-shadow:0 8px 20px rgba(27,166,114,.32);
   }
-  .cart-btn-left{ display:flex; align-items:center; gap:8px; color:var(--cloud); font-weight:600; font-size:14px; }
-  .cart-btn-right{ color:var(--cloud); font-family:'IBM Plex Mono',monospace; font-weight:600; }
+  .cart-btn-left{ display:flex; align-items:center; gap:8px; color:#fff; font-weight:700; font-size:14px; }
+  .cart-btn-right{ color:#fff; font-family:'IBM Plex Mono',monospace; font-weight:700; }
 
   .confirm-wrap{ padding:64px 24px 0; display:flex; flex-direction:column; align-items:center; text-align:center; }
   .confirm-check{
     width:64px; height:64px; border-radius:50%; background:var(--leaf); display:flex;
     align-items:center; justify-content:center; margin-bottom:24px;
+    box-shadow:0 8px 20px rgba(27,166,114,.32);
   }
-  .confirm-title{ color:var(--cloud); font-family:'Fraunces',serif; font-size:26px; font-weight:700; margin:6px 0 0; }
-  .confirm-sub{ color:var(--muted); font-size:14px; margin:8px 0 0; }
+  .confirm-title{ color:var(--ink); font-family:'Fraunces',serif; font-size:26px; font-weight:700; margin:6px 0 0; }
+  .confirm-sub{ color:var(--muted-2); font-size:14px; margin:8px 0 0; }
   .ticket{ width:100%; padding:20px; margin-top:32px; }
-  .ticket-label{ color:#5C574C; font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0; }
+  .ticket-label{ color:var(--muted-2); font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0; }
   .ticket-num{ color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:700; margin:4px 0 0; }
-  .ticket-divider{ border-top:1px dashed var(--ink); margin-top:12px; padding-top:12px; }
-  .ticket-eta{ color:#5C574C; font-size:12px; margin:0; }
+  .ticket-divider{ border-top:1px dashed var(--marigold-dark); margin-top:12px; padding-top:12px; }
+  .ticket-eta{ color:var(--muted-2); font-size:12px; margin:0; }
   .confirm-btn-wrap{ width:100%; margin-top:40px; }
 
   /* Delivery location confirm sheet */
   .loc-overlay{
-    position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:2000;
+    position:fixed; inset:0; background:rgba(36,31,27,.55); z-index:2000;
     display:none; align-items:flex-end; justify-content:center;
   }
   .loc-overlay.show{ display:flex; }
   .loc-sheet{
-    width:100%; max-width:420px; background:var(--cloud); border-radius:20px 20px 0 0;
+    width:100%; max-width:420px; background:#fff; border-radius:22px 22px 0 0;
     padding:24px; animation:locUp .25s ease-out;
   }
   @keyframes locUp{ from{ transform:translateY(30px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
-  .loc-eyebrow{ color:var(--chili); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; margin:0; font-weight:700; }
+  .loc-eyebrow{ color:var(--chili); font-family:'Inter',sans-serif; font-size:12px; letter-spacing:1.5px; margin:0; font-weight:700; }
   .loc-title{ color:var(--ink); font-family:'Fraunces',serif; font-size:20px; font-weight:700; margin:4px 0 16px; }
-  .loc-current{ background:#fff; border-radius:12px; padding:14px 16px; margin-bottom:14px; }
-  .loc-current-label{ color:#5C574C; font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 4px; text-transform:uppercase; }
+  .loc-current{ background:var(--cloud); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  .loc-current-label{ color:var(--muted-2); font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 4px; text-transform:uppercase; }
   .loc-current-value{ color:var(--ink); font-size:14px; margin:0; font-weight:600; }
   .loc-gps-btn{
-    width:100%; padding:12px; border:none; border-radius:10px; background:var(--leaf);
-    color:var(--cloud); font-size:14px; font-weight:600; cursor:pointer; margin-bottom:10px;
+    width:100%; padding:12px; border:none; border-radius:12px; background:var(--leaf);
+    color:#fff; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:10px;
     font-family:'Inter',sans-serif;
   }
   .loc-btn-row{ display:flex; gap:10px; }
   .loc-btn-row .btn-primary{ background:var(--marigold); }
   .loc-cancel-btn{
-    flex:1; padding:14px; border-radius:10px; background:none; border:1px solid var(--field-border);
-    color:var(--muted-2); font-weight:600; font-size:15px; font-family:'Inter',sans-serif; cursor:pointer;
+    flex:1; padding:14px; border-radius:12px; background:none; border:1.5px solid var(--field-border);
+    color:var(--muted-2); font-weight:700; font-size:15px; font-family:'Inter',sans-serif; cursor:pointer;
   }
   .loc-map-wrap{ position:relative; margin-bottom:10px; }
-  .loc-map{ width:100%; height:200px; border-radius:12px; overflow:hidden; background:#e7e2d6; }
+  .loc-map{ width:100%; height:200px; border-radius:14px; overflow:hidden; background:var(--cloud); }
   .loc-map-hint{
     position:absolute; bottom:8px; left:8px; right:8px; text-align:center;
-    background:rgba(28,27,25,.75); color:var(--cloud); font-size:11px; padding:5px 8px;
+    background:rgba(36,31,27,.75); color:#fff; font-size:11px; padding:5px 8px;
     border-radius:6px; pointer-events:none; font-family:'Inter',sans-serif;
   }
   .loc-sheet .field{ margin-bottom:10px; }
-  .loc-field-label{ color:#5C574C; font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 6px; text-transform:uppercase; }
+  .loc-field-label{ color:var(--muted-2); font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 6px; text-transform:uppercase; }
 
   /* Track order */
   .track-header{ padding:40px 24px 8px; display:flex; align-items:center; gap:14px; }
-  .track-title{ color:var(--cloud); font-family:'Fraunces',serif; font-size:20px; font-weight:700; margin:2px 0 0; }
+  .track-title{ color:var(--ink); font-family:'Poppins',sans-serif; font-size:19px; font-weight:700; margin:2px 0 0; }
   .track-sub{ color:var(--muted-2); font-size:12px; margin:2px 0 0; font-family:'IBM Plex Mono',monospace; }
   .track-body{ padding:24px; }
   .track-ticket{ margin-bottom:28px; }
@@ -239,7 +263,7 @@
   .timeline-dotcol{ position:relative; display:flex; flex-direction:column; align-items:center; }
   .timeline-dot{
     width:26px; height:26px; border-radius:50%; flex-shrink:0; z-index:1;
-    background:var(--field-bg); border:2px solid var(--field-border);
+    background:#fff; border:2px solid var(--field-border);
     display:flex; align-items:center; justify-content:center;
   }
   .timeline-step.done .timeline-dot,
@@ -247,9 +271,19 @@
   .timeline-line{ width:2px; flex:1; min-height:26px; background:var(--field-border); }
   .timeline-step.done .timeline-line{ background:var(--leaf); }
   .timeline-content{ padding-bottom:26px; }
-  .timeline-label{ color:var(--cloud); font-weight:600; font-size:14px; margin:2px 0 0; }
+  .timeline-label{ color:var(--ink); font-weight:600; font-size:14px; margin:2px 0 0; }
   .timeline-step.pending .timeline-label{ color:var(--muted); font-weight:500; }
-  .timeline-step.current .timeline-label{ color:var(--marigold); }
+  .timeline-step.current .timeline-label{ color:var(--marigold); font-weight:700; }
+
+  /* Home screen: big track-order shortcut */
+  .top-row-right{ display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
+  .home-track-btn{
+    width:56px; height:56px; border-radius:50%; border:none; background:var(--marigold);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    box-shadow:0 6px 16px rgba(226,55,68,.35); flex-shrink:0;
+  }
+  .home-track-btn:active{ transform:scale(0.96); }
+  .home-track-btn.hidden{ display:none; }
 </style>
 </head>
 <body>
@@ -274,13 +308,13 @@
 
       <p class="loc-field-label">Landmark</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C1432E" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
         <input id="loc-landmark" type="text" placeholder="e.g. Near St. Mary's Church, opposite bakery" style="color:var(--ink);" />
       </div>
 
       <p class="loc-field-label">Contact number for this order</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C1432E" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <input id="loc-contact" type="tel" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" style="color:var(--ink);" />
       </div>
 
@@ -300,11 +334,11 @@
     <div class="px stack">
       <p class="subtitle">Login with your mobile number and password.</p>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <input id="login-number" type="tel" maxlength="10" placeholder="Mobile number (username)" inputmode="numeric" />
       </div>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <input id="login-password" type="password" placeholder="Password" />
       </div>
       <p class="error-text" id="login-error" style="display:none;"></p>
@@ -317,7 +351,7 @@
   <section class="screen" id="screen-register">
     <div class="px" style="padding-top:32px;">
       <button class="btn-back" onclick="showScreen('login')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
     </div>
     <div class="header">
@@ -326,26 +360,26 @@
     </div>
     <div class="px stack">
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <input id="reg-name" type="text" placeholder="Full name" />
       </div>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         <input id="reg-address" type="text" placeholder="Delivery address" />
       </div>
       <div class="row-flex">
         <div class="field flex-1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <input id="reg-location" type="text" placeholder="Live location (area, city)" />
         </div>
         <button class="gps-btn" id="reg-gps-btn">Use GPS</button>
       </div>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <input id="reg-number" type="tel" maxlength="10" placeholder="Mobile number (will be your username)" inputmode="numeric" />
       </div>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <input id="reg-password" type="password" placeholder="Create password" />
       </div>
       <p class="error-text" id="reg-error" style="display:none;"></p>
@@ -359,7 +393,7 @@
   <section class="screen" id="screen-otp">
     <div class="px" style="padding-top:32px;">
       <button class="btn-back" id="otp-back">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
     </div>
     <div class="header">
@@ -367,7 +401,7 @@
       <h1 class="title">Enter OTP</h1>
     </div>
     <div class="px stack">
-      <p class="subtitle">Code sent to <span style="color:var(--cloud);" id="otp-number-display">+91 —</span></p>
+      <p class="subtitle">Code sent to <span style="color:var(--ink); font-weight:700;" id="otp-number-display">+91 —</span></p>
       <div class="otp-wrap" id="otp-inputs">
         <input class="otp-box" maxlength="1" inputmode="numeric" data-idx="0" />
         <input class="otp-box" maxlength="1" inputmode="numeric" data-idx="1" />
@@ -386,19 +420,24 @@
       <div>
         <p class="eyebrow">DELIVER TO</p>
         <div class="loc-row">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <p style="color:var(--cloud); font-size:14px; margin:0;" id="home-location">Set location</p>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#241F1B" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <p style="color:var(--ink); font-size:14px; margin:0; font-weight:600;" id="home-location">Set location</p>
         </div>
       </div>
-      <div class="stamp">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3F6B4F" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-        VERIFIED
+      <div class="top-row-right">
+        <div class="stamp">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1BA672" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          VERIFIED
+        </div>
+        <button class="home-track-btn hidden" id="home-track-btn" title="Track your order">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </button>
       </div>
     </div>
     <h1 class="greeting" id="home-greeting">Hungry, friend?</h1>
     <div class="search-wrap">
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="search-input" type="text" placeholder="Search restaurants or cuisine" />
       </div>
     </div>
@@ -409,7 +448,7 @@
   <section class="screen" id="screen-menu">
     <div class="menu-header">
       <button class="btn-back" onclick="showScreen('home')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div>
         <p class="menu-rest-name" id="menu-rest-name"></p>
@@ -455,7 +494,7 @@
   <section class="screen" id="screen-track">
     <div class="track-header">
       <button class="btn-back" id="track-back-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div>
         <p class="eyebrow">LIVE STATUS</p>
@@ -493,7 +532,7 @@
 
   const fbApp = initializeApp(firebaseConfig);
   const db = getDatabase(fbApp);
-  const REST_COLORS = ["#E8A33D", "#C1432E", "#3F6B4F", "#7C5CBF", "#2E86AB"];
+  const REST_COLORS = ["#E23744", "#B0121F", "#1BA672", "#7C5CBF", "#2E86AB"];
 
   // Exposed so the plain <script> below can push a new order straight into
   // the restaurant's node in Firebase. The restaurant partner app listens on
@@ -756,13 +795,22 @@ function showOtpError(msg) {
 // ---------- HOME ----------
 const homeLocation = document.getElementById('home-location');
 const homeGreeting = document.getElementById('home-greeting');
+const homeTrackBtn = document.getElementById('home-track-btn');
 const searchInput = document.getElementById('search-input');
 const restListEl = document.getElementById('rest-list');
+
+// Shows the big round track button on the home screen only once there's an
+// order placed this session to actually track.
+function updateHomeTrackBtn() {
+  homeTrackBtn.classList.toggle('hidden', !state.lastOrder);
+}
+homeTrackBtn.addEventListener('click', openTrackOrder);
 
 function renderHome() {
   homeLocation.textContent = state.user?.location || "Set location";
   const firstName = (state.user?.name || "friend").split(' ')[0];
   homeGreeting.textContent = "Hungry, " + firstName + "?";
+  updateHomeTrackBtn();
   renderRestaurantList();
 }
 
@@ -778,9 +826,9 @@ function renderRestaurantList() {
     return;
   }
   filtered.forEach(r => {
-    const chit = document.createElement('div');
-    chit.className = "chit";
-    chit.innerHTML = `
+    const card = document.createElement('div');
+    card.className = "card";
+    card.innerHTML = `
       <button class="rest-card" data-id="${r.id}">
         <div class="rest-top">
           <div class="rest-avatar" style="background:${r.color};">${r.name.charAt(0)}</div>
@@ -791,15 +839,15 @@ function renderRestaurantList() {
         </div>
         <div class="rest-meta">
           <span class="rest-rating">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="#3F6B4F" stroke="#3F6B4F"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" stroke="#fff"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             ${r.rating}
           </span>
           <span class="rest-time">${r.time}</span>
         </div>
       </button>
     `;
-    chit.querySelector('.rest-card').addEventListener('click', () => openRestaurant(r.id));
-    restListEl.appendChild(chit);
+    card.querySelector('.rest-card').addEventListener('click', () => openRestaurant(r.id));
+    restListEl.appendChild(card);
   });
 }
 searchInput.addEventListener('input', renderRestaurantList);
@@ -828,7 +876,7 @@ function renderMenu() {
   r.items.forEach(it => {
     const qty = state.cart[it.id] || 0;
     const card = document.createElement('div');
-    card.className = "chit item-card";
+    card.className = "card item-card";
     card.innerHTML = `
       <div>
         <p class="item-name">${it.name}</p>
@@ -1061,6 +1109,7 @@ locConfirmBtn.addEventListener('click', async () => {
     // Remember which order this is so the "Track your Order" button knows
     // exactly which Firebase node to watch for live status updates.
     state.lastOrder = { restId: r.id, orderKey: orderRef.key, orderNumber, restName: r.name };
+    updateHomeTrackBtn();
     state.cart = {};
     closeLocationConfirm();
     showScreen('placed');
