@@ -7,6 +7,22 @@
     {
       "type": "Feature",
       "properties": {
+        "@id": "node/manual-channayil-bridge",
+        "name": "Chennayil",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.908850,
+          11.234110
+        ]
+      },
+      "id": "node/manual-channayil-bridge"
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "@id": "way/717432776",
         "building": "yes",
         "@geometry": "center"
