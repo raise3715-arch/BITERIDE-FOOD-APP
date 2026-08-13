@@ -284,6 +284,33 @@
   }
   .home-track-btn:active{ transform:scale(0.96); }
   .home-track-btn.hidden{ display:none; }
+
+  .your-orders-btn{
+    display:inline-flex; align-items:center; gap:6px; margin-top:10px;
+    padding:7px 12px; border-radius:20px; border:1.5px solid var(--marigold);
+    background:rgba(226,55,68,.06); color:var(--marigold); font-weight:700;
+    font-size:12px; font-family:'Inter',sans-serif; cursor:pointer;
+  }
+
+  /* Your Orders screen */
+  .orders-header{ padding:40px 24px 8px; display:flex; align-items:center; gap:14px; }
+  .orders-title{ color:var(--ink); font-family:'Poppins',sans-serif; font-size:19px; font-weight:700; margin:2px 0 0; }
+  .orders-body{ padding:16px 24px 24px; }
+  .orders-section-label{
+    color:var(--muted-2); font-size:11px; font-family:'IBM Plex Mono',monospace;
+    letter-spacing:1.5px; text-transform:uppercase; margin:20px 0 10px;
+  }
+  .orders-section-label:first-child{ margin-top:0; }
+  .order-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer; margin-bottom:12px; }
+  .order-row-name{ color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:14px; margin:0; }
+  .order-row-meta{ color:var(--muted-2); font-size:11px; margin:3px 0 0; font-family:'IBM Plex Mono',monospace; }
+  .order-status-chip{
+    padding:5px 10px; border-radius:16px; font-size:11px; font-weight:700;
+    font-family:'Inter',sans-serif; white-space:nowrap; flex-shrink:0;
+  }
+  .order-status-chip.live{ background:rgba(226,55,68,.1); color:var(--marigold); }
+  .order-status-chip.delivered{ background:rgba(27,166,114,.1); color:var(--leaf); }
+  .order-status-chip.cancelled{ background:#F0EEEA; color:var(--muted-2); }
 </style>
 </head>
 <body>
@@ -423,6 +450,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#241F1B" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <p style="color:var(--ink); font-size:14px; margin:0; font-weight:600;" id="home-location">Set location</p>
         </div>
+        <button class="your-orders-btn" id="your-orders-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Your Orders
+        </button>
       </div>
       <div class="top-row-right">
         <div class="stamp">
@@ -511,6 +542,24 @@
         </div>
       </div>
       <div class="timeline" id="track-timeline"></div>
+    </div>
+  </section>
+
+  <!-- YOUR ORDERS -->
+  <section class="screen" id="screen-orders">
+    <div class="orders-header">
+      <button class="btn-back" id="orders-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <p class="eyebrow">ORDER HISTORY</p>
+        <h1 class="orders-title">Your Orders</h1>
+      </div>
+    </div>
+    <div class="orders-body" id="orders-body">
+      <p class="empty-text" id="orders-empty" style="display:none;">No orders yet — your placed orders will show up here.</p>
+      <div id="orders-live-section"></div>
+      <div id="orders-past-section"></div>
     </div>
   </section>
 
@@ -804,7 +853,7 @@ const restListEl = document.getElementById('rest-list');
 function updateHomeTrackBtn() {
   homeTrackBtn.classList.toggle('hidden', !state.lastOrder);
 }
-homeTrackBtn.addEventListener('click', openTrackOrder);
+homeTrackBtn.addEventListener('click', () => openTrackOrder(state.lastOrder, 'home'));
 
 function renderHome() {
   homeLocation.textContent = state.user?.location || "Set location";
@@ -1190,9 +1239,15 @@ function renderTrackTimeline(rawStatus) {
   });
 }
 
-function openTrackOrder() {
-  const order = state.lastOrder;
+// Which screen the back button on the track screen should return to —
+// 'home' when opened from the track shortcut, 'orders' when opened from a
+// row in the Your Orders history list.
+let trackReturnScreen = 'home';
+
+function openTrackOrder(order, returnScreen) {
+  order = order || state.lastOrder;
   if (!order) return;
+  trackReturnScreen = returnScreen || 'home';
   trackRestName.textContent = order.restName;
   trackOrderNum.textContent = "Order " + order.orderNumber;
   renderTrackTimeline('pending');
@@ -1208,11 +1263,127 @@ function openTrackOrder() {
 
 function leaveTrackScreen() {
   if (trackUnsub) { trackUnsub(); trackUnsub = null; }
+  showScreen(trackReturnScreen);
+}
+
+confirmTrackBtn.addEventListener('click', () => openTrackOrder(state.lastOrder, 'home'));
+trackBackBtn.addEventListener('click', leaveTrackScreen);
+
+// ---------- YOUR ORDERS ----------
+const yourOrdersBtn = document.getElementById('your-orders-btn');
+const ordersBackBtn = document.getElementById('orders-back-btn');
+const ordersEmptyEl = document.getElementById('orders-empty');
+const ordersLiveSection = document.getElementById('orders-live-section');
+const ordersPastSection = document.getElementById('orders-past-section');
+
+// Unsubscribe for the live listener backing the Your Orders screen —
+// cleared when the user leaves so it doesn't keep running in the background.
+let ordersUnsub = null;
+
+function statusChipInfo(status) {
+  if (status === 'delivered') return { cls: 'delivered', label: 'Delivered' };
+  if (status === 'cancelled') return { cls: 'cancelled', label: 'Cancelled' };
+  const step = ORDER_STEPS.find(s => s.key === status);
+  return { cls: 'live', label: step ? step.label : 'In progress' };
+}
+
+function renderOrderRow(o) {
+  const status = normalizeStatus(o.status);
+  const chip = statusChipInfo(status);
+  const itemCount = Array.isArray(o.items) ? o.items.reduce((a, it) => a + (it.qty || 0), 0) : 0;
+  const row = document.createElement('div');
+  row.className = "card order-row";
+  row.innerHTML = `
+    <div>
+      <p class="order-row-name">${o.restName}</p>
+      <p class="order-row-meta">${o.orderNumber} · ${itemCount} item${itemCount === 1 ? '' : 's'} · ₹${o.total || 0}</p>
+    </div>
+    <span class="order-status-chip ${chip.cls}">${chip.label}</span>
+  `;
+  row.addEventListener('click', () => openTrackOrder(
+    { restId: o.restId, orderKey: o.orderKey, orderNumber: o.orderNumber, restName: o.restName },
+    'orders'
+  ));
+  return row;
+}
+
+function renderOrdersList(orders) {
+  ordersLiveSection.innerHTML = "";
+  ordersPastSection.innerHTML = "";
+  if (orders.length === 0) {
+    ordersEmptyEl.style.display = "block";
+    return;
+  }
+  ordersEmptyEl.style.display = "none";
+
+  // "In progress" = anything not yet delivered or cancelled — this is the
+  // order that's still on its way, shown above everything else.
+  const live = orders.filter(o => !['delivered', 'cancelled'].includes(normalizeStatus(o.status)));
+  const past = orders.filter(o => ['delivered', 'cancelled'].includes(normalizeStatus(o.status)));
+  live.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  past.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  if (live.length) {
+    const label = document.createElement('p');
+    label.className = "orders-section-label";
+    label.textContent = "Order in progress";
+    ordersLiveSection.appendChild(label);
+    live.forEach(o => ordersLiveSection.appendChild(renderOrderRow(o)));
+  }
+  if (past.length) {
+    const label = document.createElement('p');
+    label.className = "orders-section-label";
+    label.textContent = "Past orders";
+    ordersPastSection.appendChild(label);
+    past.forEach(o => ordersPastSection.appendChild(renderOrderRow(o)));
+  }
+}
+
+function openOrdersScreen() {
+  showScreen('orders');
+  ordersLiveSection.innerHTML = "";
+  ordersPastSection.innerHTML = "";
+  ordersEmptyEl.style.display = "none";
+
+  const myNumber = state.user?.number || "";
+  if (ordersUnsub) { ordersUnsub(); ordersUnsub = null; }
+  const { db, ref, onValue } = window.fb;
+  // Orders live under each restaurant's own node rather than a per-customer
+  // index, so scan every restaurant's orders and keep just this customer's,
+  // matched by phone number.
+  ordersUnsub = onValue(ref(db, 'restaurants'), snap => {
+    const mine = [];
+    snap.forEach(restSnap => {
+      const restVal = restSnap.val() || {};
+      const restName = restVal.restaurantName || 'Restaurant';
+      const ordersVal = restVal.orders;
+      if (!ordersVal) return;
+      Object.keys(ordersVal).forEach(orderKey => {
+        const o = ordersVal[orderKey];
+        if (!o || o.customerPhone !== myNumber) return;
+        mine.push({
+          restId: restSnap.key,
+          orderKey,
+          restName,
+          orderNumber: o.orderNumber,
+          status: o.status,
+          items: o.items,
+          total: o.total,
+          createdAt: o.createdAt,
+        });
+      });
+    });
+    renderOrdersList(mine);
+  });
+}
+
+function leaveOrdersScreen() {
+  if (ordersUnsub) { ordersUnsub(); ordersUnsub = null; }
   showScreen('home');
 }
 
-confirmTrackBtn.addEventListener('click', openTrackOrder);
-trackBackBtn.addEventListener('click', leaveTrackScreen);
+yourOrdersBtn.addEventListener('click', openOrdersScreen);
+ordersBackBtn.addEventListener('click', leaveOrdersScreen);
 
 // ---------- Init ----------
 renderHome();
