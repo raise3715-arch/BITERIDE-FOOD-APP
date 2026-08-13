@@ -349,6 +349,12 @@
       </div>
       <button class="loc-gps-btn" id="loc-gps-btn">📍 Use my current location</button>
 
+      <p class="loc-field-label">Place / Area</p>
+      <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8.2-7-11a7 7 0 0 1 14 0c0 2.8-3 6.5-7 11z"/></svg>
+        <input id="loc-place" type="text" placeholder="e.g. Vazhayur, Kodiyammal…" style="color:var(--ink);" />
+      </div>
+
       <p class="loc-field-label">Landmark</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
@@ -1081,6 +1087,7 @@ const locGpsBtn = document.getElementById('loc-gps-btn');
 const locCancelBtn = document.getElementById('loc-cancel-btn');
 const locConfirmBtn = document.getElementById('loc-confirm-btn');
 const locLandmarkInput = document.getElementById('loc-landmark');
+const locPlaceInput = document.getElementById('loc-place');
 const locContactInput = document.getElementById('loc-contact');
 
 // Holds whatever location will actually be sent with the order. Pre-filled
@@ -1104,6 +1111,7 @@ function setPendingFromLatLng(lat, lng) {
   pendingLocation = { text: lat.toFixed(5) + ", " + lng.toFixed(5), lat, lng };
   locCurrentValue.textContent = pendingLocation.text;
   scheduleNearbyLandmarks(lat, lng);
+  schedulePlaceArea(lat, lng);
 }
 
 // ---------- Nearby landmark buildings via Overpass API (OpenStreetMap) ----------
@@ -1137,6 +1145,11 @@ function renderLandmarkSuggestions(places, lat, lng) {
   if (places.length === 0) {
     hideLandmarkSuggestions();
     return;
+  }
+  // Auto-fill the nearest landmark into the field so the user doesn't have
+  // to tap anything — they can still edit it or tap a different suggestion.
+  if (!locLandmarkInput.value.trim()) {
+    locLandmarkInput.value = "Near " + places[0].name;
   }
   places.forEach(place => {
     const item = document.createElement('div');
@@ -1179,15 +1192,21 @@ function loadLocalLandmarks() {
   localLandmarksLoadPromise = fetch('export.geojson')
     .then(res => res.json())
     .then(geo => {
-      LOCAL_LANDMARKS = (geo.features || []).map(f => {
+      LOCAL_LANDMARKS = [];
+      LOCAL_LOCALITIES = [];
+      (geo.features || []).forEach(f => {
         const p = f.properties || {};
         const coords = f.geometry?.coordinates;
-        if (!coords) return null;
-        return { n: landmarkLabelFromProps(p), t: landmarkTypeFromProps(p), lat: coords[1], lng: coords[0], named: !!p.name };
-      }).filter(Boolean);
+        if (!coords) return;
+        LOCAL_LANDMARKS.push({ n: landmarkLabelFromProps(p), t: landmarkTypeFromProps(p), lat: coords[1], lng: coords[0], named: !!p.name });
+        if (p['addr:city']) {
+          const cityName = String(p['addr:city']).trim().replace(/\b\w/g, c => c.toUpperCase());
+          LOCAL_LOCALITIES.push({ name: cityName, lat: coords[1], lng: coords[0] });
+        }
+      });
       return LOCAL_LANDMARKS;
     })
-    .catch(() => { LOCAL_LANDMARKS = []; return []; });
+    .catch(() => { LOCAL_LANDMARKS = []; LOCAL_LOCALITIES = []; return []; });
   return localLandmarksLoadPromise;
 }
 loadLocalLandmarks();
@@ -1203,6 +1222,56 @@ function findLocalNearbyLandmarks(lat, lng, radius) {
     .filter(p => p.dist <= radius)
     .sort((a, b) => (a.named === b.named) ? a.dist - b.dist : (a.named ? -1 : 1))
     .slice(0, 8);
+}
+
+// ---------- "Place / Area" auto-fill (locality name for the pin) ----------
+// Uses addr:city tags already present in export.geojson as local anchors
+// (instant, offline). If the pin is too far from any of those, falls back
+// to a live Nominatim reverse-geocode call for the village/town name.
+let LOCAL_LOCALITIES = [];
+let placeAreaDebounce = null;
+let placeAreaAbort = null;
+
+function findNearestLocality(lat, lng, maxDist) {
+  let best = null;
+  for (const loc of LOCAL_LOCALITIES) {
+    const d = haversineMeters(lat, lng, loc.lat, loc.lng);
+    if (d <= maxDist && (!best || d < best.dist)) best = { name: loc.name, dist: d };
+  }
+  return best;
+}
+
+async function fetchPlaceAreaFromNominatim(lat, lng) {
+  try {
+    if (placeAreaAbort) placeAreaAbort.abort();
+    placeAreaAbort = new AbortController();
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
+    const res = await fetch(url, { signal: placeAreaAbort.signal, headers: { 'Accept-Language': 'en' } });
+    const data = await res.json();
+    const a = data.address || {};
+    return a.village || a.suburb || a.town || a.hamlet || a.neighbourhood || a.county || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function fetchPlaceArea(lat, lng) {
+  await loadLocalLandmarks();
+  let placeName = null;
+  const nearest = findNearestLocality(lat, lng, 3000);
+  if (nearest) {
+    placeName = nearest.name;
+  } else {
+    placeName = await fetchPlaceAreaFromNominatim(lat, lng);
+  }
+  if (placeName && !locPlaceInput.value.trim()) {
+    locPlaceInput.value = placeName;
+  }
+}
+
+function schedulePlaceArea(lat, lng) {
+  clearTimeout(placeAreaDebounce);
+  placeAreaDebounce = setTimeout(() => fetchPlaceArea(lat, lng), 500);
 }
 
 async function fetchNearbyLandmarks(lat, lng) {
@@ -1298,6 +1367,7 @@ function openLocationConfirm() {
   locConfirmBtn.disabled = false;
   locConfirmBtn.textContent = "Confirm & place order";
   locLandmarkInput.value = "";
+  locPlaceInput.value = "";
   locContactInput.value = digitsOnly(state.user?.number || "");
   hideLandmarkSuggestions();
   locOverlay.classList.add('show');
@@ -1308,14 +1378,19 @@ function openLocationConfirm() {
     locMap.invalidateSize();
     locMap.setView([startLat, startLng], 16);
     if (locMarker) locMarker.setLatLng([startLat, startLng]);
-    if (parsed) scheduleNearbyLandmarks(startLat, startLng);
+    if (parsed) {
+      scheduleNearbyLandmarks(startLat, startLng);
+      schedulePlaceArea(startLat, startLng);
+    }
   }, 60);
 }
 
 function closeLocationConfirm() {
   locOverlay.classList.remove('show');
   clearTimeout(landmarkFetchDebounce);
+  clearTimeout(placeAreaDebounce);
   if (landmarkFetchAbort) landmarkFetchAbort.abort();
+  if (placeAreaAbort) placeAreaAbort.abort();
   hideLandmarkSuggestions();
 }
 
@@ -1587,6 +1662,7 @@ locConfirmBtn.addEventListener('click', async () => {
     return;
   }
   const landmark = locLandmarkInput.value.trim();
+  const placeArea = locPlaceInput.value.trim();
 
   const orderNumber = "KOT-" + Math.floor(1000 + Math.random() * 9000);
   const orderItems = r.items
@@ -1614,6 +1690,7 @@ locConfirmBtn.addEventListener('click', async () => {
       customerPhone: contactNumber,
       customerAddress: state.user?.address || "",
       customerLocation: pendingLocation.text,
+      customerPlace: placeArea,
       customerLandmark: landmark,
       items: orderItems,
       total
