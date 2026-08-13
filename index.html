@@ -1163,14 +1163,14 @@ const LOCAL_LANDMARKS_BOUNDS = { minLat: 11.2067833, maxLat: 11.2646564, minLng:
 
 function landmarkLabelFromProps(p) {
   if (p.name) return p.name;
-  const t = p.amenity || p.shop || p.office || p.tourism || p.leisure || p.healthcare ||
+  const t = p.amenity || p.shop || p.office || p.tourism || p.leisure || p.healthcare || p.man_made ||
             (p.building && p.building !== 'yes' ? p.building : 'building');
   const label = String(t).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   return p['addr:street'] ? `${label} (${p['addr:street']})` : label;
 }
 
 function landmarkTypeFromProps(p) {
-  return String(p.amenity || p.shop || p.office || p.tourism || p.leisure || p.healthcare ||
+  return String(p.amenity || p.shop || p.office || p.tourism || p.leisure || p.healthcare || p.man_made ||
     (p.building && p.building !== 'yes' ? p.building : 'building')).replace(/_/g, ' ');
 }
 
@@ -1455,12 +1455,46 @@ function selectSearchResult(place) {
   }
 }
 
-// Matches named landmarks from the bundled export.geojson by substring —
+// Matches named landmarks from the bundled export.geojson, tolerant of small
+// spelling differences (e.g. "kodiyamal" still finds "Kodiyammal Masjid") —
 // shown alongside/ahead of live Nominatim results, and still works offline.
+function normalizeForMatch(str) {
+  return String(str).toLowerCase().replace(/[^a-z0-9]/g, '').replace(/(.)\1+/g, '$1');
+}
+
+// Small edit-distance check so near-misses (missing/extra/swapped letter)
+// still count as a match, without pulling in a fuzzy-search library.
+function levenshteinWithin(a, b, maxDist) {
+  if (Math.abs(a.length - b.length) > maxDist) return false;
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  return dp[a.length][b.length] <= maxDist;
+}
+
+function fuzzyNameMatches(normName, normQuery) {
+  if (normName.includes(normQuery)) return true;
+  if (normQuery.length < 4) return false; // too short to fuzzy-match reliably
+  const maxDist = normQuery.length <= 6 ? 1 : 2;
+  // Check the query against each sliding window of the name (word-ish chunks)
+  // so a typo'd word anywhere in a multi-word name still matches.
+  for (let start = 0; start <= normName.length - 1; start++) {
+    const window = normName.slice(start, start + normQuery.length + maxDist);
+    if (levenshteinWithin(window.slice(0, normQuery.length), normQuery, maxDist)) return true;
+  }
+  return false;
+}
+
 function searchLocalLandmarks(query) {
-  const q = query.toLowerCase();
+  const normQuery = normalizeForMatch(query);
   return (LOCAL_LANDMARKS || [])
-    .filter(p => p.named && p.n.toLowerCase().includes(q))
+    .filter(p => p.named && fuzzyNameMatches(normalizeForMatch(p.n), normQuery))
     .slice(0, 6)
     .map(p => ({
       lat: p.lat,
