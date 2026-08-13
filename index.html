@@ -338,7 +338,14 @@
       <p class="loc-eyebrow">DELIVERY LOCATION</p>
       <h2 class="loc-title">Where should this go?</h2>
 
-      <div class="loc-map-wrap">
+      <p class="loc-field-label">Search for your location</p>
+      <div class="field" style="background:#fff; border:1px solid #E4DFD2; margin-bottom:0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="loc-search" type="text" placeholder="Search area, street, landmark…" style="color:var(--ink);" autocomplete="off" />
+      </div>
+      <div class="loc-search-results" id="loc-search-results"></div>
+
+      <div class="loc-map-wrap" style="margin-top:10px;">
         <div class="loc-map" id="loc-map"></div>
         <p class="loc-map-hint">Tap or drag the pin to set the exact spot</p>
       </div>
@@ -355,10 +362,10 @@
         <input id="loc-place" type="text" placeholder="e.g. Vazhayur, Kodiyammal…" style="color:var(--ink);" />
       </div>
 
-      <p class="loc-field-label">Landmark</p>
+      <p class="loc-field-label">Landmark <span style="color:var(--chili);">*</span></p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
-        <input id="loc-landmark" type="text" placeholder="e.g. Near St. Mary's Church, opposite bakery" style="color:var(--ink);" />
+        <input id="loc-landmark" type="text" placeholder="e.g. Near St. Mary's Church, opposite bakery" style="color:var(--ink);" required />
       </div>
       <div class="loc-search-results" id="loc-landmark-suggestions"></div>
 
@@ -1082,6 +1089,8 @@ function updateCartBar() {
 
 // ---------- Delivery location confirm sheet ----------
 const locOverlay = document.getElementById('loc-overlay');
+const locSearchInput = document.getElementById('loc-search');
+const locSearchResultsEl = document.getElementById('loc-search-results');
 const locCurrentValue = document.getElementById('loc-current-value');
 const locGpsBtn = document.getElementById('loc-gps-btn');
 const locCancelBtn = document.getElementById('loc-cancel-btn');
@@ -1272,7 +1281,10 @@ async function fetchPlaceArea(lat, lng) {
   } else {
     placeName = await fetchPlaceAreaFromNominatim(lat, lng);
   }
-  if (placeName && !locPlaceInput.value.trim()) {
+  // Always sync to the pin's nearest place — not just the first time — so
+  // dragging the pin, tapping the map, or picking a new search result keeps
+  // "Place / Area" matching wherever the pin actually is right now.
+  if (placeName) {
     locPlaceInput.value = placeName;
   }
 }
@@ -1376,8 +1388,10 @@ function openLocationConfirm() {
   locConfirmBtn.textContent = "Confirm & place order";
   locLandmarkInput.value = "";
   locPlaceInput.value = "";
+  locSearchInput.value = "";
   locContactInput.value = digitsOnly(state.user?.number || "");
   hideLandmarkSuggestions();
+  hideLocSearchResults();
   locOverlay.classList.add('show');
 
   // Give the sheet's slide-up animation a moment before sizing the map.
@@ -1397,10 +1411,94 @@ function closeLocationConfirm() {
   locOverlay.classList.remove('show');
   clearTimeout(landmarkFetchDebounce);
   clearTimeout(placeAreaDebounce);
+  clearTimeout(locSearchDebounce);
   if (landmarkFetchAbort) landmarkFetchAbort.abort();
   if (placeAreaAbort) placeAreaAbort.abort();
+  if (locSearchAbort) locSearchAbort.abort();
   hideLandmarkSuggestions();
+  hideLocSearchResults();
 }
+
+// ---------- "Search for your location" (order placement sheet) ----------
+// Same local-landmarks-first + Nominatim-fallback search used on the
+// "Select your location" screen, wired here to move the order map's pin.
+function hideLocSearchResults() {
+  if (locSearchResultsEl) {
+    locSearchResultsEl.classList.remove('show');
+    locSearchResultsEl.innerHTML = "";
+  }
+}
+
+function selectLocSearchResult(place) {
+  const lat = parseFloat(place.lat), lng = parseFloat(place.lon);
+  locSearchInput.value = place.display_name;
+  hideLocSearchResults();
+  if (locMap) {
+    locMap.setView([lat, lng], 16);
+    locMarker.setLatLng([lat, lng]);
+  }
+  setPendingFromLatLng(lat, lng);
+}
+
+function renderLocSearchResults(results) {
+  locSearchResultsEl.innerHTML = "";
+  if (results.length === 0) {
+    locSearchResultsEl.innerHTML = `<p class="loc-search-empty">No matches found — try a different search.</p>`;
+    locSearchResultsEl.classList.add('show');
+    return;
+  }
+  results.forEach(place => {
+    const item = document.createElement('div');
+    item.className = "loc-search-item";
+    const main = place.display_name.split(',')[0];
+    const rest = place.display_name.split(',').slice(1).join(',').trim();
+    item.innerHTML = `<div>${main}</div>` + (rest ? `<div class="loc-search-item-sub">${rest}</div>` : '');
+    item.addEventListener('click', () => selectLocSearchResult(place));
+    locSearchResultsEl.appendChild(item);
+  });
+  locSearchResultsEl.classList.add('show');
+}
+
+let locSearchDebounce = null;
+let locSearchAbort = null;
+locSearchInput.addEventListener('input', () => {
+  const query = locSearchInput.value.trim();
+  clearTimeout(locSearchDebounce);
+  if (query.length < 3) {
+    hideLocSearchResults();
+    return;
+  }
+  locSearchResultsEl.innerHTML = `<p class="loc-search-loading">Searching…</p>`;
+  locSearchResultsEl.classList.add('show');
+  locSearchDebounce = setTimeout(async () => {
+    await loadLocalLandmarks();
+    const localMatches = searchLocalLandmarks(query);
+    let remoteResults = [];
+    try {
+      if (locSearchAbort) locSearchAbort.abort();
+      locSearchAbort = new AbortController();
+      // Bias results to near the currently pinned spot (falls back to the
+      // default Kerala center if no pin set yet) so a search like "bakery"
+      // or "masjid" surfaces the nearby one first instead of anywhere in India.
+      const biasLat = pendingLocation.lat ?? DEFAULT_MAP_CENTER.lat;
+      const biasLng = pendingLocation.lng ?? DEFAULT_MAP_CENTER.lng;
+      const box = 0.35; // ~35km box around the pin
+      const viewbox = [biasLng - box, biasLat + box, biasLng + box, biasLat - box].join(',');
+      const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=in&viewbox=" +
+        viewbox + "&bounded=1&q=" + encodeURIComponent(query);
+      const res = await fetch(url, { signal: locSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      remoteResults = Array.isArray(data) ? data : [];
+    } catch (e) {
+      if (e.name !== 'AbortError' && localMatches.length === 0) {
+        locSearchResultsEl.innerHTML = `<p class="loc-search-empty">Search failed — check your connection.</p>`;
+        locSearchResultsEl.classList.add('show');
+        return;
+      }
+    }
+    renderLocSearchResults([...localMatches, ...remoteResults]);
+  }, 450);
+});
 
 locGpsBtn.addEventListener('click', () => {
   if (!navigator.geolocation) {
@@ -1670,6 +1768,11 @@ locConfirmBtn.addEventListener('click', async () => {
     return;
   }
   const landmark = locLandmarkInput.value.trim();
+  if (!landmark) {
+    locLandmarkInput.focus();
+    alert("Please enter a landmark near your delivery location.");
+    return;
+  }
   const placeArea = locPlaceInput.value.trim();
 
   const orderNumber = "KOT-" + Math.floor(1000 + Math.random() * 9000);
