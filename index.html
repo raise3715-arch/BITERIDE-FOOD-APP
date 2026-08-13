@@ -227,6 +227,29 @@
   }
   .loc-sheet .field{ margin-bottom:10px; }
   .loc-field-label{ color:#5C574C; font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 6px; text-transform:uppercase; }
+
+  /* Track order */
+  .track-header{ padding:40px 24px 8px; display:flex; align-items:center; gap:14px; }
+  .track-title{ color:var(--cloud); font-family:'Fraunces',serif; font-size:20px; font-weight:700; margin:2px 0 0; }
+  .track-sub{ color:var(--muted-2); font-size:12px; margin:2px 0 0; font-family:'IBM Plex Mono',monospace; }
+  .track-body{ padding:24px; }
+  .track-ticket{ margin-bottom:28px; }
+  .timeline{ display:flex; flex-direction:column; }
+  .timeline-step{ display:flex; gap:14px; }
+  .timeline-dotcol{ position:relative; display:flex; flex-direction:column; align-items:center; }
+  .timeline-dot{
+    width:26px; height:26px; border-radius:50%; flex-shrink:0; z-index:1;
+    background:var(--field-bg); border:2px solid var(--field-border);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .timeline-step.done .timeline-dot,
+  .timeline-step.current .timeline-dot{ background:var(--leaf); border-color:var(--leaf); }
+  .timeline-line{ width:2px; flex:1; min-height:26px; background:var(--field-border); }
+  .timeline-step.done .timeline-line{ background:var(--leaf); }
+  .timeline-content{ padding-bottom:26px; }
+  .timeline-label{ color:var(--cloud); font-weight:600; font-size:14px; margin:2px 0 0; }
+  .timeline-step.pending .timeline-label{ color:var(--muted); font-weight:500; }
+  .timeline-step.current .timeline-label{ color:var(--marigold); }
 </style>
 </head>
 <body>
@@ -421,9 +444,34 @@
           <p class="ticket-eta">Estimated arrival: 30–35 min</p>
         </div>
       </div>
-      <div class="confirm-btn-wrap">
+      <div class="confirm-btn-wrap stack">
+        <button class="btn-primary" id="confirm-track-btn" style="background:var(--leaf); color:var(--cloud);">🛵 Track your Order</button>
         <button class="btn-primary" onclick="showScreen('home')">Back to restaurants</button>
       </div>
+    </div>
+  </section>
+
+  <!-- TRACK ORDER -->
+  <section class="screen" id="screen-track">
+    <div class="track-header">
+      <button class="btn-back" id="track-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <p class="eyebrow">LIVE STATUS</p>
+        <h1 class="track-title" id="track-rest-name"></h1>
+        <p class="track-sub" id="track-order-num"></p>
+      </div>
+    </div>
+    <div class="track-body">
+      <div class="chit ticket track-ticket">
+        <p class="ticket-label">CURRENT STATUS</p>
+        <p class="ticket-num" id="track-status-text">Order received</p>
+        <div class="ticket-divider">
+          <p class="ticket-eta" id="track-eta-text">Estimated arrival: 30–35 min</p>
+        </div>
+      </div>
+      <div class="timeline" id="track-timeline"></div>
     </div>
   </section>
 
@@ -450,7 +498,9 @@
   // Exposed so the plain <script> below can push a new order straight into
   // the restaurant's node in Firebase. The restaurant partner app listens on
   // this same path and pops up an alert the moment a new order lands here.
-  window.fb = { db, ref, push, set, get };
+  // onValue is also used by the order-tracking screen to live-watch an
+  // order's status as the restaurant partner app updates it.
+  window.fb = { db, ref, push, set, get, onValue };
 
   // Live-listens to restaurants added from the Restaurant Partner app and
   // keeps window.RESTAURANTS + the on-screen list in sync in real time.
@@ -499,6 +549,7 @@ let state = {
   otpFlowFrom: "register",
   selectedRestaurant: null,
   cart: {}, // itemId -> qty
+  lastOrder: null, // { restId, orderKey, orderNumber, restName } for the "Track your Order" screen
 };
 
 // ---------- Registered users: stored centrally in Firebase under
@@ -1007,6 +1058,9 @@ locConfirmBtn.addEventListener('click', async () => {
 
     document.getElementById('confirm-order-num').textContent = orderNumber;
     document.getElementById('confirm-rest-name').textContent = "from " + r.name;
+    // Remember which order this is so the "Track your Order" button knows
+    // exactly which Firebase node to watch for live status updates.
+    state.lastOrder = { restId: r.id, orderKey: orderRef.key, orderNumber, restName: r.name };
     state.cart = {};
     closeLocationConfirm();
     showScreen('placed');
@@ -1019,6 +1073,97 @@ locConfirmBtn.addEventListener('click', async () => {
     locConfirmBtn.textContent = "Confirm & place order";
   }
 });
+
+// ---------- TRACK ORDER ----------
+const trackBackBtn = document.getElementById('track-back-btn');
+const trackRestName = document.getElementById('track-rest-name');
+const trackOrderNum = document.getElementById('track-order-num');
+const trackStatusText = document.getElementById('track-status-text');
+const trackEtaText = document.getElementById('track-eta-text');
+const trackTimelineEl = document.getElementById('track-timeline');
+const confirmTrackBtn = document.getElementById('confirm-track-btn');
+
+// Unsubscribe function for the live Firebase listener on the order being
+// tracked. Cleared whenever the user leaves the track screen so it doesn't
+// keep firing (and doesn't leak) once they're back browsing restaurants.
+let trackUnsub = null;
+
+const ORDER_STEPS = [
+  { key: 'pending',          label: 'Order received' },
+  { key: 'preparing',        label: 'Preparing your food' },
+  { key: 'out_for_delivery', label: 'Out for delivery' },
+  { key: 'delivered',        label: 'Delivered' },
+];
+const CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+
+// The restaurant partner app may write any of a few common spellings for
+// each stage — normalize whatever comes back from Firebase onto one of our
+// four known steps (or 'cancelled') so the timeline always renders sensibly.
+function normalizeStatus(raw) {
+  const s = String(raw || 'pending').toLowerCase().trim();
+  if (['pending', 'placed', 'received', 'new'].includes(s)) return 'pending';
+  if (['preparing', 'accepted', 'confirmed', 'cooking', 'in_progress'].includes(s)) return 'preparing';
+  if (['out_for_delivery', 'out-for-delivery', 'dispatched', 'on_the_way', 'on-the-way'].includes(s)) return 'out_for_delivery';
+  if (['delivered', 'completed', 'done'].includes(s)) return 'delivered';
+  if (['cancelled', 'canceled', 'rejected'].includes(s)) return 'cancelled';
+  return 'pending';
+}
+
+function renderTrackTimeline(rawStatus) {
+  const status = normalizeStatus(rawStatus);
+
+  if (status === 'cancelled') {
+    trackStatusText.textContent = "Order cancelled";
+    trackEtaText.textContent = "The restaurant wasn't able to take this order.";
+    trackTimelineEl.innerHTML = "";
+    return;
+  }
+
+  const currentIdx = ORDER_STEPS.findIndex(s => s.key === status);
+  trackStatusText.textContent = ORDER_STEPS[currentIdx].label;
+  trackEtaText.textContent = status === 'delivered' ? "Enjoy your meal!" : "Estimated arrival: 30–35 min";
+
+  trackTimelineEl.innerHTML = "";
+  ORDER_STEPS.forEach((step, idx) => {
+    const stepState = idx < currentIdx ? 'done' : idx === currentIdx ? 'current' : 'pending';
+    const row = document.createElement('div');
+    row.className = "timeline-step " + stepState;
+    row.innerHTML = `
+      <div class="timeline-dotcol">
+        <div class="timeline-dot">${idx <= currentIdx ? CHECK_ICON : ''}</div>
+        ${idx < ORDER_STEPS.length - 1 ? '<div class="timeline-line"></div>' : ''}
+      </div>
+      <div class="timeline-content">
+        <p class="timeline-label">${step.label}</p>
+      </div>
+    `;
+    trackTimelineEl.appendChild(row);
+  });
+}
+
+function openTrackOrder() {
+  const order = state.lastOrder;
+  if (!order) return;
+  trackRestName.textContent = order.restName;
+  trackOrderNum.textContent = "Order " + order.orderNumber;
+  renderTrackTimeline('pending');
+  showScreen('track');
+
+  if (trackUnsub) { trackUnsub(); trackUnsub = null; }
+  const { db, ref, onValue } = window.fb;
+  trackUnsub = onValue(
+    ref(db, 'restaurants/' + order.restId + '/orders/' + order.orderKey + '/status'),
+    snap => renderTrackTimeline(snap.val())
+  );
+}
+
+function leaveTrackScreen() {
+  if (trackUnsub) { trackUnsub(); trackUnsub = null; }
+  showScreen('home');
+}
+
+confirmTrackBtn.addEventListener('click', openTrackOrder);
+trackBackBtn.addEventListener('click', leaveTrackScreen);
 
 // ---------- Init ----------
 renderHome();
