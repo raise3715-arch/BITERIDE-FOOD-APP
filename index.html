@@ -1152,19 +1152,41 @@ function renderLandmarkSuggestions(places, lat, lng) {
   locLandmarkSuggestionsEl.classList.add('show');
 }
 
-// Bundled local landmark dataset (exported from Overpass Turbo for our
-// coverage area) — used first so landmark lookup works instantly and
-// offline, with no per-search API call. Falls back to the live Overpass
-// API only if the pin is outside this dataset's coverage area.
+// Bundled local landmark dataset — loaded directly from the export.geojson
+// file (Overpass Turbo export) you already have, no separate converted file
+// needed. Used first so landmark lookup works instantly and offline, with
+// no per-search API call. Falls back to the live Overpass API only if the
+// pin is outside this file's coverage area.
 let LOCAL_LANDMARKS = null;
 let localLandmarksLoadPromise = null;
 const LOCAL_LANDMARKS_BOUNDS = { minLat: 11.2067833, maxLat: 11.2646564, minLng: 75.8857505, maxLng: 75.9473206 };
 
+function landmarkLabelFromProps(p) {
+  if (p.name) return p.name;
+  const t = p.amenity || p.shop || p.office || p.tourism || p.leisure || p.healthcare ||
+            (p.building && p.building !== 'yes' ? p.building : 'building');
+  const label = String(t).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return p['addr:street'] ? `${label} (${p['addr:street']})` : label;
+}
+
+function landmarkTypeFromProps(p) {
+  return String(p.amenity || p.shop || p.office || p.tourism || p.leisure || p.healthcare ||
+    (p.building && p.building !== 'yes' ? p.building : 'building')).replace(/_/g, ' ');
+}
+
 function loadLocalLandmarks() {
   if (localLandmarksLoadPromise) return localLandmarksLoadPromise;
-  localLandmarksLoadPromise = fetch('landmarks.json')
+  localLandmarksLoadPromise = fetch('export.geojson')
     .then(res => res.json())
-    .then(data => { LOCAL_LANDMARKS = data; return data; })
+    .then(geo => {
+      LOCAL_LANDMARKS = (geo.features || []).map(f => {
+        const p = f.properties || {};
+        const coords = f.geometry?.coordinates;
+        if (!coords) return null;
+        return { n: landmarkLabelFromProps(p), t: landmarkTypeFromProps(p), lat: coords[1], lng: coords[0], named: !!p.name };
+      }).filter(Boolean);
+      return LOCAL_LANDMARKS;
+    })
     .catch(() => { LOCAL_LANDMARKS = []; return []; });
   return localLandmarksLoadPromise;
 }
@@ -1177,7 +1199,7 @@ function isWithinLocalCoverage(lat, lng) {
 
 function findLocalNearbyLandmarks(lat, lng, radius) {
   return (LOCAL_LANDMARKS || [])
-    .map(p => ({ name: p.n, type: String(p.t).replace(/_/g, ' '), dist: haversineMeters(lat, lng, p.lat, p.lng), named: p.n !== 'Building' && !p.n.startsWith('Building (') }))
+    .map(p => ({ name: p.n, type: p.t, dist: haversineMeters(lat, lng, p.lat, p.lng), named: p.named }))
     .filter(p => p.dist <= radius)
     .sort((a, b) => (a.named === b.named) ? a.dist - b.dist : (a.named ? -1 : 1))
     .slice(0, 8);
@@ -1433,6 +1455,20 @@ function selectSearchResult(place) {
   }
 }
 
+// Matches named landmarks from the bundled export.geojson by substring —
+// shown alongside/ahead of live Nominatim results, and still works offline.
+function searchLocalLandmarks(query) {
+  const q = query.toLowerCase();
+  return (LOCAL_LANDMARKS || [])
+    .filter(p => p.named && p.n.toLowerCase().includes(q))
+    .slice(0, 6)
+    .map(p => ({
+      lat: p.lat,
+      lon: p.lng,
+      display_name: p.n + (p.t ? ', ' + p.t.replace(/\b\w/g, c => c.toUpperCase()) : '')
+    }));
+}
+
 function renderBrowseSearchResults(results) {
   browseLocResultsEl.innerHTML = "";
   if (results.length === 0) {
@@ -1464,19 +1500,24 @@ browseLocSearchInput.addEventListener('input', () => {
   browseLocResultsEl.innerHTML = `<p class="loc-search-loading">Searching…</p>`;
   browseLocResultsEl.classList.add('show');
   browseSearchDebounce = setTimeout(async () => {
+    await loadLocalLandmarks();
+    const localMatches = searchLocalLandmarks(query);
+    let remoteResults = [];
     try {
       if (browseSearchAbort) browseSearchAbort.abort();
       browseSearchAbort = new AbortController();
       const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=in&q=" + encodeURIComponent(query);
       const res = await fetch(url, { signal: browseSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
       const data = await res.json();
-      renderBrowseSearchResults(Array.isArray(data) ? data : []);
+      remoteResults = Array.isArray(data) ? data : [];
     } catch (e) {
-      if (e.name !== 'AbortError') {
+      if (e.name !== 'AbortError' && localMatches.length === 0) {
         browseLocResultsEl.innerHTML = `<p class="loc-search-empty">Search failed — check your connection.</p>`;
         browseLocResultsEl.classList.add('show');
+        return;
       }
     }
+    renderBrowseSearchResults([...localMatches, ...remoteResults]);
   }, 450);
 });
 
