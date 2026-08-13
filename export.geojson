@@ -7,6 +7,38 @@
     {
       "type": "Feature",
       "properties": {
+        "@id": "node/manual-place-11",
+        "place_name": "Aroor",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.930356,
+          11.214174
+        ]
+      },
+      "id": "node/manual-place-11"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-10",
+        "place_name": "Kodiyammal",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.923019,
+          11.228233
+        ]
+      },
+      "id": "node/manual-place-10"
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "@id": "node/manual-place-9",
         "place_name": "Virippadam",
         "@geometry": "center"
