@@ -252,6 +252,22 @@
   .loc-sheet .field{ margin-bottom:10px; }
   .loc-field-label{ color:var(--muted-2); font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 6px; text-transform:uppercase; }
 
+  .loc-search-results{
+    max-height:0; overflow:hidden; transition:max-height .15s ease;
+    border-radius:12px; background:#fff;
+  }
+  .loc-search-results.show{ max-height:220px; overflow-y:auto; border:1px solid var(--field-border); margin-top:6px; }
+  .loc-search-item{
+    padding:11px 14px; border-bottom:1px solid var(--field-border); cursor:pointer;
+    font-size:13px; color:var(--ink); font-family:'Inter',sans-serif;
+  }
+  .loc-search-item:last-child{ border-bottom:none; }
+  .loc-search-item:active{ background:var(--cloud); }
+  .loc-search-item .loc-search-item-sub{ color:var(--muted); font-size:11px; margin-top:2px; }
+  .loc-search-empty, .loc-search-loading{
+    padding:12px 14px; font-size:12px; color:var(--muted-2); font-family:'Inter',sans-serif;
+  }
+
   /* Track order */
   .track-header{ padding:40px 24px 8px; display:flex; align-items:center; gap:14px; }
   .track-title{ color:var(--ink); font-family:'Poppins',sans-serif; font-size:19px; font-weight:700; margin:2px 0 0; }
@@ -352,6 +368,37 @@
     </div>
   </div>
 
+  <!-- SELECT YOUR LOCATION (filters restaurant list) -->
+  <div class="loc-overlay" id="browse-loc-overlay">
+    <div class="loc-sheet">
+      <p class="loc-eyebrow">YOUR LOCATION</p>
+      <h2 class="loc-title">Select your location</h2>
+
+      <p class="loc-field-label">Search for your area</p>
+      <div class="field" style="background:#fff; border:1px solid #E4DFD2; margin-bottom:0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="browse-loc-search" type="text" placeholder="Search area, street, landmark…" style="color:var(--ink);" autocomplete="off" />
+      </div>
+      <div class="loc-search-results" id="browse-loc-results"></div>
+
+      <div class="loc-map-wrap" style="margin-top:10px;">
+        <div class="loc-map" id="browse-loc-map"></div>
+        <p class="loc-map-hint">Tap or drag the pin to set your location</p>
+      </div>
+
+      <div class="loc-current">
+        <p class="loc-current-label">Selected</p>
+        <p class="loc-current-value" id="browse-loc-current-value">No location selected</p>
+      </div>
+      <button class="loc-gps-btn" id="browse-loc-gps-btn">📍 Use my current location</button>
+
+      <div class="loc-btn-row">
+        <button class="loc-cancel-btn" id="browse-loc-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="browse-loc-confirm-btn" style="flex:1;">Confirm location</button>
+      </div>
+    </div>
+  </div>
+
   <!-- LOGIN -->
   <section class="screen active" id="screen-login">
     <div class="header">
@@ -446,9 +493,10 @@
     <div class="top-row">
       <div>
         <p class="eyebrow">DELIVER TO</p>
-        <div class="loc-row">
+        <div class="loc-row" id="home-loc-row" style="cursor:pointer;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#241F1B" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <p style="color:var(--ink); font-size:14px; margin:0; font-weight:600;" id="home-location">Set location</p>
+          <p style="color:var(--ink); font-size:14px; margin:0; font-weight:600;" id="home-location">Select your location</p>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--marigold)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <button class="your-orders-btn" id="your-orders-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -610,7 +658,8 @@
         rating: 4.5,
         time: "30-40 min",
         color: REST_COLORS[i++ % REST_COLORS.length],
-        items: menuItems
+        items: menuItems,
+        zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null
       });
     });
     window.RESTAURANTS = list;
@@ -638,7 +687,16 @@ let state = {
   selectedRestaurant: null,
   cart: {}, // itemId -> qty
   lastOrder: null, // { restId, orderKey, orderNumber, restName } for the "Track your Order" screen
+  customerPos: null, // { lat, lng } — set via "Select your location", used to filter restaurants by delivery zone
 };
+
+// Restore the customer's chosen browsing location (if any) across sessions.
+try {
+  const savedPos = JSON.parse(localStorage.getItem('asfood_customer_pos') || 'null');
+  if (savedPos && typeof savedPos.lat === 'number' && typeof savedPos.lng === 'number') {
+    state.customerPos = savedPos;
+  }
+} catch (e) {}
 
 // ---------- Registered users: stored centrally in Firebase under
 // customers/{mobileNumber}, so accounts survive cache clears / new devices
@@ -855,22 +913,50 @@ function updateHomeTrackBtn() {
 }
 homeTrackBtn.addEventListener('click', () => openTrackOrder(state.lastOrder, 'home'));
 
+function updateHomeLocationLabel() {
+  homeLocation.textContent = state.customerPos ? "Delivering to selected location" : "Select your location";
+}
+
 function renderHome() {
-  homeLocation.textContent = state.user?.location || "Set location";
+  updateHomeLocationLabel();
   const firstName = (state.user?.name || "friend").split(' ')[0];
   homeGreeting.textContent = "Hungry, " + firstName + "?";
   updateHomeTrackBtn();
   renderRestaurantList();
 }
 
+// Ray-casting point-in-polygon check. poly is an array of {lat, lng}.
+function isPointInZone(pt, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].lng, yi = poly[i].lat;
+    const xj = poly[j].lng, yj = poly[j].lat;
+    const intersect = ((yi > pt.lat) !== (yj > pt.lat)) &&
+      (pt.lng < (xj - xi) * (pt.lat - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 function renderRestaurantList() {
   const q = searchInput.value.toLowerCase();
-  const filtered = RESTAURANTS.filter(r => (r.name + r.cuisine).toLowerCase().includes(q));
+  const searchFiltered = RESTAURANTS.filter(r => (r.name + r.cuisine).toLowerCase().includes(q));
+
+  // Once the customer has picked a location, only show restaurants whose
+  // delivery zone covers that point. Restaurants that haven't drawn a zone
+  // yet are still shown, so nothing disappears just because a restaurant
+  // hasn't set one up yet.
+  const filtered = state.customerPos
+    ? searchFiltered.filter(r => !r.zone || isPointInZone(state.customerPos, r.zone))
+    : searchFiltered;
+
   restListEl.innerHTML = "";
   if (filtered.length === 0) {
     const p = document.createElement('p');
     p.className = "empty-text";
-    p.textContent = 'No restaurants match "' + searchInput.value + '".';
+    p.textContent = state.customerPos && searchFiltered.length > 0
+      ? "No restaurants deliver to your selected location yet."
+      : 'No restaurants match "' + searchInput.value + '".';
     restListEl.appendChild(p);
     return;
   }
@@ -1095,6 +1181,168 @@ locContactInput.addEventListener('input', () => {
 });
 
 locCancelBtn.addEventListener('click', closeLocationConfirm);
+
+// ---------- "Select your location" (browse/filter location, home screen) ----------
+const browseLocOverlay = document.getElementById('browse-loc-overlay');
+const browseLocCurrentValue = document.getElementById('browse-loc-current-value');
+const browseLocGpsBtn = document.getElementById('browse-loc-gps-btn');
+const browseLocCancelBtn = document.getElementById('browse-loc-cancel-btn');
+const browseLocConfirmBtn = document.getElementById('browse-loc-confirm-btn');
+const browseLocSearchInput = document.getElementById('browse-loc-search');
+const browseLocResultsEl = document.getElementById('browse-loc-results');
+
+let browseLocMap = null;
+let browseLocMarker = null;
+let pendingBrowsePos = null; // { lat, lng }
+
+function setPendingBrowsePos(lat, lng) {
+  pendingBrowsePos = { lat, lng };
+  browseLocCurrentValue.textContent = lat.toFixed(5) + ", " + lng.toFixed(5);
+}
+
+function openBrowseLocationPicker() {
+  pendingBrowsePos = state.customerPos ? { ...state.customerPos } : null;
+  const startLat = pendingBrowsePos?.lat ?? DEFAULT_MAP_CENTER.lat;
+  const startLng = pendingBrowsePos?.lng ?? DEFAULT_MAP_CENTER.lng;
+  browseLocCurrentValue.textContent = pendingBrowsePos
+    ? pendingBrowsePos.lat.toFixed(5) + ", " + pendingBrowsePos.lng.toFixed(5)
+    : "No location selected — tap the map or use GPS below";
+  browseLocGpsBtn.disabled = false;
+  browseLocGpsBtn.textContent = "📍 Use my current location";
+  browseLocSearchInput.value = "";
+  hideBrowseSearchResults();
+  browseLocOverlay.classList.add('show');
+
+  setTimeout(() => {
+    if (!browseLocMap) {
+      browseLocMap = L.map('browse-loc-map', { zoomControl: false, attributionControl: false }).setView([startLat, startLng], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(browseLocMap);
+      browseLocMarker = L.marker([startLat, startLng], { draggable: true }).addTo(browseLocMap);
+      browseLocMarker.on('dragend', () => {
+        const pos = browseLocMarker.getLatLng();
+        setPendingBrowsePos(pos.lat, pos.lng);
+      });
+      browseLocMap.on('click', (e) => {
+        browseLocMarker.setLatLng(e.latlng);
+        setPendingBrowsePos(e.latlng.lat, e.latlng.lng);
+      });
+    }
+    browseLocMap.invalidateSize();
+    browseLocMap.setView([startLat, startLng], 14);
+    browseLocMarker.setLatLng([startLat, startLng]);
+  }, 60);
+}
+
+function closeBrowseLocationPicker() {
+  browseLocOverlay.classList.remove('show');
+}
+
+document.getElementById('home-loc-row').addEventListener('click', openBrowseLocationPicker);
+
+browseLocGpsBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    browseLocCurrentValue.textContent = "Location unavailable on this device";
+    return;
+  }
+  browseLocGpsBtn.disabled = true;
+  browseLocGpsBtn.textContent = "Locating…";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      setPendingBrowsePos(lat, lng);
+      if (browseLocMap) {
+        browseLocMap.setView([lat, lng], 15);
+        browseLocMarker.setLatLng([lat, lng]);
+      }
+      browseLocGpsBtn.disabled = false;
+      browseLocGpsBtn.textContent = "📍 Use my current location";
+    },
+    () => {
+      browseLocCurrentValue.textContent = "Location permission denied";
+      browseLocGpsBtn.disabled = false;
+      browseLocGpsBtn.textContent = "📍 Use my current location";
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+});
+
+browseLocCancelBtn.addEventListener('click', closeBrowseLocationPicker);
+
+// ---------- Search-to-select location (OpenStreetMap Nominatim geocoding) ----------
+function hideBrowseSearchResults() {
+  browseLocResultsEl.classList.remove('show');
+  browseLocResultsEl.innerHTML = "";
+}
+
+function selectSearchResult(place) {
+  const lat = parseFloat(place.lat), lng = parseFloat(place.lon);
+  setPendingBrowsePos(lat, lng);
+  browseLocSearchInput.value = place.display_name;
+  hideBrowseSearchResults();
+  if (browseLocMap) {
+    browseLocMap.setView([lat, lng], 16);
+    browseLocMarker.setLatLng([lat, lng]);
+  }
+}
+
+function renderBrowseSearchResults(results) {
+  browseLocResultsEl.innerHTML = "";
+  if (results.length === 0) {
+    browseLocResultsEl.innerHTML = `<p class="loc-search-empty">No matches found — try a different search.</p>`;
+    browseLocResultsEl.classList.add('show');
+    return;
+  }
+  results.forEach(place => {
+    const item = document.createElement('div');
+    item.className = "loc-search-item";
+    const main = place.display_name.split(',')[0];
+    const rest = place.display_name.split(',').slice(1).join(',').trim();
+    item.innerHTML = `<div>${main}</div>` + (rest ? `<div class="loc-search-item-sub">${rest}</div>` : '');
+    item.addEventListener('click', () => selectSearchResult(place));
+    browseLocResultsEl.appendChild(item);
+  });
+  browseLocResultsEl.classList.add('show');
+}
+
+let browseSearchDebounce = null;
+let browseSearchAbort = null;
+browseLocSearchInput.addEventListener('input', () => {
+  const query = browseLocSearchInput.value.trim();
+  clearTimeout(browseSearchDebounce);
+  if (query.length < 3) {
+    hideBrowseSearchResults();
+    return;
+  }
+  browseLocResultsEl.innerHTML = `<p class="loc-search-loading">Searching…</p>`;
+  browseLocResultsEl.classList.add('show');
+  browseSearchDebounce = setTimeout(async () => {
+    try {
+      if (browseSearchAbort) browseSearchAbort.abort();
+      browseSearchAbort = new AbortController();
+      const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=in&q=" + encodeURIComponent(query);
+      const res = await fetch(url, { signal: browseSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      renderBrowseSearchResults(Array.isArray(data) ? data : []);
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        browseLocResultsEl.innerHTML = `<p class="loc-search-empty">Search failed — check your connection.</p>`;
+        browseLocResultsEl.classList.add('show');
+      }
+    }
+  }, 450);
+});
+
+browseLocConfirmBtn.addEventListener('click', () => {
+  if (!pendingBrowsePos) {
+    browseLocCurrentValue.textContent = "Please tap the map or use GPS to set a location first";
+    return;
+  }
+  state.customerPos = pendingBrowsePos;
+  try { localStorage.setItem('asfood_customer_pos', JSON.stringify(state.customerPos)); } catch (e) {}
+  closeBrowseLocationPicker();
+  updateHomeLocationLabel();
+  renderRestaurantList();
+});
 
 cartBtn.addEventListener('click', () => {
   if (!state.selectedRestaurant) return;
