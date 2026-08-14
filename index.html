@@ -327,6 +327,72 @@
   .order-status-chip.live{ background:rgba(226,55,68,.1); color:var(--marigold); }
   .order-status-chip.delivered{ background:rgba(27,166,114,.1); color:var(--leaf); }
   .order-status-chip.cancelled{ background:#F0EEEA; color:var(--muted-2); }
+
+  /* ---------- Restaurant list (photo-card style) ---------- */
+  .rest-card2{ padding:0; overflow:hidden; cursor:pointer; }
+  .rest-img-wrap{ position:relative; width:100%; height:180px; background:var(--cloud); }
+  .rest-img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .rest-dots{
+    position:absolute; top:10px; left:0; right:0; display:flex; justify-content:center; gap:4px;
+  }
+  .rest-dots span{ width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.55); }
+  .rest-dots span:first-child{ background:#fff; }
+  .rest-heart{
+    position:absolute; top:10px; right:10px; width:30px; height:30px; border-radius:50%;
+    background:rgba(36,31,27,.35); border:none; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:#fff;
+  }
+  .rest-heart.liked svg{ fill:var(--marigold); stroke:var(--marigold); }
+  .rest-badge-discount{
+    position:absolute; left:10px; bottom:10px; display:flex; align-items:center; gap:5px;
+    background:#fff; color:var(--ink); font-family:'Inter',sans-serif; font-weight:700; font-size:12px;
+    padding:6px 10px; border-radius:8px; box-shadow:0 2px 8px rgba(36,31,27,.2);
+  }
+  .rest-badge-time{
+    position:absolute; right:0; bottom:10px; background:#fff; color:var(--ink);
+    font-family:'Inter',sans-serif; font-weight:700; font-size:11px; letter-spacing:.3px;
+    padding:7px 12px 7px 14px; border-radius:8px 0 0 8px; box-shadow:0 2px 8px rgba(36,31,27,.2);
+  }
+  .rest-info2{ padding:14px 16px 16px; }
+  .rest-name2{ color:var(--ink); font-weight:800; font-family:'Poppins',sans-serif; font-size:17px; margin:0; }
+  .rest-meta2{ display:flex; align-items:center; gap:6px; margin-top:8px; font-size:13px; color:var(--muted-2); flex-wrap:wrap; }
+  .rest-rating2{
+    display:flex; align-items:center; gap:3px; color:var(--leaf); font-weight:700;
+    font-family:'Inter',sans-serif; font-size:13px;
+  }
+  .rest-rating2 svg{ flex-shrink:0; }
+  .rest-cuisine2{ color:var(--muted-2); font-size:13px; margin:4px 0 0; }
+
+  /* ---------- Menu (2-column photo grid) ---------- */
+  .item-toolbar{ padding:16px 24px 0; display:flex; gap:10px; overflow-x:auto; }
+  .item-chip{
+    flex-shrink:0; padding:9px 14px; border-radius:20px; border:1.5px solid var(--field-border);
+    background:#fff; color:var(--ink); font-size:12px; font-weight:600; font-family:'Inter',sans-serif;
+    white-space:nowrap;
+  }
+  .item-list-label{ padding:18px 24px 0; color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:14px; margin:0; }
+  .item-grid{ padding:14px 24px 110px; display:grid; grid-template-columns:1fr 1fr; gap:20px 14px; }
+  .item-card2{ display:flex; flex-direction:column; }
+  .item-img-wrap{ position:relative; width:100%; height:120px; border-radius:14px; overflow:hidden; background:var(--cloud); }
+  .item-img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .item-veg{
+    position:absolute; top:8px; left:8px; width:16px; height:16px; border-radius:3px;
+    background:#fff; border:1.5px solid var(--leaf); display:flex; align-items:center; justify-content:center;
+  }
+  .item-veg span{ width:7px; height:7px; border-radius:50%; background:var(--leaf); }
+  .item-rating2{
+    position:absolute; top:8px; right:8px; display:flex; align-items:center; gap:3px;
+    background:rgba(27,166,114,.95); color:#fff; font-size:11px; font-weight:700;
+    font-family:'Inter',sans-serif; padding:3px 7px; border-radius:6px;
+  }
+  .item-name2{
+    color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:12.5px;
+    letter-spacing:.2px; text-transform:uppercase; margin:10px 0 0;
+  }
+  .item-row2{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; }
+  .item-price2{ color:var(--ink); font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:14px; }
+  .item-row2 .add-btn{ padding:8px 14px; font-size:12px; }
+  .item-row2 .qty-wrap{ padding:6px 8px; gap:8px; }
 </style>
 </head>
 <body>
@@ -548,7 +614,13 @@
         <p class="menu-rest-meta" id="menu-rest-meta"></p>
       </div>
     </div>
-    <div class="item-list" id="item-list"></div>
+    <div class="item-toolbar">
+      <span class="item-chip">⭐ Ratings 4.0+</span>
+      <span class="item-chip">🏆 Bestseller</span>
+      <span class="item-chip">🥬 Veg</span>
+    </div>
+    <p class="item-list-label" id="item-list-label">Recommended</p>
+    <div class="item-grid" id="item-list"></div>
     <div class="cart-bar" id="cart-bar">
       <button class="cart-btn" id="cart-btn">
         <span class="cart-btn-left">
@@ -644,6 +716,23 @@
   const fbApp = initializeApp(firebaseConfig);
   const db = getDatabase(fbApp);
   const REST_COLORS = ["#E23744", "#B0121F", "#1BA672", "#7C5CBF", "#2E86AB"];
+  // Stand-in photography for restaurants/dishes that don't have a real photo
+  // uploaded yet — cycled by index so each listing still looks distinct.
+  const REST_PHOTOS = [
+    "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80",
+    "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&q=80",
+    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80",
+    "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=600&q=80",
+    "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=600&q=80",
+  ];
+  const DISH_PHOTOS = [
+    "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80",
+    "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&q=80",
+    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80",
+    "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80",
+    "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&q=80",
+    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80",
+  ];
 
   // Exposed so the plain <script> below can push a new order straight into
   // the restaurant's node in Firebase. The restaurant partner app listens on
@@ -661,8 +750,11 @@
       const v = child.val();
       if (v.status !== 'active') return;
       const menuItems = v.menu
-        ? Object.keys(v.menu).map(k => ({
-            id: k, name: v.menu[k].name, desc: v.menu[k].desc || '', price: v.menu[k].price
+        ? Object.keys(v.menu).map((k, di) => ({
+            id: k, name: v.menu[k].name, desc: v.menu[k].desc || '', price: v.menu[k].price,
+            image: DISH_PHOTOS[di % DISH_PHOTOS.length],
+            rating: (4 + (di % 8) / 10).toFixed(1),
+            ratingCount: 2 + (di % 9)
           }))
         : [];
       list.push({
@@ -670,7 +762,11 @@
         name: v.restaurantName || 'Restaurant',
         cuisine: v.address || 'Local restaurant',
         rating: 4.5,
+        ratingCount: 40 + (i * 37) % 400,
         time: "30-40 min",
+        distanceKm: (2 + (i * 1.7) % 12).toFixed(1),
+        priceForTwo: 199 + (i * 23) % 300,
+        image: REST_PHOTOS[i % REST_PHOTOS.length],
         color: REST_COLORS[i++ % REST_COLORS.length],
         items: menuItems,
         zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null
@@ -976,26 +1072,37 @@ function renderRestaurantList() {
   }
   filtered.forEach(r => {
     const card = document.createElement('div');
-    card.className = "card";
+    card.className = "card rest-card2";
     card.innerHTML = `
-      <button class="rest-card" data-id="${r.id}">
-        <div class="rest-top">
-          <div class="rest-avatar" style="background:${r.color};">${r.name.charAt(0)}</div>
-          <div>
-            <p class="rest-name">${r.name}</p>
-            <p class="rest-cuisine">${r.cuisine}</p>
+      <div class="rest-img-wrap">
+        <img class="rest-img" src="${r.image}" alt="${r.name}" loading="lazy"
+          onerror="this.style.background='${r.color}'; this.src='';" />
+        <div class="rest-dots"><span></span><span></span><span></span><span></span></div>
+        <button class="rest-heart" aria-label="Save restaurant">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        </button>
+        <span class="rest-badge-discount">🏷️ Items at ₹${69 + ((r.id.charCodeAt(0) || 0) % 4) * 30}</span>
+        <span class="rest-badge-time">${r.time.replace(' min', ' MINS').toUpperCase()}</span>
+      </div>
+      <button class="rest-card" data-id="${r.id}" style="display:block; padding:0;">
+        <div class="rest-info2">
+          <p class="rest-name2">${r.name}</p>
+          <div class="rest-meta2">
+            <span class="rest-rating2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              ${r.rating} (${r.ratingCount})
+            </span>
+            <span>· ${r.cuisine.split(',')[0]}, ${r.distanceKm} km</span>
           </div>
-        </div>
-        <div class="rest-meta">
-          <span class="rest-rating">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" stroke="#fff"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            ${r.rating}
-          </span>
-          <span class="rest-time">${r.time}</span>
+          <p class="rest-cuisine2">${r.cuisine} • ₹${r.priceForTwo} for two</p>
         </div>
       </button>
     `;
     card.querySelector('.rest-card').addEventListener('click', () => openRestaurant(r.id));
+    card.querySelector('.rest-heart').addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.currentTarget.classList.toggle('liked');
+    });
     restListEl.appendChild(card);
   });
 }
@@ -1017,22 +1124,30 @@ function openRestaurant(id) {
   showScreen('menu');
 }
 
+const itemListLabel = document.getElementById('item-list-label');
+
 function renderMenu() {
   const r = state.selectedRestaurant;
   menuRestName.textContent = r.name;
   menuRestMeta.textContent = r.cuisine + " · " + r.time;
+  itemListLabel.textContent = "Recommended (" + r.items.length + ")";
   itemListEl.innerHTML = "";
   r.items.forEach(it => {
     const qty = state.cart[it.id] || 0;
     const card = document.createElement('div');
-    card.className = "card item-card";
+    card.className = "item-card2";
     card.innerHTML = `
-      <div>
-        <p class="item-name">${it.name}</p>
-        <p class="item-desc">${it.desc}</p>
-        <p class="item-price">₹${it.price}</p>
+      <div class="item-img-wrap">
+        <img class="item-img" src="${it.image || ''}" alt="${it.name}" loading="lazy" />
+        <span class="item-veg"><span></span></span>
+        <span class="item-rating2">★ ${it.rating || '4.5'}${it.ratingCount ? ' (' + it.ratingCount + ')' : ''}</span>
       </div>
-      <div class="qty-slot"></div>
+      <p class="item-name2">${it.name}</p>
+      ${it.desc ? `<p class="item-desc" style="margin-top:2px;">${it.desc}</p>` : ''}
+      <div class="item-row2">
+        <span class="item-price2">₹${it.price}</span>
+        <div class="qty-slot"></div>
+      </div>
     `;
     const qtySlot = card.querySelector('.qty-slot');
     renderQtyControl(qtySlot, it.id, qty);
