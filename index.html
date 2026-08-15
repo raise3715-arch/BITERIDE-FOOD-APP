@@ -1725,10 +1725,12 @@ function setPaymentMethod(method) {
 
   if (method === 'gpay' && r && r.gpayNumber) {
     gpayScannerBox.style.display = 'block';
-    gpayNumberText.textContent = "GPay number: " + r.gpayNumber;
+    gpayNumberText.textContent = "UPI ID: " + r.gpayNumber;
+    const cartTotal = r.items.reduce((sum, it) => sum + (state.cart[it.id] || 0) * it.price, 0);
     const upiUrl = "upi://pay?pa=" + encodeURIComponent(r.gpayNumber) +
       "&pn=" + encodeURIComponent(r.name || 'Restaurant') +
-      "&cu=INR";
+      "&am=" + encodeURIComponent(cartTotal) +
+      "&cu=INR&tn=" + encodeURIComponent("Order at " + (r.name || 'Restaurant'));
     gpayQrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(upiUrl);
   } else {
     gpayScannerBox.style.display = 'none';
