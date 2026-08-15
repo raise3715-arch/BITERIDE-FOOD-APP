@@ -252,6 +252,23 @@
   .loc-sheet .field{ margin-bottom:10px; }
   .loc-field-label{ color:var(--muted-2); font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 6px; text-transform:uppercase; }
 
+  .pay-method-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .pay-method-btn{
+    flex:1; padding:12px 8px; border-radius:12px; border:1.5px solid var(--field-border);
+    background:#fff; color:var(--muted-2); font-weight:700; font-size:13px;
+    font-family:'Inter',sans-serif; cursor:pointer; text-align:center;
+  }
+  .pay-method-btn.active{ border-color:var(--leaf); background:rgba(27,166,114,.08); color:var(--leaf); }
+  .pay-method-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .gpay-scanner-box{
+    background:var(--cloud); border-radius:14px; padding:16px; margin-bottom:10px;
+    text-align:center;
+  }
+  .gpay-scanner-box img{ width:150px; height:150px; border-radius:10px; background:#fff; padding:8px; }
+  .gpay-number-text{ color:var(--ink); font-size:13px; font-weight:700; margin:10px 0 0; font-family:'IBM Plex Mono',monospace; }
+  .gpay-scanner-hint{ color:var(--muted-2); font-size:11px; margin:4px 0 0; font-family:'Inter',sans-serif; }
+  .gpay-unavailable{ color:var(--chili); font-size:12px; margin:0; font-family:'Inter',sans-serif; }
+
   .loc-search-results{
     max-height:0; overflow:hidden; transition:max-height .15s ease;
     border-radius:12px; background:#fff;
@@ -444,6 +461,17 @@
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <input id="loc-contact" type="tel" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" style="color:var(--ink);" />
+      </div>
+
+      <p class="loc-field-label">Payment method</p>
+      <div class="pay-method-row" id="pay-method-row">
+        <button type="button" class="pay-method-btn active" id="pay-cod-btn" data-method="cod">💵 Cash on Delivery</button>
+        <button type="button" class="pay-method-btn" id="pay-gpay-btn" data-method="gpay">📱 GPay Scanner</button>
+      </div>
+      <div class="gpay-scanner-box" id="gpay-scanner-box" style="display:none;">
+        <img id="gpay-qr-img" alt="GPay scanner QR code" />
+        <p class="gpay-number-text" id="gpay-number-text"></p>
+        <p class="gpay-scanner-hint">Scan with any UPI app, then tap Confirm & place order</p>
       </div>
 
       <div class="loc-btn-row">
@@ -777,6 +805,7 @@
         image: v.photo || REST_PHOTOS[i % REST_PHOTOS.length],
         color: REST_COLORS[i++ % REST_COLORS.length],
         items: menuItems,
+        gpayNumber: v.gpayNumber || "",
         zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null
       });
     });
@@ -1240,6 +1269,12 @@ const locConfirmBtn = document.getElementById('loc-confirm-btn');
 const locLandmarkInput = document.getElementById('loc-landmark');
 const locPlaceInput = document.getElementById('loc-place');
 const locContactInput = document.getElementById('loc-contact');
+const payCodBtn = document.getElementById('pay-cod-btn');
+const payGpayBtn = document.getElementById('pay-gpay-btn');
+const gpayScannerBox = document.getElementById('gpay-scanner-box');
+const gpayQrImg = document.getElementById('gpay-qr-img');
+const gpayNumberText = document.getElementById('gpay-number-text');
+let selectedPaymentMethod = 'cod';
 
 // Holds whatever location will actually be sent with the order. Pre-filled
 // from the user's saved profile location (parsed as lat,lng if possible),
@@ -1534,6 +1569,10 @@ function openLocationConfirm() {
   locContactInput.value = digitsOnly(state.user?.number || "");
   hideLandmarkSuggestions();
   hideLocSearchResults();
+  setPaymentMethod('cod');
+  const hasGpay = !!(state.selectedRestaurant && state.selectedRestaurant.gpayNumber);
+  payGpayBtn.disabled = !hasGpay;
+  payGpayBtn.title = hasGpay ? "" : "This restaurant hasn't set up GPay yet";
   locOverlay.classList.add('show');
 
   // Give the sheet's slide-up animation a moment before sizing the map.
@@ -1672,6 +1711,32 @@ locGpsBtn.addEventListener('click', () => {
 locContactInput.addEventListener('input', () => {
   locContactInput.value = digitsOnly(locContactInput.value).slice(0, 10);
 });
+
+// ---------- Payment method (Cash on Delivery / GPay scanner) ----------
+function setPaymentMethod(method) {
+  const r = state.selectedRestaurant;
+  if (method === 'gpay' && !(r && r.gpayNumber)) {
+    // This restaurant hasn't set up GPay — silently fall back to COD.
+    method = 'cod';
+  }
+  selectedPaymentMethod = method;
+  payCodBtn.classList.toggle('active', method === 'cod');
+  payGpayBtn.classList.toggle('active', method === 'gpay');
+
+  if (method === 'gpay' && r && r.gpayNumber) {
+    gpayScannerBox.style.display = 'block';
+    gpayNumberText.textContent = "GPay number: " + r.gpayNumber;
+    const upiUrl = "upi://pay?pa=" + encodeURIComponent(r.gpayNumber) +
+      "&pn=" + encodeURIComponent(r.name || 'Restaurant') +
+      "&cu=INR";
+    gpayQrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(upiUrl);
+  } else {
+    gpayScannerBox.style.display = 'none';
+  }
+}
+
+payCodBtn.addEventListener('click', () => setPaymentMethod('cod'));
+payGpayBtn.addEventListener('click', () => setPaymentMethod('gpay'));
 
 locCancelBtn.addEventListener('click', closeLocationConfirm);
 
@@ -1946,8 +2011,12 @@ locConfirmBtn.addEventListener('click', async () => {
       customerPlace: placeArea,
       customerLandmark: landmark,
       items: orderItems,
-      total
+      total,
+      paymentMethod: selectedPaymentMethod === 'gpay' ? 'GPay (Scanner)' : 'Cash on Delivery'
     };
+    if (selectedPaymentMethod === 'gpay' && r.gpayNumber) {
+      orderPayload.gpayNumber = r.gpayNumber;
+    }
     if (typeof pendingLocation.lat === 'number' && typeof pendingLocation.lng === 'number') {
       orderPayload.customerLat = pendingLocation.lat;
       orderPayload.customerLng = pendingLocation.lng;
