@@ -267,6 +267,11 @@
   .gpay-scanner-box img{ width:150px; height:150px; border-radius:10px; background:#fff; padding:8px; }
   .gpay-number-text{ color:var(--ink); font-size:13px; font-weight:700; margin:10px 0 0; font-family:'IBM Plex Mono',monospace; }
   .gpay-scanner-hint{ color:var(--muted-2); font-size:11px; margin:4px 0 0; font-family:'Inter',sans-serif; }
+  .gpay-paid-check{
+    display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px;
+    font-size:13px; font-weight:700; color:var(--ink); font-family:'Inter',sans-serif; cursor:pointer;
+  }
+  .gpay-paid-check input{ width:18px; height:18px; accent-color:var(--leaf); }
   .gpay-unavailable{ color:var(--chili); font-size:12px; margin:0; font-family:'Inter',sans-serif; }
 
   .loc-search-results{
@@ -471,7 +476,11 @@
       <div class="gpay-scanner-box" id="gpay-scanner-box" style="display:none;">
         <img id="gpay-qr-img" alt="GPay scanner QR code" />
         <p class="gpay-number-text" id="gpay-number-text"></p>
-        <p class="gpay-scanner-hint">Scan with any UPI app, then tap Confirm & place order</p>
+        <p class="gpay-scanner-hint">Scan &amp; complete the payment in your UPI app first</p>
+        <label class="gpay-paid-check">
+          <input type="checkbox" id="gpay-paid-checkbox" />
+          <span>I've completed the payment</span>
+        </label>
       </div>
 
       <div class="loc-btn-row">
@@ -1274,6 +1283,7 @@ const payGpayBtn = document.getElementById('pay-gpay-btn');
 const gpayScannerBox = document.getElementById('gpay-scanner-box');
 const gpayQrImg = document.getElementById('gpay-qr-img');
 const gpayNumberText = document.getElementById('gpay-number-text');
+const gpayPaidCheckbox = document.getElementById('gpay-paid-checkbox');
 let selectedPaymentMethod = 'cod';
 
 // Holds whatever location will actually be sent with the order. Pre-filled
@@ -1732,13 +1742,23 @@ function setPaymentMethod(method) {
       "&am=" + encodeURIComponent(cartTotal) +
       "&cu=INR&tn=" + encodeURIComponent("Order at " + (r.name || 'Restaurant'));
     gpayQrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(upiUrl);
+    gpayPaidCheckbox.checked = false;
   } else {
     gpayScannerBox.style.display = 'none';
+    gpayPaidCheckbox.checked = false;
   }
+  updateLocConfirmGate();
+}
+
+function updateLocConfirmGate() {
+  const needsPaymentConfirm = selectedPaymentMethod === 'gpay' && !gpayPaidCheckbox.checked;
+  locConfirmBtn.disabled = needsPaymentConfirm;
+  locConfirmBtn.textContent = needsPaymentConfirm ? "Complete payment to continue" : "Confirm & place order";
 }
 
 payCodBtn.addEventListener('click', () => setPaymentMethod('cod'));
 payGpayBtn.addEventListener('click', () => setPaymentMethod('gpay'));
+gpayPaidCheckbox.addEventListener('change', updateLocConfirmGate);
 
 locCancelBtn.addEventListener('click', closeLocationConfirm);
 
@@ -1965,6 +1985,10 @@ cartBtn.addEventListener('click', () => {
 locConfirmBtn.addEventListener('click', async () => {
   const r = state.selectedRestaurant;
   if (!r) { closeLocationConfirm(); return; }
+  if (selectedPaymentMethod === 'gpay' && !gpayPaidCheckbox.checked) {
+    alert("Please complete the GPay payment and tick \"I've completed the payment\" before placing the order.");
+    return;
+  }
   if (!pendingLocation.text) {
     locCurrentValue.textContent = "Please set a delivery location first";
     return;
@@ -2004,7 +2028,7 @@ locConfirmBtn.addEventListener('click', async () => {
     const orderRef = push(ref(db, 'restaurants/' + r.id + '/orders'));
     const orderPayload = {
       orderNumber,
-      status: "pending",
+      status: selectedPaymentMethod === 'gpay' ? "awaiting_payment" : "pending",
       createdAt: Date.now(),
       customerName: state.user?.name || "Guest",
       customerPhone: contactNumber,
@@ -2059,6 +2083,7 @@ const confirmTrackBtn = document.getElementById('confirm-track-btn');
 let trackUnsub = null;
 
 const ORDER_STEPS = [
+  { key: 'awaiting_payment',  label: 'Waiting for payment confirmation' },
   { key: 'pending',          label: 'Order received' },
   { key: 'preparing',        label: 'Preparing your food' },
   { key: 'out_for_delivery', label: 'Out for delivery' },
@@ -2068,9 +2093,10 @@ const CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" 
 
 // The restaurant partner app may write any of a few common spellings for
 // each stage — normalize whatever comes back from Firebase onto one of our
-// four known steps (or 'cancelled') so the timeline always renders sensibly.
+// known steps (or 'cancelled') so the timeline always renders sensibly.
 function normalizeStatus(raw) {
   const s = String(raw || 'pending').toLowerCase().trim();
+  if (['awaiting_payment', 'payment_pending', 'awaiting-payment'].includes(s)) return 'awaiting_payment';
   if (['pending', 'placed', 'received', 'new'].includes(s)) return 'pending';
   if (['preparing', 'accepted', 'confirmed', 'cooking', 'in_progress'].includes(s)) return 'preparing';
   if (['out_for_delivery', 'out-for-delivery', 'dispatched', 'on_the_way', 'on-the-way'].includes(s)) return 'out_for_delivery';
