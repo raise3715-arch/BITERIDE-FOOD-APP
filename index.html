@@ -1229,8 +1229,6 @@ function renderRestaurantList() {
         <button class="rest-heart" aria-label="Save restaurant">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
         </button>
-        <span class="rest-badge-discount">🏷️ Items at ₹${69 + ((r.id.charCodeAt(0) || 0) % 4) * 30}</span>
-        <span class="rest-badge-time">${r.time.replace(' min', ' MINS').toUpperCase()}</span>
       </div>
       <button class="rest-card" data-id="${r.id}" style="display:block; padding:0;">
         <div class="rest-info2">
@@ -1277,7 +1275,7 @@ const itemListLabel = document.getElementById('item-list-label');
 function renderMenu() {
   const r = state.selectedRestaurant;
   menuRestName.textContent = r.name;
-  menuRestMeta.textContent = r.cuisine + " · " + r.time;
+  menuRestMeta.textContent = r.cuisine;
   itemListLabel.textContent = "Recommended (" + r.items.length + ")";
   itemListEl.innerHTML = "";
   r.items.forEach(it => {
