@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tiffin & Co.</title>
 <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#E23744" />
+<meta name="theme-color" content="#F2B705" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,18 +19,18 @@
 <style>
   :root{
     --bg:#FFFFFF;
-    --bg-outer:#F0EEEA;
-    --ink:#241F1B;
-    --marigold:#E23744;
-    --marigold-dark:#C81E2C;
-    --chili:#B0121F;
+    --bg-outer:#FFFCF2;
+    --ink:#2B2410;
+    --marigold:#F2B705;
+    --marigold-dark:#D69E00;
+    --chili:#C97F00;
     --leaf:#1BA672;
-    --cloud:#FFF9F2;
-    --muted:#948D80;
-    --muted-2:#5C574C;
-    --field-bg:#FFFFFF;
-    --field-border:#E7E2D8;
-    --card-shadow:0 2px 14px rgba(36,31,27,.08);
+    --cloud:#FFFFFF;
+    --muted:#B4A87F;
+    --muted-2:#6B5E3D;
+    --field-bg:#FFF8DF;
+    --field-border:#F2E2A6;
+    --card-shadow:0 2px 14px rgba(43,36,16,.08);
   }
   *{box-sizing:border-box;}
   body{
@@ -53,7 +53,7 @@
 
   .header{ padding:40px 24px 24px; }
   .eyebrow{
-    color:var(--marigold);
+    color:var(--chili);
     font-family:'Inter',sans-serif;
     font-weight:700;
     font-size:12px;
@@ -86,20 +86,20 @@
 
   .btn-primary{
     width:100%; padding:15px; border:none; border-radius:12px;
-    background:var(--marigold); color:#fff; font-weight:700;
+    background:var(--marigold); color:var(--ink); font-weight:700;
     font-size:15px; font-family:'Inter',sans-serif; cursor:pointer;
     letter-spacing:.2px; transition:transform .1s;
-    box-shadow:0 6px 16px rgba(226,55,68,.28);
+    box-shadow:0 6px 16px rgba(242,183,5,.35);
   }
   .btn-primary:active{ transform:scale(0.98); }
   .btn-primary:disabled{ background:#E3DFD8; color:var(--muted); box-shadow:none; cursor:not-allowed; }
 
   .btn-link{
     width:100%; text-align:center; padding:8px; background:none; border:none;
-    color:var(--marigold); font-size:14px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;
+    color:var(--chili); font-size:14px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;
   }
 
-  .btn-back{ background:none; border:none; color:var(--marigold); cursor:pointer; padding:0; display:flex; }
+  .btn-back{ background:none; border:none; color:var(--chili); cursor:pointer; padding:0; display:flex; }
 
   .gps-btn{
     padding:12px 14px; border:none; border-radius:12px; background:var(--leaf);
@@ -188,15 +188,15 @@
 
   .add-btn{
     padding:10px 20px; border-radius:10px; border:1.5px solid var(--marigold);
-    background:#fff; color:var(--marigold); font-weight:700; font-size:13px;
+    background:#fff; color:var(--chili); font-weight:700; font-size:13px;
     letter-spacing:.5px; cursor:pointer; flex-shrink:0;
   }
   .qty-wrap{
     display:flex; align-items:center; gap:12px; padding:8px 12px; border-radius:10px;
     background:var(--marigold); flex-shrink:0;
   }
-  .qty-wrap button{ background:none; border:none; color:#fff; cursor:pointer; display:flex; padding:2px; }
-  .qty-num{ color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:14px; min-width:12px; text-align:center; }
+  .qty-wrap button{ background:none; border:none; color:var(--ink); cursor:pointer; display:flex; padding:2px; }
+  .qty-num{ color:var(--ink); font-family:'Inter',sans-serif; font-weight:700; font-size:14px; min-width:12px; text-align:center; }
 
   .cart-bar{
     position:fixed; bottom:0; width:100%; max-width:420px;
@@ -323,14 +323,14 @@
   .timeline-content{ padding-bottom:26px; }
   .timeline-label{ color:var(--ink); font-weight:600; font-size:14px; margin:2px 0 0; }
   .timeline-step.pending .timeline-label{ color:var(--muted); font-weight:500; }
-  .timeline-step.current .timeline-label{ color:var(--marigold); font-weight:700; }
+  .timeline-step.current .timeline-label{ color:var(--chili); font-weight:700; }
 
   /* Home screen: big track-order shortcut */
   .top-row-right{ display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
   .home-track-btn{
     width:56px; height:56px; border-radius:50%; border:none; background:var(--marigold);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
-    box-shadow:0 6px 16px rgba(226,55,68,.35); flex-shrink:0;
+    box-shadow:0 6px 16px rgba(242,183,5,.35); flex-shrink:0;
   }
   .home-track-btn:active{ transform:scale(0.96); }
   .home-track-btn.hidden{ display:none; }
@@ -343,7 +343,7 @@
   .your-orders-btn{
     display:inline-flex; align-items:center; gap:6px; margin-top:10px;
     padding:7px 12px; border-radius:20px; border:1.5px solid var(--marigold);
-    background:rgba(226,55,68,.06); color:var(--marigold); font-weight:700;
+    background:rgba(242,183,5,.15); color:var(--chili); font-weight:700;
     font-size:12px; font-family:'Inter',sans-serif; cursor:pointer;
   }
 
@@ -363,7 +363,7 @@
     padding:5px 10px; border-radius:16px; font-size:11px; font-weight:700;
     font-family:'Inter',sans-serif; white-space:nowrap; flex-shrink:0;
   }
-  .order-status-chip.live{ background:rgba(226,55,68,.1); color:var(--marigold); }
+  .order-status-chip.live{ background:rgba(242,183,5,.18); color:var(--chili); }
   .order-status-chip.delivered{ background:rgba(27,166,114,.1); color:var(--leaf); }
   .order-status-chip.cancelled{ background:#F0EEEA; color:var(--muted-2); }
 
@@ -381,7 +381,7 @@
     background:rgba(36,31,27,.35); border:none; display:flex; align-items:center; justify-content:center;
     cursor:pointer; color:#fff;
   }
-  .rest-heart.liked svg{ fill:var(--marigold); stroke:var(--marigold); }
+  .rest-heart.liked svg{ fill:var(--chili); stroke:var(--chili); }
   .rest-badge-discount{
     position:absolute; left:10px; bottom:10px; display:flex; align-items:center; gap:5px;
     background:#fff; color:var(--ink); font-family:'Inter',sans-serif; font-weight:700; font-size:12px;
@@ -445,7 +445,7 @@
 
       <p class="loc-field-label">Search for your location</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2; margin-bottom:0;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="loc-search" type="text" placeholder="Search area, street, landmark…" style="color:var(--ink);" autocomplete="off" />
       </div>
       <div class="loc-search-results" id="loc-search-results"></div>
@@ -463,20 +463,20 @@
 
       <p class="loc-field-label">Place / Area</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8.2-7-11a7 7 0 0 1 14 0c0 2.8-3 6.5-7 11z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8.2-7-11a7 7 0 0 1 14 0c0 2.8-3 6.5-7 11z"/></svg>
         <input id="loc-place" type="text" placeholder="e.g. Vazhayur, Kodiyammal…" style="color:var(--ink);" />
       </div>
 
       <p class="loc-field-label">Landmark <span style="color:var(--chili);">*</span></p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
         <input id="loc-landmark" type="text" placeholder="e.g. Near St. Mary's Church, opposite bakery" style="color:var(--ink);" required />
       </div>
       <div class="loc-search-results" id="loc-landmark-suggestions"></div>
 
       <p class="loc-field-label">Contact number for this order</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <input id="loc-contact" type="tel" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" style="color:var(--ink);" />
       </div>
 
@@ -510,7 +510,7 @@
 
       <p class="loc-field-label">Search for your area</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2; margin-bottom:0;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0121F" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="browse-loc-search" type="text" placeholder="Search area, street, landmark…" style="color:var(--ink);" autocomplete="off" />
       </div>
       <div class="loc-search-results" id="browse-loc-results"></div>
@@ -542,11 +542,11 @@
     <div class="px stack">
       <p class="subtitle">Login with your mobile number and password.</p>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <input id="login-number" type="tel" maxlength="10" placeholder="Mobile number (username)" inputmode="numeric" />
       </div>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <input id="login-password" type="password" placeholder="Password" />
       </div>
       <p class="error-text" id="login-error" style="display:none;"></p>
@@ -559,7 +559,7 @@
   <section class="screen" id="screen-register">
     <div class="px" style="padding-top:32px;">
       <button class="btn-back" onclick="showScreen('login')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
     </div>
     <div class="header">
@@ -568,26 +568,26 @@
     </div>
     <div class="px stack">
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <input id="reg-name" type="text" placeholder="Full name" />
       </div>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         <input id="reg-address" type="text" placeholder="Delivery address" />
       </div>
       <div class="row-flex">
         <div class="field flex-1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <input id="reg-location" type="text" placeholder="Live location (area, city)" />
         </div>
         <button class="gps-btn" id="reg-gps-btn">Use GPS</button>
       </div>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <input id="reg-number" type="tel" maxlength="10" placeholder="Mobile number (will be your username)" inputmode="numeric" />
       </div>
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <input id="reg-password" type="password" placeholder="Create password" />
       </div>
       <p class="error-text" id="reg-error" style="display:none;"></p>
@@ -601,7 +601,7 @@
   <section class="screen" id="screen-otp">
     <div class="px" style="padding-top:32px;">
       <button class="btn-back" id="otp-back">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
     </div>
     <div class="header">
@@ -661,7 +661,7 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--marigold)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <button class="your-orders-btn" id="your-orders-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           Your Orders
         </button>
       </div>
@@ -671,17 +671,17 @@
           VERIFIED
         </div>
         <button class="home-track-btn hidden" id="home-track-btn" title="Track your order">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         </button>
         <button class="logout-btn" id="logout-btn" title="Logout">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
     </div>
     <h1 class="greeting" id="home-greeting">Hungry, friend?</h1>
     <div class="search-wrap">
       <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="search-input" type="text" placeholder="Search restaurants or cuisine" />
       </div>
     </div>
@@ -692,7 +692,7 @@
   <section class="screen" id="screen-menu">
     <div class="menu-header">
       <button class="btn-back" onclick="showScreen('home')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div>
         <p class="menu-rest-name" id="menu-rest-name"></p>
@@ -744,7 +744,7 @@
   <section class="screen" id="screen-track">
     <div class="track-header">
       <button class="btn-back" id="track-back-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div>
         <p class="eyebrow">LIVE STATUS</p>
@@ -768,7 +768,7 @@
   <section class="screen" id="screen-orders">
     <div class="orders-header">
       <button class="btn-back" id="orders-back-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div>
         <p class="eyebrow">ORDER HISTORY</p>
@@ -800,7 +800,7 @@
 
   const fbApp = initializeApp(firebaseConfig);
   const db = getDatabase(fbApp);
-  const REST_COLORS = ["#E23744", "#B0121F", "#1BA672", "#7C5CBF", "#2E86AB"];
+  const REST_COLORS = ["#C97F00", "#A66600", "#1BA672", "#7C5CBF", "#2E86AB"];
   // Stand-in photography for restaurants/dishes that don't have a real photo
   // uploaded yet — cycled by index so each listing still looks distinct.
   const REST_PHOTOS = [
@@ -818,6 +818,24 @@
     "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&q=80",
     "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80",
   ];
+  // Stand-in photography for grocery/supermarket stores and their items —
+  // kept separate from the food photos above so a "Groceries" listing never
+  // shows a curry pot or plated dish.
+  const GROCERY_PHOTOS = [
+    "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80",
+    "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=600&q=80",
+    "https://images.unsplash.com/photo-1543168256-418811576931?w=600&q=80",
+    "https://images.unsplash.com/photo-1579113800032-c38bd7635818?w=600&q=80",
+    "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=600&q=80",
+  ];
+  const GROCERY_ITEM_PHOTOS = [
+    "https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=400&q=80",
+    "https://images.unsplash.com/photo-1518843875459-f738682238a6?w=400&q=80",
+    "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80",
+    "https://images.unsplash.com/photo-1573246123716-6b1782bfc499?w=400&q=80",
+    "https://images.unsplash.com/photo-1506617420156-8e4536971650?w=400&q=80",
+    "https://images.unsplash.com/photo-1607305387299-a3d9611cd469?w=400&q=80",
+  ];
 
   // Exposed so the plain <script> below can push a new order straight into
   // the restaurant's node in Firebase. The restaurant partner app listens on
@@ -834,26 +852,29 @@
     snapshot.forEach(child => {
       const v = child.val();
       if (v.status !== 'active') return;
+      const businessType = v.businessType === 'groceries' ? 'groceries' : 'hotel';
+      const itemPhotoSet = businessType === 'groceries' ? GROCERY_ITEM_PHOTOS : DISH_PHOTOS;
       const menuItems = v.menu
         ? Object.keys(v.menu).map((k, di) => ({
             id: k, name: v.menu[k].name, desc: v.menu[k].desc || '', price: v.menu[k].price,
-            image: v.menu[k].photo || DISH_PHOTOS[di % DISH_PHOTOS.length],
+            image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
             rating: (4 + (di % 8) / 10).toFixed(1),
             ratingCount: 2 + (di % 9)
           }))
         : [];
+      const storePhotoSet = businessType === 'groceries' ? GROCERY_PHOTOS : REST_PHOTOS;
       list.push({
         id: child.key,
         name: v.restaurantName || 'Restaurant',
-        cuisine: v.address || 'Local restaurant',
+        cuisine: v.address || (businessType === 'groceries' ? 'Local store' : 'Local restaurant'),
         rating: 4.5,
         ratingCount: 40 + (i * 37) % 400,
         time: "30-40 min",
         location: v.location || null,
         priceForTwo: 199 + (i * 23) % 300,
-        image: v.photo || REST_PHOTOS[i % REST_PHOTOS.length],
+        image: v.photo || storePhotoSet[i % storePhotoSet.length],
         color: REST_COLORS[i++ % REST_COLORS.length],
-        businessType: v.businessType === 'groceries' ? 'groceries' : 'hotel',
+        businessType,
         items: menuItems,
         gpayNumber: v.gpayNumber || "",
         zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null
@@ -1221,7 +1242,7 @@ function renderRestaurantList() {
             </span>
             <span>· ${r.cuisine.split(',')[0]}${distanceLabel}</span>
           </div>
-          <p class="rest-cuisine2">${r.cuisine} • ₹${r.priceForTwo} for two</p>
+          <p class="rest-cuisine2">${r.cuisine} • ₹${r.priceForTwo}${r.businessType === 'groceries' ? ' avg basket' : ' for two'}</p>
         </div>
       </button>
     `;
@@ -1296,11 +1317,11 @@ function renderQtyControl(slot, itemId, qty) {
     wrap.className = "qty-wrap";
     wrap.innerHTML = `
       <button class="minus-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
       <span class="qty-num">${qty}</span>
       <button class="plus-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
     `;
     wrap.querySelector('.minus-btn').addEventListener('click', () => changeQty(itemId, -1));
