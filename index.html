@@ -643,6 +643,13 @@
           <p class="cat-card-sub">Daily essentials, delivered fast</p>
         </div>
       </div>
+      <div class="cat-card" id="cat-card-online-shop">
+        <div class="cat-card-icon" style="background:#EAF0FD;">🛍️</div>
+        <div>
+          <p class="cat-card-title">Online Shopping</p>
+          <p class="cat-card-sub">Shop products, delivered to you</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -691,7 +698,7 @@
   <!-- MENU -->
   <section class="screen" id="screen-menu">
     <div class="menu-header">
-      <button class="btn-back" onclick="showScreen('home')">
+      <button class="btn-back" onclick="showScreen('home'); persistScreen('home', { category: state.category });">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div>
@@ -735,7 +742,7 @@
       </div>
       <div class="confirm-btn-wrap stack">
         <button class="btn-primary" id="confirm-track-btn" style="background:var(--leaf); color:var(--cloud);">🛵 Track your Order</button>
-        <button class="btn-primary" onclick="showScreen('home')">Back to restaurants</button>
+        <button class="btn-primary" onclick="showScreen('home'); persistScreen('home', { category: state.category });">Back to restaurants</button>
       </div>
     </div>
   </section>
@@ -836,6 +843,23 @@
     "https://images.unsplash.com/photo-1506617420156-8e4536971650?w=400&q=80",
     "https://images.unsplash.com/photo-1607305387299-a3d9611cd469?w=400&q=80",
   ];
+  // Stand-in photography for online shops and their products — kept
+  // separate so an "Online Shopping" listing never shows food or groceries.
+  const SHOP_PHOTOS = [
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&q=80",
+    "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600&q=80",
+    "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&q=80",
+    "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&q=80",
+    "https://images.unsplash.com/photo-1524532787116-e70228437bbe?w=600&q=80",
+  ];
+  const SHOP_ITEM_PHOTOS = [
+    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80",
+    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80",
+    "https://images.unsplash.com/photo-1560343090-f0409e92791a?w=400&q=80",
+    "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&q=80",
+    "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=400&q=80",
+    "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&q=80",
+  ];
 
   // Exposed so the plain <script> below can push a new order straight into
   // the restaurant's node in Firebase. The restaurant partner app listens on
@@ -855,8 +879,8 @@
       try {
         const v = child.val();
         if (v.status !== 'active') return;
-        const businessType = v.businessType === 'groceries' ? 'groceries' : 'hotel';
-        const itemPhotoSet = businessType === 'groceries' ? GROCERY_ITEM_PHOTOS : DISH_PHOTOS;
+        const businessType = v.businessType === 'groceries' ? 'groceries' : v.businessType === 'online_shop' ? 'online_shop' : 'hotel';
+        const itemPhotoSet = businessType === 'groceries' ? GROCERY_ITEM_PHOTOS : businessType === 'online_shop' ? SHOP_ITEM_PHOTOS : DISH_PHOTOS;
         const menuItems = v.menu
           ? Object.keys(v.menu).map((k, di) => ({
               id: k, name: v.menu[k].name, desc: v.menu[k].desc || '', price: v.menu[k].price,
@@ -865,11 +889,11 @@
               ratingCount: 2 + (di % 9)
             }))
           : [];
-        const storePhotoSet = businessType === 'groceries' ? GROCERY_PHOTOS : REST_PHOTOS;
+        const storePhotoSet = businessType === 'groceries' ? GROCERY_PHOTOS : businessType === 'online_shop' ? SHOP_PHOTOS : REST_PHOTOS;
         list.push({
           id: child.key,
           name: v.restaurantName || 'Restaurant',
-          cuisine: v.address || (businessType === 'groceries' ? 'Local store' : 'Local restaurant'),
+          cuisine: v.address || (businessType === 'groceries' ? 'Local store' : businessType === 'online_shop' ? 'Online shop' : 'Local restaurant'),
           rating: 4.5,
           ratingCount: 40 + (i * 37) % 400,
           time: "30-40 min",
@@ -939,6 +963,25 @@ try {
 // customers/{mobileNumber}, so accounts survive cache clears / new devices
 // instead of living only in this browser's localStorage. ----------
 
+// ---------- Resume state: remembers which screen the customer was on
+// (home/category/menu/track/orders) so minimizing the app or refreshing
+// the page lands them back where they were instead of the home screen. ----------
+function persistScreen(id, extra) {
+  try {
+    localStorage.setItem('asfood_screen', JSON.stringify(Object.assign({ id }, extra || {})));
+  } catch (e) {}
+}
+function persistCart() {
+  try {
+    const raw = localStorage.getItem('asfood_screen');
+    const saved = raw ? JSON.parse(raw) : {};
+    if (saved.id === 'menu') {
+      saved.cart = state.cart;
+      localStorage.setItem('asfood_screen', JSON.stringify(saved));
+    }
+  } catch (e) {}
+}
+
 // ---------- Helpers ----------
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -953,14 +996,17 @@ function openCategory(cat) {
   state.category = cat;
   renderHome();
   showScreen('home');
+  persistScreen('home', { category: cat });
 }
 function goToCategoryScreen() {
   const firstName = (state.user?.name || "friend").split(' ')[0];
   document.getElementById('cat-greeting-eyebrow').textContent = "HI, " + firstName.toUpperCase();
   showScreen('category');
+  persistScreen('category');
 }
 document.getElementById('cat-card-food').addEventListener('click', () => openCategory('hotel'));
 document.getElementById('cat-card-groceries').addEventListener('click', () => openCategory('groceries'));
+document.getElementById('cat-card-online-shop').addEventListener('click', () => openCategory('online_shop'));
 document.getElementById('home-cat-back-btn').addEventListener('click', goToCategoryScreen);
 
 // ---------- LOGIN ----------
@@ -1212,7 +1258,7 @@ function renderRestaurantList() {
   if (filtered.length === 0) {
     const p = document.createElement('p');
     p.className = "empty-text";
-    const noun = state.category === 'groceries' ? 'stores' : 'restaurants';
+    const noun = state.category === 'groceries' ? 'stores' : state.category === 'online_shop' ? 'shops' : 'restaurants';
     p.textContent = state.customerPos && searchFiltered.length > 0
       ? "No " + noun + " deliver to your selected location yet."
       : 'No ' + noun + ' match "' + searchInput.value + '".';
@@ -1246,11 +1292,12 @@ function renderRestaurantList() {
             </span>
             <span>· ${r.cuisine.split(',')[0]}${distanceLabel}</span>
           </div>
-          <p class="rest-cuisine2">${r.cuisine} • ₹${r.priceForTwo}${r.businessType === 'groceries' ? ' avg basket' : ' for two'}</p>
+          <p class="rest-cuisine2">${r.cuisine} • ₹${r.priceForTwo}${r.businessType === 'groceries' ? ' avg basket' : r.businessType === 'online_shop' ? ' avg order' : ' for two'}</p>
         </div>
       </button>
     `;
-    card.querySelector('.rest-card').addEventListener('click', () => openRestaurant(r.id));
+    card.style.cursor = "pointer";
+    card.addEventListener('click', () => openRestaurant(r.id));
     card.querySelector('.rest-heart').addEventListener('click', (e) => {
       e.stopPropagation();
       e.currentTarget.classList.toggle('liked');
@@ -1274,6 +1321,7 @@ function openRestaurant(id) {
   state.cart = {};
   renderMenu();
   showScreen('menu');
+  persistScreen('menu', { restaurantId: id, cart: state.cart });
 }
 
 const itemListLabel = document.getElementById('item-list-label');
@@ -1344,6 +1392,7 @@ function changeQty(itemId, delta) {
   if (next === 0) delete state.cart[itemId];
   else state.cart[itemId] = next;
   renderMenu();
+  persistCart();
 }
 
 function updateCartBar() {
@@ -2145,10 +2194,12 @@ locConfirmBtn.addEventListener('click', async () => {
     // Remember which order this is so the "Track your Order" button knows
     // exactly which Firebase node to watch for live status updates.
     state.lastOrder = { restId: r.id, orderKey: orderRef.key, orderNumber, restName: r.name };
+    try { localStorage.setItem('asfood_last_order', JSON.stringify(state.lastOrder)); } catch (e) {}
     updateHomeTrackBtn();
     state.cart = {};
     closeLocationConfirm();
     showScreen('placed');
+    persistScreen('track', { trackReturnScreen: 'home' });
   } catch (err) {
     console.error("Failed to place order:", err);
     alert("Couldn't place the order. Please check your connection and try again.");
@@ -2241,6 +2292,7 @@ function openTrackOrder(order, returnScreen) {
   trackOrderNum.textContent = "Order " + order.orderNumber;
   renderTrackTimeline('pending');
   showScreen('track');
+  persistScreen('track', { trackReturnScreen });
 
   if (trackUnsub) { trackUnsub(); trackUnsub = null; }
   const { db, ref, onValue } = window.fb;
@@ -2253,6 +2305,7 @@ function openTrackOrder(order, returnScreen) {
 function leaveTrackScreen() {
   if (trackUnsub) { trackUnsub(); trackUnsub = null; }
   showScreen(trackReturnScreen);
+  persistScreen(trackReturnScreen === 'orders' ? 'orders' : 'home');
 }
 
 confirmTrackBtn.addEventListener('click', () => openTrackOrder(state.lastOrder, 'home'));
@@ -2330,6 +2383,7 @@ function renderOrdersList(orders) {
 
 function openOrdersScreen() {
   showScreen('orders');
+  persistScreen('orders');
   ordersLiveSection.innerHTML = "";
   ordersPastSection.innerHTML = "";
   ordersEmptyEl.style.display = "none";
@@ -2369,6 +2423,7 @@ function openOrdersScreen() {
 function leaveOrdersScreen() {
   if (ordersUnsub) { ordersUnsub(); ordersUnsub = null; }
   showScreen('home');
+  persistScreen('home', { category: state.category });
 }
 
 yourOrdersBtn.addEventListener('click', openOrdersScreen);
@@ -2381,6 +2436,8 @@ function logoutUser() {
   state.selectedRestaurant = null;
   state.category = null;
   try { localStorage.removeItem('asfood_customer_user'); } catch (e) {}
+  try { localStorage.removeItem('asfood_screen'); } catch (e) {}
+  try { localStorage.removeItem('asfood_last_order'); } catch (e) {}
   loginNumberInput.value = "";
   loginPasswordInput.value = "";
   loginErrorEl.style.display = "none";
@@ -2389,10 +2446,47 @@ function logoutUser() {
 }
 document.getElementById('logout-btn').addEventListener('click', logoutUser);
 
-// ---------- Init ----------
+// ---------- Init: resume the customer on whichever screen they were last
+// on (home, category, a restaurant's menu with their cart, order tracking,
+// or their orders list) instead of always dropping them back at the top,
+// so minimizing the app or refreshing the page keeps their place. ----------
 renderHome();
+try {
+  const savedOrder = JSON.parse(localStorage.getItem('asfood_last_order') || 'null');
+  if (savedOrder && savedOrder.orderKey) state.lastOrder = savedOrder;
+} catch (e) {}
+
+let resumed = false;
 if (state.user) {
-  goToCategoryScreen();
+  try {
+    const saved = JSON.parse(localStorage.getItem('asfood_screen') || 'null');
+    if (saved) {
+      if (saved.id === 'menu' && saved.restaurantId) {
+        const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
+        if (rest) {
+          state.selectedRestaurant = rest;
+          state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+          renderMenu();
+          showScreen('menu');
+          resumed = true;
+        }
+      } else if (saved.id === 'track' && state.lastOrder) {
+        openTrackOrder(state.lastOrder, saved.trackReturnScreen || 'home');
+        resumed = true;
+      } else if (saved.id === 'orders') {
+        openOrdersScreen();
+        resumed = true;
+      } else if (saved.id === 'home') {
+        state.category = saved.category || state.category;
+        openCategory(state.category || 'hotel');
+        resumed = true;
+      } else if (saved.id === 'category') {
+        goToCategoryScreen();
+        resumed = true;
+      }
+    }
+  } catch (e) {}
+  if (!resumed) goToCategoryScreen();
 }
 
 // ---------- PWA: register service worker ----------
