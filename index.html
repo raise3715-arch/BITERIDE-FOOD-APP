@@ -706,11 +706,6 @@
         <p class="menu-rest-meta" id="menu-rest-meta"></p>
       </div>
     </div>
-    <div class="item-toolbar">
-      <span class="item-chip">⭐ Ratings 4.0+</span>
-      <span class="item-chip">🏆 Bestseller</span>
-      <span class="item-chip">🥬 Veg</span>
-    </div>
     <p class="item-list-label" id="item-list-label">Recommended</p>
     <div class="item-grid" id="item-list"></div>
     <div class="cart-bar" id="cart-bar">
@@ -1219,9 +1214,16 @@ function renderHome() {
   updateHomeLocationLabel();
   const firstName = (state.user?.name || "friend").split(' ')[0];
   const isGroceries = state.category === 'groceries';
-  homeGreeting.textContent = isGroceries ? "Stock up, " + firstName + "?" : "Hungry, " + firstName + "?";
-  document.getElementById('home-cat-eyebrow').textContent = isGroceries ? "GROCERIES · DELIVER TO" : "FOOD · DELIVER TO";
-  searchInput.placeholder = isGroceries ? "Search groceries or stores" : "Search restaurants or cuisine";
+  const isOnlineShop = state.category === 'online_shop';
+  homeGreeting.textContent = isGroceries ? "Stock up, " + firstName + "?"
+    : isOnlineShop ? "Shop something, " + firstName + "?"
+    : "Hungry, " + firstName + "?";
+  document.getElementById('home-cat-eyebrow').textContent = isGroceries ? "GROCERIES · DELIVER TO"
+    : isOnlineShop ? "SHOPPING · DELIVER TO"
+    : "FOOD · DELIVER TO";
+  searchInput.placeholder = isGroceries ? "Search groceries or stores"
+    : isOnlineShop ? "Search products or shops"
+    : "Search restaurants or cuisine";
   updateHomeTrackBtn();
   renderRestaurantList();
 }
