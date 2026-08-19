@@ -139,17 +139,38 @@
   .error-text{ color:var(--chili); font-size:13px; margin:0; }
   .hint-text{ color:var(--muted); font-size:12px; margin:0; }
 
-  .cat-wrap{ padding:60px 24px 24px; display:flex; flex-direction:column; gap:18px; }
+  .cat-wrap{ padding:28px 20px 24px; display:flex; flex-direction:column; gap:18px; }
   .cat-card{
-    display:flex; align-items:center; gap:16px; padding:22px 20px; border-radius:18px;
-    background:var(--cloud); box-shadow:var(--card-shadow); cursor:pointer; border:1.5px solid var(--field-border);
+    position:relative; height:168px; border-radius:22px; overflow:hidden; cursor:pointer;
+    background-size:cover; background-position:center; box-shadow:0 10px 24px rgba(43,36,16,.18);
+    transition:transform .12s;
+  }
+  .cat-card:active{ transform:scale(0.98); }
+  .cat-card::before{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(20,15,5,.05) 0%, rgba(20,15,5,.15) 45%, rgba(20,15,5,.82) 100%);
   }
   .cat-card-icon{
-    width:56px; height:56px; border-radius:14px; display:flex; align-items:center; justify-content:center;
-    flex-shrink:0; font-size:26px;
+    position:absolute; top:14px; left:14px; z-index:2;
+    width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; font-size:23px; background:rgba(255,255,255,.95);
+    box-shadow:0 4px 10px rgba(20,15,5,.2);
   }
-  .cat-card-title{ color:var(--ink); font-family:'Fraunces',serif; font-size:19px; font-weight:700; margin:0; }
-  .cat-card-sub{ color:var(--muted-2); font-size:13px; margin:4px 0 0; }
+  .cat-card-arrow{
+    position:absolute; top:16px; right:14px; z-index:2;
+    width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.92);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cat-card-text{ position:absolute; left:18px; right:18px; bottom:16px; z-index:2; }
+  .cat-card-title{ color:#fff; font-family:'Fraunces',serif; font-size:22px; font-weight:700; margin:0; text-shadow:0 2px 8px rgba(0,0,0,.35); }
+  .cat-card-sub{ color:rgba(255,255,255,.9); font-size:13px; margin:4px 0 0; text-shadow:0 1px 4px rgba(0,0,0,.3); }
+  .cat-header-eyebrow{ display:flex; align-items:center; justify-content:space-between; }
+  .cat-badge-verified{
+    display:inline-flex; align-items:center; gap:4px; padding:6px 10px;
+    border:1.5px solid var(--leaf); color:var(--leaf); border-radius:20px;
+    background:rgba(27,166,114,.08); font-family:'Inter',sans-serif; font-weight:700;
+    font-size:11px; letter-spacing:.3px;
+  }
   .home-back-btn{ background:none; border:none; color:var(--ink); cursor:pointer; padding:0 8px 0 0; display:flex; align-items:center; }
   .top-row{ padding:40px 24px 16px; display:flex; align-items:flex-start; justify-content:space-between; }
   .loc-row{ display:flex; align-items:center; gap:6px; margin-top:4px; }
@@ -624,28 +645,43 @@
 
   <!-- HOME -->
   <section class="screen" id="screen-category">
-    <div class="header">
-      <p class="eyebrow" id="cat-greeting-eyebrow">HELLO</p>
+    <div class="header" style="padding-bottom:8px;">
+      <div class="cat-header-eyebrow">
+        <p class="eyebrow" id="cat-greeting-eyebrow">HELLO</p>
+        <div class="cat-badge-verified">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1BA672" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          VERIFIED
+        </div>
+      </div>
       <h1 class="title" id="cat-greeting-title">What are you looking for?</h1>
     </div>
     <div class="cat-wrap">
-      <div class="cat-card" id="cat-card-food">
-        <div class="cat-card-icon" style="background:#FDEDEB;">🍔</div>
-        <div>
+      <div class="cat-card" id="cat-card-food" style="background-image:url('https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=800&q=80');">
+        <div class="cat-card-icon">🍔</div>
+        <div class="cat-card-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#241F1B" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="cat-card-text">
           <p class="cat-card-title">Food</p>
           <p class="cat-card-sub">Order from restaurants near you</p>
         </div>
       </div>
-      <div class="cat-card" id="cat-card-groceries">
-        <div class="cat-card-icon" style="background:#EAF6EF;">🛒</div>
-        <div>
+      <div class="cat-card" id="cat-card-groceries" style="background-image:url('https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80');">
+        <div class="cat-card-icon">🛒</div>
+        <div class="cat-card-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#241F1B" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="cat-card-text">
           <p class="cat-card-title">Groceries</p>
           <p class="cat-card-sub">Daily essentials, delivered fast</p>
         </div>
       </div>
-      <div class="cat-card" id="cat-card-online-shop">
-        <div class="cat-card-icon" style="background:#EAF0FD;">🛍️</div>
-        <div>
+      <div class="cat-card" id="cat-card-online-shop" style="background-image:url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80');">
+        <div class="cat-card-icon">🛍️</div>
+        <div class="cat-card-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#241F1B" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="cat-card-text">
           <p class="cat-card-title">Online Shopping</p>
           <p class="cat-card-sub">Shop products, delivered to you</p>
         </div>
@@ -863,12 +899,23 @@
   // order's status as the restaurant partner app updates it.
   window.fb = { db, ref, push, set, get, onValue };
 
-  // Live-listens to restaurants added from the Restaurant Partner app and
-  // keeps window.RESTAURANTS + the on-screen list in sync in real time.
-  onValue(ref(db, 'restaurants'), (snapshot) => {
+  // Operator-set flat amount (₹) added on top of every restaurant's own item
+  // price before it's shown to customers. Set/edited from the Operator Panel
+  // (app_config/extraAmount) and applied live here — restaurants themselves
+  // still see/set their own raw price in their own app, untouched.
+  let PLATFORM_EXTRA_AMOUNT = 0;
+  let lastRestaurantsSnapshot = null;
+
+  // Builds window.RESTAURANTS from the last-seen restaurants snapshot using
+  // whatever PLATFORM_EXTRA_AMOUNT is currently in effect. Called whenever
+  // either the restaurant data OR the operator's extra amount changes, so
+  // an operator edit reflects for customers immediately without needing a
+  // fresh restaurants snapshot.
+  function rebuildRestaurantsFromSnapshot() {
+    if (!lastRestaurantsSnapshot) return;
     const list = [];
     let i = 0;
-    snapshot.forEach(child => {
+    lastRestaurantsSnapshot.forEach(child => {
       // One malformed restaurant record (bad item data, missing field, etc.)
       // must never take down the whole list — skip just that one.
       try {
@@ -878,7 +925,8 @@
         const itemPhotoSet = businessType === 'groceries' ? GROCERY_ITEM_PHOTOS : businessType === 'online_shop' ? SHOP_ITEM_PHOTOS : DISH_PHOTOS;
         const menuItems = v.menu
           ? Object.keys(v.menu).map((k, di) => ({
-              id: k, name: v.menu[k].name, desc: v.menu[k].desc || '', price: v.menu[k].price,
+              id: k, name: v.menu[k].name, desc: v.menu[k].desc || '',
+              price: (Number(v.menu[k].price) || 0) + PLATFORM_EXTRA_AMOUNT,
               image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
               rating: (4 + (di % 8) / 10).toFixed(1),
               ratingCount: 2 + (di % 9)
@@ -907,6 +955,29 @@
     });
     window.RESTAURANTS = list;
     if (window.onRestaurantsUpdated) window.onRestaurantsUpdated();
+  }
+
+  // Live-listens to restaurants added from the Restaurant Partner app and
+  // keeps window.RESTAURANTS + the on-screen list in sync in real time.
+  onValue(ref(db, 'restaurants'), (snapshot) => {
+    lastRestaurantsSnapshot = snapshot;
+    rebuildRestaurantsFromSnapshot();
+  });
+
+  // Live-listens to the operator-set extra amount and re-applies it to every
+  // item price the moment it's changed/edited from the Operator Panel. Also
+  // exposed on window so the order-placement code (in the plain <script>
+  // below) can stamp each order with exactly how much of its total was the
+  // operator's extra amount at the moment the order was placed — this is
+  // what the restaurant partner app + operator panel use to work out how
+  // much a restaurant currently owes the platform ("due amount"), and it
+  // has to be captured per-order since the extra amount itself can change
+  // later without rewriting past orders.
+  onValue(ref(db, 'app_config/extraAmount'), (snapshot) => {
+    const data = snapshot.val();
+    PLATFORM_EXTRA_AMOUNT = (data && Number(data.amount)) || 0;
+    window.PLATFORM_EXTRA_AMOUNT = PLATFORM_EXTRA_AMOUNT;
+    rebuildRestaurantsFromSnapshot();
   });
 </script>
 
@@ -2155,6 +2226,11 @@ locConfirmBtn.addEventListener('click', async () => {
     .filter(it => state.cart[it.id])
     .map(it => ({ name: it.name, price: it.price, qty: state.cart[it.id] }));
   const total = orderItems.reduce((sum, it) => sum + it.price * it.qty, 0);
+  const totalQty = orderItems.reduce((sum, it) => sum + it.qty, 0);
+  // How much of this order's total is the operator's extra amount — captured
+  // now so it stays fixed for this order even if the operator changes the
+  // extra amount later. This is what accrues as "due" against the restaurant.
+  const platformDue = (window.PLATFORM_EXTRA_AMOUNT || 0) * totalQty;
 
   locConfirmBtn.disabled = true;
   locGpsBtn.disabled = true;
@@ -2180,6 +2256,7 @@ locConfirmBtn.addEventListener('click', async () => {
       customerLandmark: landmark,
       items: orderItems,
       total,
+      platformDue,
       paymentMethod: selectedPaymentMethod === 'gpay' ? 'GPay (Scanner)' : 'Cash on Delivery'
     };
     if (selectedPaymentMethod === 'gpay' && r.gpayNumber) {
