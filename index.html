@@ -482,6 +482,12 @@
       </div>
       <button class="loc-gps-btn" id="loc-gps-btn">📍 Use my current location</button>
 
+      <div class="chit" style="margin:14px 24px 0;">
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;"><span>Item total</span><span id="loc-summary-items">₹0</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;" id="loc-summary-fee-row"><span>Platform fee</span><span id="loc-summary-fee">₹0</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:700; color:var(--ink); border-top:1px dashed var(--marigold-dark); margin-top:6px; padding-top:6px;"><span>Total</span><span id="loc-summary-total">₹0</span></div>
+      </div>
+
       <p class="loc-field-label">Place / Area</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8.2-7-11a7 7 0 0 1 14 0c0 2.8-3 6.5-7 11z"/></svg>
@@ -926,7 +932,7 @@
         const menuItems = v.menu
           ? Object.keys(v.menu).map((k, di) => ({
               id: k, name: v.menu[k].name, desc: v.menu[k].desc || '',
-              price: (Number(v.menu[k].price) || 0) + PLATFORM_EXTRA_AMOUNT,
+              price: Number(v.menu[k].price) || 0,
               image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
               rating: (4 + (di % 8) / 10).toFixed(1),
               ratingCount: 2 + (di % 9)
@@ -964,20 +970,16 @@
     rebuildRestaurantsFromSnapshot();
   });
 
-  // Live-listens to the operator-set extra amount and re-applies it to every
-  // item price the moment it's changed/edited from the Operator Panel. Also
-  // exposed on window so the order-placement code (in the plain <script>
-  // below) can stamp each order with exactly how much of its total was the
-  // operator's extra amount at the moment the order was placed — this is
-  // what the restaurant partner app + operator panel use to work out how
-  // much a restaurant currently owes the platform ("due amount"), and it
-  // has to be captured per-order since the extra amount itself can change
-  // later without rewriting past orders.
+  // Live-listens to the operator-set extra amount (shown to customers as a
+  // flat "Platform Fee" per order, not baked into individual item prices)
+  // and keeps it current. Exposed on window so the checkout/order-placement
+  // code (in the plain <script> below) can read it when building the order
+  // summary and placing the order.
   onValue(ref(db, 'app_config/extraAmount'), (snapshot) => {
     const data = snapshot.val();
     PLATFORM_EXTRA_AMOUNT = (data && Number(data.amount)) || 0;
     window.PLATFORM_EXTRA_AMOUNT = PLATFORM_EXTRA_AMOUNT;
-    rebuildRestaurantsFromSnapshot();
+    if (window.onPlatformFeeUpdated) window.onPlatformFeeUpdated();
   });
 </script>
 
@@ -1499,6 +1501,37 @@ const gpayNumberText = document.getElementById('gpay-number-text');
 const gpayPaidCheckbox = document.getElementById('gpay-paid-checkbox');
 let selectedPaymentMethod = 'cod';
 
+// ---------- Order summary (item total + flat platform fee) shown in the
+// checkout sheet, recalculated whenever it's opened. The platform fee is a
+// single flat amount per order (not per item) — the operator's currently
+// set extra amount at the moment of checkout.
+const locSummaryItemsEl = document.getElementById('loc-summary-items');
+const locSummaryFeeRowEl = document.getElementById('loc-summary-fee-row');
+const locSummaryFeeEl = document.getElementById('loc-summary-fee');
+const locSummaryTotalEl = document.getElementById('loc-summary-total');
+function currentPlatformFee() { return Number(window.PLATFORM_EXTRA_AMOUNT) || 0; }
+function currentCartItemsTotal() {
+  const r = state.selectedRestaurant;
+  if (!r) return 0;
+  return r.items.reduce((sum, it) => sum + (state.cart[it.id] || 0) * it.price, 0);
+}
+function updateLocSummary() {
+  const itemsTotal = currentCartItemsTotal();
+  const fee = currentPlatformFee();
+  if (locSummaryItemsEl) locSummaryItemsEl.textContent = "₹" + itemsTotal;
+  if (locSummaryFeeEl) locSummaryFeeEl.textContent = "₹" + fee;
+  if (locSummaryFeeRowEl) locSummaryFeeRowEl.style.display = fee > 0 ? "flex" : "none";
+  if (locSummaryTotalEl) locSummaryTotalEl.textContent = "₹" + (itemsTotal + fee);
+}
+// If the operator changes the fee while this checkout sheet happens to be
+// open, keep the summary (and GPay QR amount) in sync live.
+window.onPlatformFeeUpdated = () => {
+  if (locOverlay && locOverlay.classList.contains('show')) {
+    updateLocSummary();
+    if (selectedPaymentMethod === 'gpay') setPaymentMethod('gpay');
+  }
+};
+
 // Holds whatever location will actually be sent with the order. Pre-filled
 // from the user's saved profile location (parsed as lat,lng if possible),
 // then overwritten if they tap "Use my current location" or drag/tap the
@@ -1792,6 +1825,7 @@ function openLocationConfirm() {
   locContactInput.value = digitsOnly(state.user?.number || "");
   hideLandmarkSuggestions();
   hideLocSearchResults();
+  updateLocSummary();
   setPaymentMethod('cod');
   const hasGpay = !!(state.selectedRestaurant && state.selectedRestaurant.gpayNumber);
   payGpayBtn.disabled = !hasGpay;
@@ -1949,7 +1983,7 @@ function setPaymentMethod(method) {
   if (method === 'gpay' && r && r.gpayNumber) {
     gpayScannerBox.style.display = 'block';
     gpayNumberText.textContent = "UPI ID: " + r.gpayNumber;
-    const cartTotal = r.items.reduce((sum, it) => sum + (state.cart[it.id] || 0) * it.price, 0);
+    const cartTotal = currentCartItemsTotal() + currentPlatformFee();
     const upiUrl = "upi://pay?pa=" + encodeURIComponent(r.gpayNumber) +
       "&pn=" + encodeURIComponent(r.name || 'Restaurant') +
       "&am=" + encodeURIComponent(cartTotal) +
@@ -2225,12 +2259,13 @@ locConfirmBtn.addEventListener('click', async () => {
   const orderItems = r.items
     .filter(it => state.cart[it.id])
     .map(it => ({ name: it.name, price: it.price, qty: state.cart[it.id] }));
-  const total = orderItems.reduce((sum, it) => sum + it.price * it.qty, 0);
-  const totalQty = orderItems.reduce((sum, it) => sum + it.qty, 0);
-  // How much of this order's total is the operator's extra amount — captured
-  // now so it stays fixed for this order even if the operator changes the
-  // extra amount later. This is what accrues as "due" against the restaurant.
-  const platformDue = (window.PLATFORM_EXTRA_AMOUNT || 0) * totalQty;
+  const itemsTotal = orderItems.reduce((sum, it) => sum + it.price * it.qty, 0);
+  // Platform fee is a flat amount added once per order/transaction (not per
+  // item, not multiplied by quantity) — captured now so it stays fixed for
+  // this order even if the operator changes the fee later. This is what
+  // becomes "due" against the restaurant once the order is marked ready.
+  const platformFee = currentPlatformFee();
+  const total = itemsTotal + platformFee;
 
   locConfirmBtn.disabled = true;
   locGpsBtn.disabled = true;
@@ -2256,7 +2291,8 @@ locConfirmBtn.addEventListener('click', async () => {
       customerLandmark: landmark,
       items: orderItems,
       total,
-      platformDue,
+      platformFee,
+      platformDue: platformFee,
       paymentMethod: selectedPaymentMethod === 'gpay' ? 'GPay (Scanner)' : 'Cash on Delivery'
     };
     if (selectedPaymentMethod === 'gpay' && r.gpayNumber) {
