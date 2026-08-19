@@ -850,35 +850,41 @@
     const list = [];
     let i = 0;
     snapshot.forEach(child => {
-      const v = child.val();
-      if (v.status !== 'active') return;
-      const businessType = v.businessType === 'groceries' ? 'groceries' : 'hotel';
-      const itemPhotoSet = businessType === 'groceries' ? GROCERY_ITEM_PHOTOS : DISH_PHOTOS;
-      const menuItems = v.menu
-        ? Object.keys(v.menu).map((k, di) => ({
-            id: k, name: v.menu[k].name, desc: v.menu[k].desc || '', price: v.menu[k].price,
-            image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
-            rating: (4 + (di % 8) / 10).toFixed(1),
-            ratingCount: 2 + (di % 9)
-          }))
-        : [];
-      const storePhotoSet = businessType === 'groceries' ? GROCERY_PHOTOS : REST_PHOTOS;
-      list.push({
-        id: child.key,
-        name: v.restaurantName || 'Restaurant',
-        cuisine: v.address || (businessType === 'groceries' ? 'Local store' : 'Local restaurant'),
-        rating: 4.5,
-        ratingCount: 40 + (i * 37) % 400,
-        time: "30-40 min",
-        location: v.location || null,
-        priceForTwo: 199 + (i * 23) % 300,
-        image: v.photo || storePhotoSet[i % storePhotoSet.length],
-        color: REST_COLORS[i++ % REST_COLORS.length],
-        businessType,
-        items: menuItems,
-        gpayNumber: v.gpayNumber || "",
-        zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null
-      });
+      // One malformed restaurant record (bad item data, missing field, etc.)
+      // must never take down the whole list — skip just that one.
+      try {
+        const v = child.val();
+        if (v.status !== 'active') return;
+        const businessType = v.businessType === 'groceries' ? 'groceries' : 'hotel';
+        const itemPhotoSet = businessType === 'groceries' ? GROCERY_ITEM_PHOTOS : DISH_PHOTOS;
+        const menuItems = v.menu
+          ? Object.keys(v.menu).map((k, di) => ({
+              id: k, name: v.menu[k].name, desc: v.menu[k].desc || '', price: v.menu[k].price,
+              image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
+              rating: (4 + (di % 8) / 10).toFixed(1),
+              ratingCount: 2 + (di % 9)
+            }))
+          : [];
+        const storePhotoSet = businessType === 'groceries' ? GROCERY_PHOTOS : REST_PHOTOS;
+        list.push({
+          id: child.key,
+          name: v.restaurantName || 'Restaurant',
+          cuisine: v.address || (businessType === 'groceries' ? 'Local store' : 'Local restaurant'),
+          rating: 4.5,
+          ratingCount: 40 + (i * 37) % 400,
+          time: "30-40 min",
+          location: v.location || null,
+          priceForTwo: 199 + (i * 23) % 300,
+          image: v.photo || storePhotoSet[i % storePhotoSet.length],
+          color: REST_COLORS[i++ % REST_COLORS.length],
+          businessType,
+          items: menuItems,
+          gpayNumber: v.gpayNumber || "",
+          zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null
+        });
+      } catch (e) {
+        console.error('Skipped one broken restaurant record while rendering:', child.key, e);
+      }
     });
     window.RESTAURANTS = list;
     if (window.onRestaurantsUpdated) window.onRestaurantsUpdated();
@@ -1279,25 +1285,29 @@ function renderMenu() {
   itemListLabel.textContent = "Recommended (" + r.items.length + ")";
   itemListEl.innerHTML = "";
   r.items.forEach(it => {
-    const qty = state.cart[it.id] || 0;
-    const card = document.createElement('div');
-    card.className = "item-card2";
-    card.innerHTML = `
-      <div class="item-img-wrap">
-        <img class="item-img" src="${it.image || ''}" alt="${it.name}" loading="lazy" />
-        <span class="item-veg"><span></span></span>
-        <span class="item-rating2">★ ${it.rating || '4.5'}${it.ratingCount ? ' (' + it.ratingCount + ')' : ''}</span>
-      </div>
-      <p class="item-name2">${it.name}</p>
-      ${it.desc ? `<p class="item-desc" style="margin-top:2px;">${it.desc}</p>` : ''}
-      <div class="item-row2">
-        <span class="item-price2">₹${it.price}</span>
-        <div class="qty-slot"></div>
-      </div>
-    `;
-    const qtySlot = card.querySelector('.qty-slot');
-    renderQtyControl(qtySlot, it.id, qty);
-    itemListEl.appendChild(card);
+    try {
+      const qty = state.cart[it.id] || 0;
+      const card = document.createElement('div');
+      card.className = "item-card2";
+      card.innerHTML = `
+        <div class="item-img-wrap">
+          <img class="item-img" src="${it.image || ''}" alt="${it.name}" loading="lazy" />
+          <span class="item-veg"><span></span></span>
+          <span class="item-rating2">★ ${it.rating || '4.5'}${it.ratingCount ? ' (' + it.ratingCount + ')' : ''}</span>
+        </div>
+        <p class="item-name2">${it.name}</p>
+        ${it.desc ? `<p class="item-desc" style="margin-top:2px;">${it.desc}</p>` : ''}
+        <div class="item-row2">
+          <span class="item-price2">₹${it.price}</span>
+          <div class="qty-slot"></div>
+        </div>
+      `;
+      const qtySlot = card.querySelector('.qty-slot');
+      renderQtyControl(qtySlot, it.id, qty);
+      itemListEl.appendChild(card);
+    } catch (e) {
+      console.error('Skipped one broken menu item while rendering:', it && it.id, e);
+    }
   });
   updateCartBar();
 }
