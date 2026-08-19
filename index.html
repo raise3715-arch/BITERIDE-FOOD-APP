@@ -458,7 +458,7 @@
 <body>
 <div id="app">
 
-  <!-- DELIVERY LOCATION CONFIRM -->
+  <!-- DELIVERY LOCATION CONFIRM (step 1: location & details) -->
   <div class="loc-overlay" id="loc-overlay">
     <div class="loc-sheet">
       <p class="loc-eyebrow">DELIVERY LOCATION</p>
@@ -482,12 +482,6 @@
       </div>
       <button class="loc-gps-btn" id="loc-gps-btn">📍 Use my current location</button>
 
-      <div class="chit" style="margin:14px 24px 0;">
-        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;"><span>Item total</span><span id="loc-summary-items">₹0</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;" id="loc-summary-fee-row"><span>Platform fee</span><span id="loc-summary-fee">₹0</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:700; color:var(--ink); border-top:1px dashed var(--marigold-dark); margin-top:6px; padding-top:6px;"><span>Total</span><span id="loc-summary-total">₹0</span></div>
-      </div>
-
       <p class="loc-field-label">Place / Area</p>
       <div class="field" style="background:#fff; border:1px solid #E4DFD2;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8.2-7-11a7 7 0 0 1 14 0c0 2.8-3 6.5-7 11z"/></svg>
@@ -507,6 +501,31 @@
         <input id="loc-contact" type="tel" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" style="color:var(--ink);" />
       </div>
 
+      <div class="loc-btn-row">
+        <button class="loc-cancel-btn" id="loc-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="loc-proceed-btn" style="flex:1;">Proceed →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAYMENT CONFIRM (step 2: review + payment, restored after refresh/close) -->
+  <div class="loc-overlay" id="payment-overlay">
+    <div class="loc-sheet">
+      <p class="loc-eyebrow">PAYMENT</p>
+      <h2 class="loc-title">Review &amp; pay</h2>
+
+      <div class="loc-current" style="margin-bottom:10px;">
+        <p class="loc-current-label">Delivering to</p>
+        <p class="loc-current-value" id="pay-address-summary">—</p>
+        <button type="button" id="pay-edit-address-btn" style="background:none; border:none; padding:4px 0 0; color:var(--leaf); font-weight:700; font-size:12px; font-family:'Inter',sans-serif; cursor:pointer;">Edit address</button>
+      </div>
+
+      <div class="chit" style="margin:0 0 14px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;"><span>Item total</span><span id="loc-summary-items">₹0</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;" id="loc-summary-fee-row"><span>Platform fee</span><span id="loc-summary-fee">₹0</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:700; color:var(--ink); border-top:1px dashed var(--marigold-dark); margin-top:6px; padding-top:6px;"><span>Total</span><span id="loc-summary-total">₹0</span></div>
+      </div>
+
       <p class="loc-field-label">Payment method</p>
       <div class="pay-method-row" id="pay-method-row">
         <button type="button" class="pay-method-btn active" id="pay-cod-btn" data-method="cod">💵 Cash on Delivery</button>
@@ -523,8 +542,8 @@
       </div>
 
       <div class="loc-btn-row">
-        <button class="loc-cancel-btn" id="loc-cancel-btn">Cancel</button>
-        <button class="btn-primary" id="loc-confirm-btn" style="flex:1;">Confirm & place order</button>
+        <button class="loc-cancel-btn" id="pay-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="pay-confirm-btn" style="flex:1;">Confirm & place order</button>
       </div>
     </div>
   </div>
@@ -1005,6 +1024,9 @@ let state = {
   lastOrder: null, // { restId, orderKey, orderNumber, restName } for the "Track your Order" screen
   customerPos: null, // { lat, lng } — set via "Select your location", used to filter restaurants by delivery zone
   category: null, // 'hotel' (Food) or 'groceries' — chosen on the category screen, filters the restaurant list
+  pendingCheckout: null, // { text, lat, lng, place, landmark, contact } — saved once the user taps
+                          // "Proceed" on the location step, so the payment step (and a resumed
+                          // app after refresh/close) always has the delivery details on hand.
 };
 
 // Restore the customer's chosen browsing location (if any) across sessions.
@@ -1489,10 +1511,15 @@ const locSearchResultsEl = document.getElementById('loc-search-results');
 const locCurrentValue = document.getElementById('loc-current-value');
 const locGpsBtn = document.getElementById('loc-gps-btn');
 const locCancelBtn = document.getElementById('loc-cancel-btn');
-const locConfirmBtn = document.getElementById('loc-confirm-btn');
+const locProceedBtn = document.getElementById('loc-proceed-btn');
 const locLandmarkInput = document.getElementById('loc-landmark');
 const locPlaceInput = document.getElementById('loc-place');
 const locContactInput = document.getElementById('loc-contact');
+const paymentOverlay = document.getElementById('payment-overlay');
+const payAddressSummary = document.getElementById('pay-address-summary');
+const payEditAddressBtn = document.getElementById('pay-edit-address-btn');
+const payCancelBtn = document.getElementById('pay-cancel-btn');
+const payConfirmBtn = document.getElementById('pay-confirm-btn');
 const payCodBtn = document.getElementById('pay-cod-btn');
 const payGpayBtn = document.getElementById('pay-gpay-btn');
 const gpayScannerBox = document.getElementById('gpay-scanner-box');
@@ -1526,7 +1553,7 @@ function updateLocSummary() {
 // If the operator changes the fee while this checkout sheet happens to be
 // open, keep the summary (and GPay QR amount) in sync live.
 window.onPlatformFeeUpdated = () => {
-  if (locOverlay && locOverlay.classList.contains('show')) {
+  if (paymentOverlay && paymentOverlay.classList.contains('show')) {
     updateLocSummary();
     if (selectedPaymentMethod === 'gpay') setPaymentMethod('gpay');
   }
@@ -1808,28 +1835,27 @@ function ensureLocMap(startLat, startLng) {
   });
 }
 
-function openLocationConfirm() {
-  const savedText = state.user?.location || "";
+function openLocationConfirm(prefill) {
+  // If we're re-opening this step to edit details already saved from a
+  // previous "Proceed" tap (state.pendingCheckout), start from those values
+  // instead of wiping them back to the user's saved profile location.
+  const pc = prefill || state.pendingCheckout;
+  const savedText = pc?.text || state.user?.location || "";
   const parsed = parseLatLng(savedText);
-  const startLat = parsed?.lat ?? DEFAULT_MAP_CENTER.lat;
-  const startLng = parsed?.lng ?? DEFAULT_MAP_CENTER.lng;
-  pendingLocation = { text: savedText, lat: parsed?.lat ?? null, lng: parsed?.lng ?? null };
+  const startLat = pc?.lat ?? parsed?.lat ?? DEFAULT_MAP_CENTER.lat;
+  const startLng = pc?.lng ?? parsed?.lng ?? DEFAULT_MAP_CENTER.lng;
+  pendingLocation = { text: savedText, lat: pc?.lat ?? parsed?.lat ?? null, lng: pc?.lng ?? parsed?.lng ?? null };
   locCurrentValue.textContent = savedText || "No saved location — tap the map or use GPS below";
   locGpsBtn.disabled = false;
   locGpsBtn.textContent = "📍 Use my current location";
-  locConfirmBtn.disabled = false;
-  locConfirmBtn.textContent = "Confirm & place order";
-  locLandmarkInput.value = "";
-  locPlaceInput.value = "";
+  locProceedBtn.disabled = false;
+  locProceedBtn.textContent = "Proceed →";
+  locLandmarkInput.value = pc?.landmark || "";
+  locPlaceInput.value = pc?.place || "";
   locSearchInput.value = "";
-  locContactInput.value = digitsOnly(state.user?.number || "");
+  locContactInput.value = pc?.contact || digitsOnly(state.user?.number || "");
   hideLandmarkSuggestions();
   hideLocSearchResults();
-  updateLocSummary();
-  setPaymentMethod('cod');
-  const hasGpay = !!(state.selectedRestaurant && state.selectedRestaurant.gpayNumber);
-  payGpayBtn.disabled = !hasGpay;
-  payGpayBtn.title = hasGpay ? "" : "This restaurant hasn't set up GPay yet";
   locOverlay.classList.add('show');
 
   // Give the sheet's slide-up animation a moment before sizing the map.
@@ -1855,6 +1881,28 @@ function closeLocationConfirm() {
   if (locSearchAbort) locSearchAbort.abort();
   hideLandmarkSuggestions();
   hideLocSearchResults();
+}
+
+// ---------- Payment confirm sheet (step 2) ----------
+// Opened right after "Proceed" is tapped on the location step, and also on
+// app start/resume if a "Proceed"-ed checkout was saved before a refresh or
+// the app being closed — so the customer lands straight back on payment
+// instead of having to re-enter their address.
+function openPaymentConfirm() {
+  const pc = state.pendingCheckout;
+  if (!pc) return;
+  const addressBits = [pc.landmark, pc.place].filter(Boolean).join(", ");
+  payAddressSummary.textContent = addressBits || pc.text || "Delivery address set";
+  updateLocSummary();
+  setPaymentMethod('cod');
+  const hasGpay = !!(state.selectedRestaurant && state.selectedRestaurant.gpayNumber);
+  payGpayBtn.disabled = !hasGpay;
+  payGpayBtn.title = hasGpay ? "" : "This restaurant hasn't set up GPay yet";
+  paymentOverlay.classList.add('show');
+}
+
+function closePaymentConfirm() {
+  paymentOverlay.classList.remove('show');
 }
 
 // ---------- "Search for your location" (order placement sheet) ----------
@@ -1999,15 +2047,21 @@ function setPaymentMethod(method) {
 
 function updateLocConfirmGate() {
   const needsPaymentConfirm = selectedPaymentMethod === 'gpay' && !gpayPaidCheckbox.checked;
-  locConfirmBtn.disabled = needsPaymentConfirm;
-  locConfirmBtn.textContent = needsPaymentConfirm ? "Complete payment to continue" : "Confirm & place order";
+  payConfirmBtn.disabled = needsPaymentConfirm;
+  payConfirmBtn.textContent = needsPaymentConfirm ? "Complete payment to continue" : "Confirm & place order";
 }
 
 payCodBtn.addEventListener('click', () => setPaymentMethod('cod'));
 payGpayBtn.addEventListener('click', () => setPaymentMethod('gpay'));
 gpayPaidCheckbox.addEventListener('change', updateLocConfirmGate);
 
-locCancelBtn.addEventListener('click', closeLocationConfirm);
+locCancelBtn.addEventListener('click', () => {
+  state.pendingCheckout = null;
+  closeLocationConfirm();
+  if (state.selectedRestaurant) {
+    persistScreen('menu', { restaurantId: state.selectedRestaurant.id, cart: state.cart });
+  }
+});
 
 // ---------- "Select your location" (browse/filter location, home screen) ----------
 const browseLocOverlay = document.getElementById('browse-loc-overlay');
@@ -2226,16 +2280,16 @@ browseLocConfirmBtn.addEventListener('click', () => {
 
 cartBtn.addEventListener('click', () => {
   if (!state.selectedRestaurant) return;
+  state.pendingCheckout = null;
   openLocationConfirm();
 });
 
-locConfirmBtn.addEventListener('click', async () => {
+// Step 1 -> Step 2: validate the location & contact details, save them
+// (so they survive a refresh or the app being closed), then hand off to
+// the payment sheet.
+locProceedBtn.addEventListener('click', () => {
   const r = state.selectedRestaurant;
   if (!r) { closeLocationConfirm(); return; }
-  if (selectedPaymentMethod === 'gpay' && !gpayPaidCheckbox.checked) {
-    alert("Please complete the GPay payment and tick \"I've completed the payment\" before placing the order.");
-    return;
-  }
   if (!pendingLocation.text) {
     locCurrentValue.textContent = "Please set a delivery location first";
     return;
@@ -2255,6 +2309,49 @@ locConfirmBtn.addEventListener('click', async () => {
   }
   const placeArea = locPlaceInput.value.trim();
 
+  state.pendingCheckout = {
+    text: pendingLocation.text,
+    lat: pendingLocation.lat,
+    lng: pendingLocation.lng,
+    place: placeArea,
+    landmark,
+    contact: contactNumber
+  };
+  // Persisted under the same "resume state" mechanism used for the menu
+  // screen, so an app refresh or close-and-reopen lands the customer back
+  // on the payment step with everything they already entered intact.
+  persistScreen('checkout_payment', {
+    restaurantId: r.id,
+    cart: state.cart,
+    pendingCheckout: state.pendingCheckout
+  });
+
+  closeLocationConfirm();
+  openPaymentConfirm();
+});
+
+payEditAddressBtn.addEventListener('click', () => {
+  closePaymentConfirm();
+  openLocationConfirm();
+});
+
+payCancelBtn.addEventListener('click', () => {
+  state.pendingCheckout = null;
+  closePaymentConfirm();
+  if (state.selectedRestaurant) {
+    persistScreen('menu', { restaurantId: state.selectedRestaurant.id, cart: state.cart });
+  }
+});
+
+payConfirmBtn.addEventListener('click', async () => {
+  const r = state.selectedRestaurant;
+  const pc = state.pendingCheckout;
+  if (!r || !pc) { closePaymentConfirm(); return; }
+  if (selectedPaymentMethod === 'gpay' && !gpayPaidCheckbox.checked) {
+    alert("Please complete the GPay payment and tick \"I've completed the payment\" before placing the order.");
+    return;
+  }
+
   const orderNumber = "KOT-" + Math.floor(1000 + Math.random() * 9000);
   const orderItems = r.items
     .filter(it => state.cart[it.id])
@@ -2267,9 +2364,8 @@ locConfirmBtn.addEventListener('click', async () => {
   const platformFee = currentPlatformFee();
   const total = itemsTotal + platformFee;
 
-  locConfirmBtn.disabled = true;
-  locGpsBtn.disabled = true;
-  locConfirmBtn.textContent = "Placing order…";
+  payConfirmBtn.disabled = true;
+  payConfirmBtn.textContent = "Placing order…";
 
   try {
     // Push the order into the restaurant's own node in Firebase. The
@@ -2284,11 +2380,11 @@ locConfirmBtn.addEventListener('click', async () => {
       status: selectedPaymentMethod === 'gpay' ? "awaiting_payment" : "pending",
       createdAt: Date.now(),
       customerName: state.user?.name || "Guest",
-      customerPhone: contactNumber,
+      customerPhone: pc.contact,
       customerAddress: state.user?.address || "",
-      customerLocation: pendingLocation.text,
-      customerPlace: placeArea,
-      customerLandmark: landmark,
+      customerLocation: pc.text,
+      customerPlace: pc.place,
+      customerLandmark: pc.landmark,
       items: orderItems,
       total,
       platformFee,
@@ -2298,9 +2394,9 @@ locConfirmBtn.addEventListener('click', async () => {
     if (selectedPaymentMethod === 'gpay' && r.gpayNumber) {
       orderPayload.gpayNumber = r.gpayNumber;
     }
-    if (typeof pendingLocation.lat === 'number' && typeof pendingLocation.lng === 'number') {
-      orderPayload.customerLat = pendingLocation.lat;
-      orderPayload.customerLng = pendingLocation.lng;
+    if (typeof pc.lat === 'number' && typeof pc.lng === 'number') {
+      orderPayload.customerLat = pc.lat;
+      orderPayload.customerLng = pc.lng;
     }
     await set(orderRef, orderPayload);
 
@@ -2312,16 +2408,16 @@ locConfirmBtn.addEventListener('click', async () => {
     try { localStorage.setItem('asfood_last_order', JSON.stringify(state.lastOrder)); } catch (e) {}
     updateHomeTrackBtn();
     state.cart = {};
-    closeLocationConfirm();
+    state.pendingCheckout = null;
+    closePaymentConfirm();
     showScreen('placed');
     persistScreen('track', { trackReturnScreen: 'home' });
   } catch (err) {
     console.error("Failed to place order:", err);
     alert("Couldn't place the order. Please check your connection and try again.");
   } finally {
-    locConfirmBtn.disabled = false;
-    locGpsBtn.disabled = false;
-    locConfirmBtn.textContent = "Confirm & place order";
+    payConfirmBtn.disabled = false;
+    payConfirmBtn.textContent = "Confirm & place order";
   }
 });
 
@@ -2550,6 +2646,7 @@ function logoutUser() {
   state.cart = {};
   state.selectedRestaurant = null;
   state.category = null;
+  state.pendingCheckout = null;
   try { localStorage.removeItem('asfood_customer_user'); } catch (e) {}
   try { localStorage.removeItem('asfood_screen'); } catch (e) {}
   try { localStorage.removeItem('asfood_last_order'); } catch (e) {}
@@ -2583,6 +2680,20 @@ if (state.user) {
           state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
           renderMenu();
           showScreen('menu');
+          resumed = true;
+        }
+      } else if (saved.id === 'checkout_payment' && saved.restaurantId && saved.pendingCheckout) {
+        // Customer had already tapped "Proceed" on the location step and
+        // was on payment when the app refreshed or was closed — take them
+        // straight back to payment instead of making them re-enter details.
+        const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
+        if (rest) {
+          state.selectedRestaurant = rest;
+          state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+          state.pendingCheckout = saved.pendingCheckout;
+          renderMenu();
+          showScreen('menu');
+          openPaymentConfirm();
           resumed = true;
         }
       } else if (saved.id === 'track' && state.lastOrder) {
