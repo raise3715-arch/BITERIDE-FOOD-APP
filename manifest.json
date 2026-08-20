@@ -1,6 +1,6 @@
 {
-  "name": "Tiffin & Co.",
-  "short_name": "Tiffin & Co.",
+  "name": "NESH",
+  "short_name": "NESH",
   "description": "Order food from your favourite local restaurants.",
   "start_url": "./index.html",
   "scope": "./",
