@@ -767,8 +767,15 @@
         <p class="menu-rest-meta" id="menu-rest-meta"></p>
       </div>
     </div>
+    <div class="search-wrap">
+      <div class="field">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="menu-search-input" type="text" placeholder="Search items in this menu" />
+      </div>
+    </div>
     <p class="item-list-label" id="item-list-label">Recommended</p>
     <div class="item-grid" id="item-list"></div>
+    <p class="item-list-label" id="menu-no-results" style="display:none; text-align:center; color:var(--muted); font-weight:500;">No items match your search</p>
     <div class="cart-bar" id="cart-bar">
       <button class="cart-btn" id="cart-btn">
         <span class="cart-btn-left">
@@ -1416,20 +1423,35 @@ const cartBtn = document.getElementById('cart-btn');
 function openRestaurant(id) {
   state.selectedRestaurant = RESTAURANTS.find(r => r.id === id);
   state.cart = {};
+  state.menuSearch = '';
+  menuSearchInput.value = '';
   renderMenu();
   showScreen('menu');
   persistScreen('menu', { restaurantId: id, cart: state.cart });
 }
 
 const itemListLabel = document.getElementById('item-list-label');
+const menuSearchInput = document.getElementById('menu-search-input');
+const menuNoResults = document.getElementById('menu-no-results');
 
 function renderMenu() {
   const r = state.selectedRestaurant;
   menuRestName.textContent = r.name;
   menuRestMeta.textContent = r.cuisine;
-  itemListLabel.textContent = "Recommended (" + r.items.length + ")";
+  const query = (state.menuSearch || '').trim().toLowerCase();
+  const items = query
+    ? r.items.filter(it =>
+        (it.name || '').toLowerCase().includes(query) ||
+        (it.desc || '').toLowerCase().includes(query)
+      )
+    : r.items;
+  itemListLabel.textContent = query
+    ? "Search results (" + items.length + ")"
+    : "Recommended (" + r.items.length + ")";
   itemListEl.innerHTML = "";
-  r.items.forEach(it => {
+  menuNoResults.style.display = items.length === 0 ? 'block' : 'none';
+  itemListLabel.style.display = items.length === 0 ? 'none' : 'block';
+  items.forEach(it => {
     try {
       const qty = state.cart[it.id] || 0;
       const card = document.createElement('div');
@@ -1456,6 +1478,10 @@ function renderMenu() {
   });
   updateCartBar();
 }
+menuSearchInput.addEventListener('input', () => {
+  state.menuSearch = menuSearchInput.value;
+  renderMenu();
+});
 
 function renderQtyControl(slot, itemId, qty) {
   slot.innerHTML = "";
@@ -2657,6 +2683,25 @@ function logoutUser() {
   showScreen('login');
 }
 document.getElementById('logout-btn').addEventListener('click', logoutUser);
+
+// ---------- Auto-detect location every time the app is opened — always
+// asks the browser for a fresh GPS position and re-renders the shop list
+// filtered to that location, so the customer never has to pick manually.
+// If permission is denied/unavailable, whatever location was saved from
+// last time (if any) is kept, so the list doesn't just disappear. ----------
+function autoDetectLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      state.customerPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      try { localStorage.setItem('asfood_customer_pos', JSON.stringify(state.customerPos)); } catch (e) {}
+      renderHome();
+    },
+    () => { /* permission denied / timeout — keep last saved location, if any */ },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+autoDetectLocation();
 
 // ---------- Init: resume the customer on whichever screen they were last
 // on (home, category, a restaurant's menu with their cart, order tracking,
