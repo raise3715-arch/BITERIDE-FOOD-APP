@@ -1057,6 +1057,9 @@ let state = {
   pendingCheckout: null, // { text, lat, lng, place, landmark, contact } — saved once the user taps
                           // "Proceed" on the location step, so the payment step (and a resumed
                           // app after refresh/close) always has the delivery details on hand.
+  roadDistanceKm: null,   // actual bike-route km from OSRM for the current rest->customer pair
+  roadDistanceKey: null,  // which rest/customer coordinate pair roadDistanceKm belongs to
+  roadDistanceLoading: false,
 };
 
 // Restore the customer's chosen browsing location (if any) across sessions.
@@ -1588,22 +1591,79 @@ const locSummaryDeliveryRowEl = document.getElementById('loc-summary-delivery-ro
 const locSummaryDeliveryEl = document.getElementById('loc-summary-delivery');
 const locSummaryTotalEl = document.getElementById('loc-summary-total');
 function currentPlatformFee() { return Number(window.PLATFORM_EXTRA_AMOUNT) || 0; }
-// Restaurant-set delivery charge: a base fee + a per-km rate applied to the
-// straight-line distance between the restaurant and wherever the customer
-// pinned their delivery location for this order (state.pendingCheckout,
-// filled in on the location-confirm step). Falls back to ₹0 if the
-// restaurant hasn't configured delivery charges, or if we don't yet know
-// both points well enough to measure a distance.
+// Restaurant-set delivery charge: a base fee + a per-km rate. The "km" here
+// is the actual bike-route distance from the shop to the delivery pin (via
+// OSRM routing — the same real road distance you'd ride, not a straight
+// line through buildings), fetched by ensureRoadDistance() once the
+// customer reaches the payment step. While that's loading (or if it fails,
+// e.g. no internet), we fall back to straight-line distance nudged up ~25%
+// as a rough stand-in so the summary never just shows nothing.
+function deliveryDistanceKey(restPos, pc) {
+  return restPos.lat.toFixed(5) + ',' + restPos.lng.toFixed(5) + '|' + pc.lat.toFixed(5) + ',' + pc.lng.toFixed(5);
+}
+
+function currentDeliveryKm() {
+  const r = state.selectedRestaurant;
+  const pc = state.pendingCheckout;
+  const restPos = r ? parseLatLng(r.location) : null;
+  if (!pc || typeof pc.lat !== 'number' || typeof pc.lng !== 'number' || !restPos) return null;
+  const key = deliveryDistanceKey(restPos, pc);
+  if (state.roadDistanceKey === key && state.roadDistanceKm != null) {
+    return { km: state.roadDistanceKm, isRoadDistance: true };
+  }
+  return { km: (haversineMeters(restPos.lat, restPos.lng, pc.lat, pc.lng) / 1000) * 1.25, isRoadDistance: false };
+}
+
+let deliveryRouteAbort = null;
+// Asks OSRM's public routing server for the real cycling-route distance
+// between the restaurant and the customer's pinned delivery spot. Cheap,
+// no API key needed — same free-service pattern already used for landmark
+// lookups (Overpass) and address search (Nominatim) elsewhere in this app.
+async function ensureRoadDistance() {
+  const r = state.selectedRestaurant;
+  const dc = r && r.deliveryCharges;
+  const pc = state.pendingCheckout;
+  const restPos = r ? parseLatLng(r.location) : null;
+  if (!dc || !pc || typeof pc.lat !== 'number' || typeof pc.lng !== 'number' || !restPos) return;
+
+  const key = deliveryDistanceKey(restPos, pc);
+  if (state.roadDistanceKey === key && state.roadDistanceKm != null) return; // already have it cached
+
+  if (deliveryRouteAbort) deliveryRouteAbort.abort();
+  deliveryRouteAbort = new AbortController();
+  state.roadDistanceLoading = true;
+  updateLocSummary();
+  updateLocConfirmGate();
+
+  try {
+    const url = `https://router.project-osrm.org/route/v1/cycling/${restPos.lng},${restPos.lat};${pc.lng},${pc.lat}?overview=false`;
+    const res = await fetch(url, { signal: deliveryRouteAbort.signal });
+    const data = await res.json();
+    const meters = data && data.routes && data.routes[0] && data.routes[0].distance;
+    if (typeof meters === 'number') {
+      state.roadDistanceKm = meters / 1000;
+      state.roadDistanceKey = key;
+    }
+  } catch (e) {
+    // Aborted (superseded by a newer request) or offline — currentDeliveryKm()
+    // already has a straight-line fallback, so checkout still works fine.
+  } finally {
+    state.roadDistanceLoading = false;
+    if (paymentOverlay && paymentOverlay.classList.contains('show')) {
+      updateLocSummary();
+      updateLocConfirmGate();
+      if (selectedPaymentMethod === 'gpay') setPaymentMethod('gpay');
+    }
+  }
+}
+
 function currentDeliveryFee() {
   const r = state.selectedRestaurant;
   const dc = r && r.deliveryCharges;
   if (!dc) return 0;
-  const pc = state.pendingCheckout;
-  const restPos = r ? parseLatLng(r.location) : null;
-  if (!pc || typeof pc.lat !== 'number' || typeof pc.lng !== 'number' || !restPos) {
-    return Number(dc.baseFee) || 0; // distance unknown — charge the flat base fee only
-  }
-  const km = haversineMeters(restPos.lat, restPos.lng, pc.lat, pc.lng) / 1000;
+  const d = currentDeliveryKm();
+  if (!d) return Number(dc.baseFee) || 0; // distance unknown — charge the flat base fee only
+  const km = d.km;
   if (dc.freeUnderKm != null && km < Number(dc.freeUnderKm)) return 0;
   const baseFee = Number(dc.baseFee) || 0;
   const perKmFee = Number(dc.perKmFee) || 0;
@@ -1617,13 +1677,18 @@ function currentCartItemsTotal() {
 function updateLocSummary() {
   const itemsTotal = currentCartItemsTotal();
   const fee = currentPlatformFee();
+  const dc = state.selectedRestaurant && state.selectedRestaurant.deliveryCharges;
   const deliveryFee = currentDeliveryFee();
   if (locSummaryItemsEl) locSummaryItemsEl.textContent = "₹" + itemsTotal;
   if (locSummaryFeeEl) locSummaryFeeEl.textContent = "₹" + fee;
   if (locSummaryFeeRowEl) locSummaryFeeRowEl.style.display = fee > 0 ? "flex" : "none";
-  if (locSummaryDeliveryEl) locSummaryDeliveryEl.textContent = "₹" + deliveryFee;
-  if (locSummaryDeliveryRowEl) locSummaryDeliveryRowEl.style.display = deliveryFee > 0 ? "flex" : "none";
-  if (locSummaryTotalEl) locSummaryTotalEl.textContent = "₹" + (itemsTotal + fee + deliveryFee);
+  // While the real road distance is still loading, show "Calculating…"
+  // instead of a number that's about to change — avoids the customer
+  // seeing one total on screen and a slightly different one get charged.
+  const showLoading = state.roadDistanceLoading && dc;
+  if (locSummaryDeliveryEl) locSummaryDeliveryEl.textContent = showLoading ? "Calculating…" : "₹" + deliveryFee;
+  if (locSummaryDeliveryRowEl) locSummaryDeliveryRowEl.style.display = (deliveryFee > 0 || showLoading) ? "flex" : "none";
+  if (locSummaryTotalEl) locSummaryTotalEl.textContent = showLoading ? "…" : "₹" + (itemsTotal + fee + deliveryFee);
 }
 // If the operator changes the fee while this checkout sheet happens to be
 // open, keep the summary (and GPay QR amount) in sync live.
@@ -2122,8 +2187,12 @@ function setPaymentMethod(method) {
 
 function updateLocConfirmGate() {
   const needsPaymentConfirm = selectedPaymentMethod === 'gpay' && !gpayPaidCheckbox.checked;
-  payConfirmBtn.disabled = needsPaymentConfirm;
-  payConfirmBtn.textContent = needsPaymentConfirm ? "Complete payment to continue" : "Confirm & place order";
+  const dc = state.selectedRestaurant && state.selectedRestaurant.deliveryCharges;
+  const stillCalculating = state.roadDistanceLoading && dc;
+  payConfirmBtn.disabled = needsPaymentConfirm || stillCalculating;
+  payConfirmBtn.textContent = stillCalculating
+    ? "Calculating delivery distance…"
+    : needsPaymentConfirm ? "Complete payment to continue" : "Confirm & place order";
 }
 
 payCodBtn.addEventListener('click', () => setPaymentMethod('cod'));
@@ -2403,6 +2472,7 @@ locProceedBtn.addEventListener('click', () => {
 
   closeLocationConfirm();
   openPaymentConfirm();
+  ensureRoadDistance();
 });
 
 payEditAddressBtn.addEventListener('click', () => {
@@ -2438,6 +2508,7 @@ payConfirmBtn.addEventListener('click', async () => {
   // becomes "due" against the restaurant once the order is marked ready.
   const platformFee = currentPlatformFee();
   const deliveryFee = currentDeliveryFee();
+  const deliveryKmInfo = currentDeliveryKm();
   const total = itemsTotal + platformFee + deliveryFee;
 
   payConfirmBtn.disabled = true;
@@ -2474,6 +2545,10 @@ payConfirmBtn.addEventListener('click', async () => {
     if (typeof pc.lat === 'number' && typeof pc.lng === 'number') {
       orderPayload.customerLat = pc.lat;
       orderPayload.customerLng = pc.lng;
+    }
+    if (deliveryKmInfo) {
+      orderPayload.deliveryDistanceKm = Math.round(deliveryKmInfo.km * 10) / 10;
+      orderPayload.deliveryDistanceIsRoadRoute = deliveryKmInfo.isRoadDistance;
     }
     await set(orderRef, orderPayload);
 
@@ -2790,6 +2865,7 @@ if (state.user) {
           renderMenu();
           showScreen('menu');
           openPaymentConfirm();
+          ensureRoadDistance();
           resumed = true;
         }
       } else if (saved.id === 'track' && state.lastOrder) {
