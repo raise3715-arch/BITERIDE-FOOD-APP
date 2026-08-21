@@ -308,10 +308,18 @@
     width:36px; height:4px; border-radius:4px; background:var(--field-border); margin:0 auto 18px;
   }
   .install-sheet-top{ display:flex; align-items:center; gap:14px; }
+  .install-sheet-icon-wrap{ position:relative; width:64px; height:64px; flex-shrink:0; }
   .install-sheet-icon{
     width:64px; height:64px; border-radius:16px; flex-shrink:0; box-shadow:0 4px 14px rgba(43,36,16,.18);
     object-fit:cover; background:var(--field-bg);
   }
+  .install-sheet-ring{ position:absolute; inset:-5px; width:74px; height:74px; transform:rotate(-90deg); pointer-events:none; opacity:0; transition:opacity .15s; }
+  .install-sheet-ring.show{ opacity:1; }
+  .install-sheet-ring circle{ fill:none; stroke-width:4; }
+  .install-sheet-ring .ring-track{ stroke:var(--field-border); }
+  .install-sheet-ring .ring-fill{ stroke:var(--chili); stroke-linecap:round; transition:stroke-dashoffset .12s linear; }
+  .install-sheet-pct{ color:var(--chili); font-weight:800; font-size:13px; margin:3px 0 0; display:none; }
+  .install-sheet-pct.show{ display:block; }
   .install-sheet-name{ color:var(--ink); font-family:'Poppins',sans-serif; font-weight:700; font-size:18px; margin:0; }
   .install-sheet-pub{ color:var(--muted-2); font-size:13px; margin:3px 0 0; }
   .install-sheet-trust{ display:flex; align-items:center; gap:14px; margin-top:14px; }
@@ -938,10 +946,17 @@
     <div class="install-sheet">
       <div class="install-sheet-handle"></div>
       <div class="install-sheet-top">
-        <img class="install-sheet-icon" src="icon-192.png" alt="NESH" />
+        <div class="install-sheet-icon-wrap">
+          <img class="install-sheet-icon" src="icon-192.png" alt="NESH" />
+          <svg class="install-sheet-ring" id="install-ring" viewBox="0 0 74 74">
+            <circle class="ring-track" cx="37" cy="37" r="33"></circle>
+            <circle class="ring-fill" id="install-ring-fill" cx="37" cy="37" r="33" stroke-dasharray="207.3" stroke-dashoffset="207.3"></circle>
+          </svg>
+        </div>
         <div>
           <p class="install-sheet-name">NESH</p>
-          <p class="install-sheet-pub">Food delivery · nesh.app</p>
+          <p class="install-sheet-pub" id="install-sheet-pub">Food delivery · nesh.app</p>
+          <p class="install-sheet-pct" id="install-sheet-pct">0%</p>
         </div>
       </div>
 
@@ -966,17 +981,16 @@
         </div>
       </div>
 
-      <p class="install-sheet-desc" id="install-sheet-desc">Install NESH for one-tap ordering, faster loading and offline access — right from your home screen, no app store needed.</p>
+      <p class="install-sheet-desc" id="install-sheet-desc">Install NESH for one-tap ordering, faster loading and offline access — right from your home screen.</p>
 
       <ol class="install-sheet-ios-steps hidden" id="install-ios-steps">
-        <li>Tap the <b>Share</b> icon in Safari's toolbar</li>
-        <li>Scroll down and choose <b>Add to Home Screen</b></li>
-        <li>Tap <b>Add</b> in the top-right corner</li>
+        <li>⚡ Fastest delivery in your area</li>
+        <li>💰 Exclusive app-only offers &amp; discounts</li>
+        <li>📍 Live order tracking</li>
       </ol>
 
       <div class="install-sheet-btn-row">
-        <button class="install-sheet-notnow" id="install-notnow-btn">Not now</button>
-        <button class="btn-primary" id="install-confirm-btn">Install</button>
+        <button class="btn-primary" id="install-confirm-btn" style="width:100%;">Install</button>
       </div>
     </div>
   </div>
@@ -3032,9 +3046,42 @@ if ('serviceWorker' in navigator) {
   const banner = document.getElementById('install-banner');
   const bannerBtn = document.getElementById('install-banner-btn');
   const confirmBtn = document.getElementById('install-confirm-btn');
-  const notNowBtn = document.getElementById('install-notnow-btn');
   const iosSteps = document.getElementById('install-ios-steps');
   const descEl = document.getElementById('install-sheet-desc');
+  const pubEl = document.getElementById('install-sheet-pub');
+  const pctEl = document.getElementById('install-sheet-pct');
+  const ring = document.getElementById('install-ring');
+  const ringFill = document.getElementById('install-ring-fill');
+  const RING_CIRC = 207.3; // 2 * PI * 33
+  const FAKE_SIZE_MB = 4.2;
+
+  function setRingPct(pct) {
+    ringFill.style.strokeDashoffset = String(RING_CIRC - (RING_CIRC * pct) / 100);
+  }
+
+  function runInstallProgress(onDone) {
+    ring.classList.add('show');
+    pctEl.classList.add('show');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Installing…';
+    let pct = 0;
+    setRingPct(0);
+    const timer = setInterval(() => {
+      pct += Math.random() * 14 + 6; // uneven steps, feels real
+      if (pct >= 100) {
+        pct = 100;
+        clearInterval(timer);
+        setRingPct(100);
+        pctEl.textContent = '100%';
+        pubEl.textContent = FAKE_SIZE_MB + ' MB · Done';
+        setTimeout(onDone, 350);
+        return;
+      }
+      setRingPct(pct);
+      pctEl.textContent = Math.floor(pct) + '%';
+      pubEl.textContent = 'Installing… ' + Math.floor(pct) + '% of ' + FAKE_SIZE_MB + ' MB';
+    }, 220);
+  }
 
   let deferredPrompt = null;
 
@@ -3071,28 +3118,21 @@ if ('serviceWorker' in navigator) {
 
   function openSheet() {
     if (isStandalone()) return;
-    if (deferredPrompt) {
-      // Real native install is ready — Play Store-style Install button.
-      iosSteps.classList.add('hidden');
-      descEl.textContent = 'Install NESH for one-tap ordering, faster loading and offline access — right from your home screen, no app store needed.';
-      confirmBtn.classList.remove('hidden');
-    } else if (isIOS()) {
-      // iOS Safari has no native install prompt — show manual steps.
-      iosSteps.classList.remove('hidden');
-      descEl.textContent = 'Add NESH to your home screen for one-tap ordering and faster loading — no app store needed.';
-      confirmBtn.classList.add('hidden');
-    } else {
-      // Android/desktop Chrome, but the browser hasn't offered the native
-      // prompt yet (site just opened, or install criteria not met yet).
-      iosSteps.classList.add('hidden');
-      descEl.textContent = "Tap your browser menu (⋮) and choose \"Install app\" or \"Add to Home screen\" to install NESH.";
-      confirmBtn.classList.add('hidden');
-    }
+    pubEl.textContent = 'Food delivery · nesh.app';
+    confirmBtn.classList.remove('hidden');
+    iosSteps.classList.remove('hidden');
+    descEl.textContent = 'Install NESH for one-tap ordering, faster loading and offline access — right from your home screen.';
     overlay.classList.add('show');
   }
 
   function closeSheet() {
     overlay.classList.remove('show');
+    // reset progress UI for next time
+    ring.classList.remove('show');
+    pctEl.classList.remove('show');
+    setRingPct(0);
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Install';
   }
 
   // Chrome/Android/desktop: browser tells us the app is installable.
@@ -3110,29 +3150,41 @@ if ('serviceWorker' in navigator) {
 
   iconBtn.addEventListener('click', openSheet);
   bannerBtn.addEventListener('click', openSheet);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSheet(); });
+  // Backdrop tap no longer closes the sheet — Install is now mandatory,
+  // there's no "Not now" dismiss path anymore.
 
-  notNowBtn.addEventListener('click', () => {
-    markDismissed();
-    closeSheet();
-  });
+  const FAKE_INSTALLED_KEY = 'nesh_fake_installed';
 
   confirmBtn.addEventListener('click', async () => {
-    if (!deferredPrompt) { closeSheet(); return; }
-    confirmBtn.disabled = true;
-    deferredPrompt.prompt();
-    try {
-      await deferredPrompt.userChoice;
-    } catch (e) {}
-    confirmBtn.disabled = false;
-    deferredPrompt = null;
-    closeSheet();
+    if (!deferredPrompt) {
+      // No native install API available on this browser (iOS Safari,
+      // Firefox, etc.) — still run the fake progress for a convincing
+      // feel, then mark as "installed" so the banner/icon go away.
+      runInstallProgress(() => {
+        try { localStorage.setItem(FAKE_INSTALLED_KEY, '1'); } catch (e) {}
+        closeSheet();
+        hideEntryPoints();
+      });
+      return;
+    }
+    runInstallProgress(async () => {
+      deferredPrompt.prompt();
+      try {
+        await deferredPrompt.userChoice;
+      } catch (e) {}
+      deferredPrompt = null;
+      closeSheet();
+    });
   });
 
   // Show the banner/icon right away for anyone not already using the
   // installed app — don't wait for beforeinstallprompt, since some
   // browsers fire it late (or, on iOS, never at all).
-  if (!isStandalone()) {
+  function isFakeInstalled() {
+    try { return localStorage.getItem(FAKE_INSTALLED_KEY) === '1'; } catch (e) { return false; }
+  }
+
+  if (!isStandalone() && !isFakeInstalled()) {
     showEntryPoints();
     if (!recentlyDismissed()) {
       setTimeout(openSheet, 1500);
