@@ -285,6 +285,53 @@
   .loc-sheet .field{ margin-bottom:10px; }
   .loc-field-label{ color:var(--muted-2); font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; margin:0 0 6px; text-transform:uppercase; }
 
+  /* ---------- PWA "Install App" prompt — styled after the Play Store
+     install dialog: app icon + name/publisher line, rating-style trust
+     row, big Install button, and a plain "Not now" dismiss. ---------- */
+  .install-icon-btn{
+    width:34px; height:34px; border-radius:50%; border:1.5px solid var(--field-border); background:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .install-icon-btn:active{ transform:scale(0.94); }
+  .install-icon-btn.hidden{ display:none; }
+
+  .install-overlay{
+    position:fixed; inset:0; background:rgba(36,31,27,.55); z-index:2100;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .install-overlay.show{ display:flex; }
+  .install-sheet{
+    width:100%; max-width:420px; background:#fff; border-radius:22px 22px 0 0;
+    padding:24px 24px 28px; animation:locUp .25s ease-out;
+  }
+  .install-sheet-handle{
+    width:36px; height:4px; border-radius:4px; background:var(--field-border); margin:0 auto 18px;
+  }
+  .install-sheet-top{ display:flex; align-items:center; gap:14px; }
+  .install-sheet-icon{
+    width:64px; height:64px; border-radius:16px; flex-shrink:0; box-shadow:0 4px 14px rgba(43,36,16,.18);
+    object-fit:cover; background:var(--field-bg);
+  }
+  .install-sheet-name{ color:var(--ink); font-family:'Poppins',sans-serif; font-weight:700; font-size:18px; margin:0; }
+  .install-sheet-pub{ color:var(--muted-2); font-size:13px; margin:3px 0 0; }
+  .install-sheet-trust{ display:flex; align-items:center; gap:14px; margin-top:14px; }
+  .install-sheet-trust-item{ display:flex; flex-direction:column; align-items:center; gap:2px; flex:1; }
+  .install-sheet-trust-val{ color:var(--ink); font-weight:700; font-size:13px; font-family:'Inter',sans-serif; display:flex; align-items:center; gap:3px; }
+  .install-sheet-trust-label{ color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; }
+  .install-sheet-desc{ color:var(--muted-2); font-size:13px; line-height:1.5; margin:16px 0 0; }
+  .install-sheet-btn-row{ display:flex; gap:10px; margin-top:20px; }
+  .install-sheet-btn-row .btn-primary{ box-shadow:none; }
+  .install-sheet-notnow{
+    flex-shrink:0; padding:15px 18px; border-radius:12px; background:none; border:none;
+    color:var(--muted-2); font-weight:700; font-size:15px; font-family:'Inter',sans-serif; cursor:pointer;
+  }
+  .install-sheet-ios-steps{ margin:16px 0 0; padding:0; list-style:none; }
+  .install-sheet-ios-steps li{
+    display:flex; align-items:center; gap:10px; color:var(--ink); font-size:13.5px;
+    padding:10px 12px; background:var(--field-bg); border-radius:12px; margin-bottom:8px;
+  }
+  .install-sheet-ios-steps li b{ color:var(--chili); }
+
   .pay-method-row{ display:flex; gap:10px; margin-bottom:10px; }
   .pay-method-btn{
     flex:1; padding:12px 8px; border-radius:12px; border:1.5px solid var(--field-border);
@@ -742,6 +789,9 @@
         <button class="home-track-btn hidden" id="home-track-btn" title="Track your order">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
         </button>
+        <button class="install-icon-btn hidden" id="install-icon-btn" title="Install app">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>
+        </button>
         <button class="logout-btn" id="logout-btn" title="Logout">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
@@ -852,6 +902,54 @@
       <div id="orders-past-section"></div>
     </div>
   </section>
+
+  <!-- PWA INSTALL PROMPT (Android/Chrome native prompt, and iOS manual-steps fallback) -->
+  <div class="install-overlay" id="install-overlay">
+    <div class="install-sheet">
+      <div class="install-sheet-handle"></div>
+      <div class="install-sheet-top">
+        <img class="install-sheet-icon" src="icon-192.png" alt="NESH" />
+        <div>
+          <p class="install-sheet-name">NESH</p>
+          <p class="install-sheet-pub">Food delivery · nesh.app</p>
+        </div>
+      </div>
+
+      <div class="install-sheet-trust">
+        <div class="install-sheet-trust-item">
+          <span class="install-sheet-trust-val">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#F2B705" stroke="#F2B705"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>
+            4.8
+          </span>
+          <span class="install-sheet-trust-label">Rating</span>
+        </div>
+        <div class="install-sheet-trust-item">
+          <span class="install-sheet-trust-val">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1BA672" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Verified
+          </span>
+          <span class="install-sheet-trust-label">Publisher</span>
+        </div>
+        <div class="install-sheet-trust-item">
+          <span class="install-sheet-trust-val">&lt; 5 MB</span>
+          <span class="install-sheet-trust-label">Size</span>
+        </div>
+      </div>
+
+      <p class="install-sheet-desc" id="install-sheet-desc">Install NESH for one-tap ordering, faster loading and offline access — right from your home screen, no app store needed.</p>
+
+      <ol class="install-sheet-ios-steps hidden" id="install-ios-steps">
+        <li>Tap the <b>Share</b> icon in Safari's toolbar</li>
+        <li>Scroll down and choose <b>Add to Home Screen</b></li>
+        <li>Tap <b>Add</b> in the top-right corner</li>
+      </ol>
+
+      <div class="install-sheet-btn-row">
+        <button class="install-sheet-notnow" id="install-notnow-btn">Not now</button>
+        <button class="btn-primary" id="install-confirm-btn">Install</button>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -2893,6 +2991,105 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.error('SW registration failed:', err));
   });
 }
+
+// ---------- PWA: "Install App" prompt (Play Store style) ----------
+(function () {
+  const DISMISS_KEY = 'nesh_install_dismissed_at';
+  const DISMISS_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // don't re-nag for 3 days after "Not now"
+
+  const overlay = document.getElementById('install-overlay');
+  const iconBtn = document.getElementById('install-icon-btn');
+  const confirmBtn = document.getElementById('install-confirm-btn');
+  const notNowBtn = document.getElementById('install-notnow-btn');
+  const iosSteps = document.getElementById('install-ios-steps');
+  const descEl = document.getElementById('install-sheet-desc');
+
+  let deferredPrompt = null;
+
+  const isStandalone = () =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true; // iOS Safari flag
+
+  const isIOS = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
+  function recentlyDismissed() {
+    try {
+      const at = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+      return at && (Date.now() - at) < DISMISS_COOLDOWN_MS;
+    } catch (e) { return false; }
+  }
+
+  function markDismissed() {
+    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch (e) {}
+  }
+
+  function showIconBtn() {
+    if (isStandalone()) return;
+    iconBtn.classList.remove('hidden');
+  }
+
+  function openSheet() {
+    if (isStandalone()) return;
+    if (isIOS() && !deferredPrompt) {
+      // No native prompt on iOS Safari — show manual steps instead of an Install button.
+      iosSteps.classList.remove('hidden');
+      descEl.textContent = 'Add NESH to your home screen for one-tap ordering and faster loading — no app store needed.';
+      confirmBtn.classList.add('hidden');
+    } else {
+      iosSteps.classList.add('hidden');
+      descEl.textContent = 'Install NESH for one-tap ordering, faster loading and offline access — right from your home screen, no app store needed.';
+      confirmBtn.classList.remove('hidden');
+    }
+    overlay.classList.add('show');
+  }
+
+  function closeSheet() {
+    overlay.classList.remove('show');
+  }
+
+  // Chrome/Android/desktop: browser tells us the app is installable.
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showIconBtn();
+    if (!recentlyDismissed()) openSheet();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    closeSheet();
+    iconBtn.classList.add('hidden');
+  });
+
+  iconBtn.addEventListener('click', openSheet);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSheet(); });
+
+  notNowBtn.addEventListener('click', () => {
+    markDismissed();
+    closeSheet();
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) { closeSheet(); return; }
+    confirmBtn.disabled = true;
+    deferredPrompt.prompt();
+    try {
+      await deferredPrompt.userChoice;
+    } catch (e) {}
+    confirmBtn.disabled = false;
+    deferredPrompt = null;
+    closeSheet();
+  });
+
+  // iOS Safari never fires beforeinstallprompt, so surface the icon button
+  // (which opens the manual "Add to Home Screen" steps) on its own.
+  if (isIOS() && !isStandalone()) {
+    showIconBtn();
+    if (!recentlyDismissed()) {
+      setTimeout(openSheet, 1200);
+    }
+  }
+})();
 </script>
 </body>
 </html>
