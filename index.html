@@ -332,6 +332,26 @@
   }
   .install-sheet-ios-steps li b{ color:var(--chili); }
 
+  /* Persistent "Install App" banner shown on the home screen — always
+     visible (like Play Store's inline install card) until the app is
+     actually installed, not tucked away as just a small icon. */
+  .install-banner{
+    margin:16px 24px 0; padding:12px 14px; border-radius:16px;
+    background:var(--field-bg); border:1.5px solid var(--field-border);
+    display:flex; align-items:center; gap:12px;
+  }
+  .install-banner.hidden{ display:none; }
+  .install-banner-icon{ width:40px; height:40px; border-radius:11px; flex-shrink:0; box-shadow:0 3px 8px rgba(43,36,16,.15); }
+  .install-banner-mid{ flex:1; min-width:0; }
+  .install-banner-title{ color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:13.5px; margin:0; }
+  .install-banner-sub{ color:var(--muted-2); font-size:11.5px; margin:2px 0 0; }
+  .install-banner-btn{
+    flex-shrink:0; padding:9px 16px; border:none; border-radius:10px;
+    background:var(--marigold); color:var(--ink); font-weight:700; font-size:13px;
+    font-family:'Inter',sans-serif; cursor:pointer;
+  }
+  .install-banner-btn:active{ transform:scale(0.96); }
+
   .pay-method-row{ display:flex; gap:10px; margin-bottom:10px; }
   .pay-method-btn{
     flex:1; padding:12px 8px; border-radius:12px; border:1.5px solid var(--field-border);
@@ -798,6 +818,16 @@
       </div>
     </div>
     <h1 class="greeting" id="home-greeting">Hungry, friend?</h1>
+
+    <div class="install-banner hidden" id="install-banner">
+      <img class="install-banner-icon" src="icon-192.png" alt="NESH" />
+      <div class="install-banner-mid">
+        <p class="install-banner-title">Install NESH App</p>
+        <p class="install-banner-sub">Faster ordering, offline access</p>
+      </div>
+      <button class="install-banner-btn" id="install-banner-btn">Install</button>
+    </div>
+
     <div class="search-wrap">
       <div class="field">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -2995,10 +3025,12 @@ if ('serviceWorker' in navigator) {
 // ---------- PWA: "Install App" prompt (Play Store style) ----------
 (function () {
   const DISMISS_KEY = 'nesh_install_dismissed_at';
-  const DISMISS_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // don't re-nag for 3 days after "Not now"
+  const DISMISS_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // don't auto-popup for 3 days after "Not now"
 
   const overlay = document.getElementById('install-overlay');
   const iconBtn = document.getElementById('install-icon-btn');
+  const banner = document.getElementById('install-banner');
+  const bannerBtn = document.getElementById('install-banner-btn');
   const confirmBtn = document.getElementById('install-confirm-btn');
   const notNowBtn = document.getElementById('install-notnow-btn');
   const iosSteps = document.getElementById('install-ios-steps');
@@ -3023,22 +3055,38 @@ if ('serviceWorker' in navigator) {
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch (e) {}
   }
 
-  function showIconBtn() {
+  // Show the persistent home-screen banner AND the header icon — visible
+  // at all times (like Play Store's inline "Install" card), not hidden
+  // away waiting only for the browser's beforeinstallprompt event.
+  function showEntryPoints() {
     if (isStandalone()) return;
     iconBtn.classList.remove('hidden');
+    banner.classList.remove('hidden');
+  }
+
+  function hideEntryPoints() {
+    iconBtn.classList.add('hidden');
+    banner.classList.add('hidden');
   }
 
   function openSheet() {
     if (isStandalone()) return;
-    if (isIOS() && !deferredPrompt) {
-      // No native prompt on iOS Safari — show manual steps instead of an Install button.
+    if (deferredPrompt) {
+      // Real native install is ready — Play Store-style Install button.
+      iosSteps.classList.add('hidden');
+      descEl.textContent = 'Install NESH for one-tap ordering, faster loading and offline access — right from your home screen, no app store needed.';
+      confirmBtn.classList.remove('hidden');
+    } else if (isIOS()) {
+      // iOS Safari has no native install prompt — show manual steps.
       iosSteps.classList.remove('hidden');
       descEl.textContent = 'Add NESH to your home screen for one-tap ordering and faster loading — no app store needed.';
       confirmBtn.classList.add('hidden');
     } else {
+      // Android/desktop Chrome, but the browser hasn't offered the native
+      // prompt yet (site just opened, or install criteria not met yet).
       iosSteps.classList.add('hidden');
-      descEl.textContent = 'Install NESH for one-tap ordering, faster loading and offline access — right from your home screen, no app store needed.';
-      confirmBtn.classList.remove('hidden');
+      descEl.textContent = "Tap your browser menu (⋮) and choose \"Install app\" or \"Add to Home screen\" to install NESH.";
+      confirmBtn.classList.add('hidden');
     }
     overlay.classList.add('show');
   }
@@ -3051,17 +3099,17 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    showIconBtn();
-    if (!recentlyDismissed()) openSheet();
+    showEntryPoints();
   });
 
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     closeSheet();
-    iconBtn.classList.add('hidden');
+    hideEntryPoints();
   });
 
   iconBtn.addEventListener('click', openSheet);
+  bannerBtn.addEventListener('click', openSheet);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSheet(); });
 
   notNowBtn.addEventListener('click', () => {
@@ -3081,12 +3129,13 @@ if ('serviceWorker' in navigator) {
     closeSheet();
   });
 
-  // iOS Safari never fires beforeinstallprompt, so surface the icon button
-  // (which opens the manual "Add to Home Screen" steps) on its own.
-  if (isIOS() && !isStandalone()) {
-    showIconBtn();
+  // Show the banner/icon right away for anyone not already using the
+  // installed app — don't wait for beforeinstallprompt, since some
+  // browsers fire it late (or, on iOS, never at all).
+  if (!isStandalone()) {
+    showEntryPoints();
     if (!recentlyDismissed()) {
-      setTimeout(openSheet, 1200);
+      setTimeout(openSheet, 1500);
     }
   }
 })();
