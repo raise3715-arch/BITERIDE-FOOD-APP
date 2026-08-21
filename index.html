@@ -523,6 +523,7 @@
       <div class="chit" style="margin:0 0 14px;">
         <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;"><span>Item total</span><span id="loc-summary-items">₹0</span></div>
         <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;" id="loc-summary-fee-row"><span>Platform fee</span><span id="loc-summary-fee">₹0</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;" id="loc-summary-delivery-row"><span>Delivery charge</span><span id="loc-summary-delivery">₹0</span></div>
         <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:700; color:var(--ink); border-top:1px dashed var(--marigold-dark); margin-top:6px; padding-top:6px;"><span>Total</span><span id="loc-summary-total">₹0</span></div>
       </div>
 
@@ -856,7 +857,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, push, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, push, set, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCrM5wKwsnGtIc7HSTk_5R1d3dXEcYyd7o",
@@ -870,6 +871,27 @@
 
   const fbApp = initializeApp(firebaseConfig);
   const db = getDatabase(fbApp);
+
+  // ---------- Reliable reconnect after the app is minimized ----------
+  // Mobile browsers/PWAs freeze the RTDB websocket while the tab/app is in
+  // the background. Left alone, the SDK sometimes comes back "stuck" —
+  // connected in name but not actually receiving new data — so re-opening
+  // the app can silently show stale restaurants/orders until something else
+  // happens to trigger a reconnect. Forcing a clean goOffline()/goOnline()
+  // cycle exactly when the page becomes hidden/visible guarantees a fresh
+  // socket every time the customer comes back, with no duplicate listeners
+  // (the existing onValue subscriptions below are only ever attached once —
+  // this just resets the underlying connection they ride on).
+  let wasHidden = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      wasHidden = true;
+      goOffline(db);
+    } else if (wasHidden) {
+      wasHidden = false;
+      goOnline(db);
+    }
+  });
   const REST_COLORS = ["#C97F00", "#A66600", "#1BA672", "#7C5CBF", "#2E86AB"];
   // Stand-in photography for restaurants/dishes that don't have a real photo
   // uploaded yet — cycled by index so each listing still looks distinct.
@@ -979,7 +1001,8 @@
           businessType,
           items: menuItems,
           gpayNumber: v.gpayNumber || "",
-          zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null
+          zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null,
+          deliveryCharges: v.deliveryCharges || null
         });
       } catch (e) {
         console.error('Skipped one broken restaurant record while rendering:', child.key, e);
@@ -1561,8 +1584,31 @@ let selectedPaymentMethod = 'cod';
 const locSummaryItemsEl = document.getElementById('loc-summary-items');
 const locSummaryFeeRowEl = document.getElementById('loc-summary-fee-row');
 const locSummaryFeeEl = document.getElementById('loc-summary-fee');
+const locSummaryDeliveryRowEl = document.getElementById('loc-summary-delivery-row');
+const locSummaryDeliveryEl = document.getElementById('loc-summary-delivery');
 const locSummaryTotalEl = document.getElementById('loc-summary-total');
 function currentPlatformFee() { return Number(window.PLATFORM_EXTRA_AMOUNT) || 0; }
+// Restaurant-set delivery charge: a base fee + a per-km rate applied to the
+// straight-line distance between the restaurant and wherever the customer
+// pinned their delivery location for this order (state.pendingCheckout,
+// filled in on the location-confirm step). Falls back to ₹0 if the
+// restaurant hasn't configured delivery charges, or if we don't yet know
+// both points well enough to measure a distance.
+function currentDeliveryFee() {
+  const r = state.selectedRestaurant;
+  const dc = r && r.deliveryCharges;
+  if (!dc) return 0;
+  const pc = state.pendingCheckout;
+  const restPos = r ? parseLatLng(r.location) : null;
+  if (!pc || typeof pc.lat !== 'number' || typeof pc.lng !== 'number' || !restPos) {
+    return Number(dc.baseFee) || 0; // distance unknown — charge the flat base fee only
+  }
+  const km = haversineMeters(restPos.lat, restPos.lng, pc.lat, pc.lng) / 1000;
+  if (dc.freeUnderKm != null && km < Number(dc.freeUnderKm)) return 0;
+  const baseFee = Number(dc.baseFee) || 0;
+  const perKmFee = Number(dc.perKmFee) || 0;
+  return Math.round((baseFee + perKmFee * km) * 100) / 100;
+}
 function currentCartItemsTotal() {
   const r = state.selectedRestaurant;
   if (!r) return 0;
@@ -1571,10 +1617,13 @@ function currentCartItemsTotal() {
 function updateLocSummary() {
   const itemsTotal = currentCartItemsTotal();
   const fee = currentPlatformFee();
+  const deliveryFee = currentDeliveryFee();
   if (locSummaryItemsEl) locSummaryItemsEl.textContent = "₹" + itemsTotal;
   if (locSummaryFeeEl) locSummaryFeeEl.textContent = "₹" + fee;
   if (locSummaryFeeRowEl) locSummaryFeeRowEl.style.display = fee > 0 ? "flex" : "none";
-  if (locSummaryTotalEl) locSummaryTotalEl.textContent = "₹" + (itemsTotal + fee);
+  if (locSummaryDeliveryEl) locSummaryDeliveryEl.textContent = "₹" + deliveryFee;
+  if (locSummaryDeliveryRowEl) locSummaryDeliveryRowEl.style.display = deliveryFee > 0 ? "flex" : "none";
+  if (locSummaryTotalEl) locSummaryTotalEl.textContent = "₹" + (itemsTotal + fee + deliveryFee);
 }
 // If the operator changes the fee while this checkout sheet happens to be
 // open, keep the summary (and GPay QR amount) in sync live.
@@ -2057,7 +2106,7 @@ function setPaymentMethod(method) {
   if (method === 'gpay' && r && r.gpayNumber) {
     gpayScannerBox.style.display = 'block';
     gpayNumberText.textContent = "UPI ID: " + r.gpayNumber;
-    const cartTotal = currentCartItemsTotal() + currentPlatformFee();
+    const cartTotal = currentCartItemsTotal() + currentPlatformFee() + currentDeliveryFee();
     const upiUrl = "upi://pay?pa=" + encodeURIComponent(r.gpayNumber) +
       "&pn=" + encodeURIComponent(r.name || 'Restaurant') +
       "&am=" + encodeURIComponent(cartTotal) +
@@ -2388,7 +2437,8 @@ payConfirmBtn.addEventListener('click', async () => {
   // this order even if the operator changes the fee later. This is what
   // becomes "due" against the restaurant once the order is marked ready.
   const platformFee = currentPlatformFee();
-  const total = itemsTotal + platformFee;
+  const deliveryFee = currentDeliveryFee();
+  const total = itemsTotal + platformFee + deliveryFee;
 
   payConfirmBtn.disabled = true;
   payConfirmBtn.textContent = "Placing order…";
@@ -2415,6 +2465,7 @@ payConfirmBtn.addEventListener('click', async () => {
       total,
       platformFee,
       platformDue: platformFee,
+      deliveryFee,
       paymentMethod: selectedPaymentMethod === 'gpay' ? 'GPay (Scanner)' : 'Cash on Delivery'
     };
     if (selectedPaymentMethod === 'gpay' && r.gpayNumber) {
