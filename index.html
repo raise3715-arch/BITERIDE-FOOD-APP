@@ -3059,34 +3059,78 @@ if ('serviceWorker' in navigator) {
   const ring = document.getElementById('install-ring');
   const ringFill = document.getElementById('install-ring-fill');
   const RING_CIRC = 207.3; // 2 * PI * 33
-  const FAKE_SIZE_MB = 4.2;
+
+  // Real app-shell files this installs — same list the service worker
+  // caches for offline use. Progress below reflects actual bytes
+  // fetched from these, not a fabricated timer.
+  const INSTALL_ASSETS = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
   function setRingPct(pct) {
     ringFill.style.strokeDashoffset = String(RING_CIRC - (RING_CIRC * pct) / 100);
   }
 
-  function runInstallProgress(onDone) {
+  // Genuinely fetches each app-shell asset (cache-busted, so it's a real
+  // network transfer) and drives the ring/percentage off real bytes
+  // received vs. real Content-Length totals — then actually populates
+  // the Cache Storage the service worker relies on for offline use.
+  async function runInstallProgress(onDone) {
     ring.classList.add('show');
     pctEl.classList.add('show');
     confirmBtn.disabled = true;
     confirmBtn.textContent = 'Installing…';
-    let pct = 0;
     setRingPct(0);
-    const timer = setInterval(() => {
-      pct += Math.random() * 14 + 6; // uneven steps, feels real
-      if (pct >= 100) {
-        pct = 100;
-        clearInterval(timer);
-        setRingPct(100);
-        pctEl.textContent = '100%';
-        pubEl.textContent = FAKE_SIZE_MB + ' MB · Done';
-        setTimeout(onDone, 350);
-        return;
+    pctEl.textContent = '0%';
+
+    let cache = null;
+    try { cache = await caches.open('nesh-install-shell'); } catch (e) {}
+
+    // First pass: HEAD each asset to find real sizes, so the percentage
+    // is proportional to genuine total bytes rather than an equal split.
+    const sizes = await Promise.all(INSTALL_ASSETS.map(async (url) => {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        const len = parseInt(res.headers.get('content-length') || '0', 10);
+        return { url, res, len };
+      } catch (e) {
+        return { url, res: null, len: 0 };
       }
-      setRingPct(pct);
-      pctEl.textContent = Math.floor(pct) + '%';
-      pubEl.textContent = 'Installing… ' + Math.floor(pct) + '% of ' + FAKE_SIZE_MB + ' MB';
-    }, 220);
+    }));
+
+    const totalBytes = sizes.reduce((sum, s) => sum + (s.len || 0), 0) || 1;
+    let receivedBytes = 0;
+    let totalMB = (totalBytes / (1024 * 1024)).toFixed(1);
+
+    for (const item of sizes) {
+      if (!item.res || !item.res.body) {
+        receivedBytes += item.len;
+      } else {
+        const reader = item.res.body.getReader();
+        const chunks = [];
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          receivedBytes += value.length;
+          const pct = Math.min(99, (receivedBytes / totalBytes) * 100);
+          setRingPct(pct);
+          pctEl.textContent = Math.floor(pct) + '%';
+          pubEl.textContent = 'Installing… ' + Math.floor(pct) + '% of ' + totalMB + ' MB';
+        }
+        // Actually store the real bytes in Cache Storage — genuine
+        // offline caching, not just a progress-bar simulation.
+        if (cache) {
+          try {
+            const blob = new Blob(chunks);
+            await cache.put(item.url, new Response(blob, { headers: item.res.headers }));
+          } catch (e) {}
+        }
+      }
+    }
+
+    setRingPct(100);
+    pctEl.textContent = '100%';
+    pubEl.textContent = totalMB + ' MB · Done';
+    setTimeout(onDone, 350);
   }
 
   let deferredPrompt = null;
