@@ -1169,7 +1169,8 @@
           items: menuItems,
           gpayNumber: v.gpayNumber || "",
           zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null,
-          deliveryCharges: v.deliveryCharges || null
+          deliveryCharges: v.deliveryCharges || null,
+          discountAmount: Number(v.discountAmount) || 0
         });
       } catch (e) {
         console.error('Skipped one broken restaurant record while rendering:', child.key, e);
@@ -1490,102 +1491,63 @@ function showOtpError(msg) {
   otpBoxes.forEach(b => b.classList.add('error'));
 }
 
-// ---------- SCRATCH CARDS ----------
-// A shop adds an amount to a customer's account (from the restaurant partner
-// app's "Add Shop Discount" screen), which writes a new entry under
-// customers/{number}/scratchCards/{pushId} = { amount, restId, restName,
-// createdAt, revealed }. This customer app listens on that same path. There
-// is no separate "Scratch Cards" screen anymore — an unrevealed card only
-// shows up inline in the checkout/payment sheet for the shop that sent it,
-// once the customer reaches checkout with that shop. Scratching it there
-// reveals the amount and credits customers/{number}/shopDiscounts/{restId}
-// — a balance tied to that one shop only. It is NOT a spendable-anywhere
-// wallet: it's auto-applied as a discount only when the customer orders
-// from that same shop (see currentShopDiscount() / renderCheckoutScratchCards()).
-state.scratchCards = {}; // pushId -> card data, as last seen from Firebase
-state.shopDiscounts = {}; // restId -> discount balance available at that shop
-let scratchListenerNumber = null; // which customer number the listener below is attached for
-let scratchUnsubFns = [];
+// ---------- SHOP DISCOUNT (scratch card) ----------
+// Each shop sets ONE flat discount amount for their whole shop (set in the
+// restaurant partner app, synced onto RESTAURANTS as r.discountAmount — see
+// rebuildRestaurantsFromSnapshot). Every customer automatically gets it: as
+// soon as they reach checkout with that shop, a scratch card for that
+// amount appears in the payment sheet. There's no per-customer targeting
+// and nothing is written to Firebase for this — it's generated fresh each
+// checkout and, once scratched, applies straight to that order's bill.
+state.discountReveal = null; // { restId, amount } once the customer scratches the card for the current checkout
 
-function attachScratchListener(number) {
-  if (!number || scratchListenerNumber === number) return;
-  if (!window.fb) { setTimeout(() => attachScratchListener(number), 300); return; }
-  scratchListenerNumber = number;
-  const { db, ref, onValue } = window.fb;
-  scratchUnsubFns.push(onValue(ref(db, 'customers/' + number + '/scratchCards'), snap => {
-    state.scratchCards = snap.val() || {};
-    // Scratch cards no longer live on a separate screen — they surface
-    // inline in the checkout sheet for whichever shop sent them, right
-    // where the customer is about to pay.
-    renderCheckoutScratchCards();
-  }));
-  scratchUnsubFns.push(onValue(ref(db, 'customers/' + number + '/shopDiscounts'), snap => {
-    state.shopDiscounts = snap.val() || {};
-    // If the customer currently has a shop's menu/checkout open, refresh
-    // the discount line live in case a fresh balance just came in.
-    if (typeof updateLocSummary === 'function') updateLocSummary();
-  }));
-}
+// Kept as harmless no-ops so existing call sites (login/resume flows) don't
+// need to change — there's no longer a per-customer Firebase listener needed.
+function attachScratchListener() {}
+function detachScratchListener() { state.discountReveal = null; }
 
-function detachScratchListener() {
-  scratchUnsubFns.forEach(fn => { try { fn(); } catch (e) {} });
-  scratchUnsubFns = [];
-  scratchListenerNumber = null;
-  state.scratchCards = {};
-  state.shopDiscounts = {};
-}
-
-// Discount balance the current customer has at a specific shop (restId),
-// e.g. the one whose menu/checkout they're on right now.
+// Discount amount that applies to the current order at this shop (restId)
+// — only nonzero once the customer has actually scratched the card for it
+// during this checkout.
 function currentShopDiscount(restId) {
-  if (!restId) return 0;
-  return Number(state.shopDiscounts[restId]) || 0;
+  if (!restId || !state.discountReveal) return 0;
+  return state.discountReveal.restId === restId ? (Number(state.discountReveal.amount) || 0) : 0;
 }
 
-// Shows any not-yet-scratched cards for the shop the customer is currently
-// checking out with, right in the payment sheet — scratching happens at
-// the moment of paying, not on some separate screen. Cards from other
-// shops simply don't show here (they'll show at their own shop's checkout).
+// Shows the current shop's scratch card in the payment sheet if it has an
+// active discount and the customer hasn't already revealed it this
+// checkout. Scratching happens at the moment of paying, not on some
+// separate screen — and it's the same guaranteed amount for every customer.
 function renderCheckoutScratchCards() {
   const wrap = document.getElementById('checkout-scratch-wrap');
   if (!wrap) return;
   const r = state.selectedRestaurant;
-  if (!r) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
-  const entries = Object.entries(state.scratchCards)
-    .filter(([, c]) => c && c.restId === r.id && !c.revealed)
-    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  if (entries.length === 0) {
+  const amount = r ? (Number(r.discountAmount) || 0) : 0;
+  const alreadyRevealed = state.discountReveal && state.discountReveal.restId === (r && r.id);
+  if (!r || amount <= 0 || alreadyRevealed) {
     wrap.style.display = "none";
     wrap.innerHTML = "";
     return;
   }
   wrap.style.display = "block";
-  wrap.innerHTML = `<p class="loc-field-label" style="margin-top:0;">🎁 ${escapeHtml(r.name)} sent you a discount</p>` +
-    entries.map(([id, card]) => `
+  wrap.innerHTML = `<p class="loc-field-label" style="margin-top:0;">🎁 ${escapeHtml(r.name)} is giving you a discount</p>
     <div class="scratch-card" style="margin-bottom:10px;">
-      <div class="scratch-card-amount-wrap" id="scratch-wrap-${id}">
-        <div class="scratch-card-amount">₹${card.amount || 0}</div>
-        <canvas class="scratch-card-canvas" id="scratch-canvas-${id}"></canvas>
+      <div class="scratch-card-amount-wrap" id="scratch-wrap-shop-discount">
+        <div class="scratch-card-amount">₹${amount}</div>
+        <canvas class="scratch-card-canvas" id="scratch-canvas-shop-discount"></canvas>
       </div>
       <p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch to reveal — it'll come straight off this bill</p>
-    </div>
-  `).join('');
-  entries.forEach(([id, card]) => setupScratchCanvas(id, card));
+    </div>`;
+  setupScratchCanvas('shop-discount', { amount, restId: r.id });
 }
 
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function formatScratchDate(ts) {
-  if (!ts) return "";
-  const d = new Date(ts);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
 // Draws a scratch-off gold layer on the card's canvas and lets the user
 // wipe it away with a finger/mouse. Once enough of the layer is cleared,
-// the card is revealed for good and credited to the wallet in Firebase.
+// the discount is revealed and applied to the current order.
 function setupScratchCanvas(id, card) {
   const canvas = document.getElementById('scratch-canvas-' + id);
   const wrap = document.getElementById('scratch-wrap-' + id);
@@ -1637,7 +1599,7 @@ function setupScratchCanvas(id, card) {
       canvas.style.transition = 'opacity .3s ease';
       canvas.style.opacity = '0';
       setTimeout(() => canvas.remove(), 300);
-      revealScratchCard(id, card.amount);
+      revealShopDiscount(card.restId, card.amount);
     }
   }
   function start(e) { scratching = true; const p = pos(e); scratchAt(p.x, p.y); }
@@ -1658,30 +1620,13 @@ function setupScratchCanvas(id, card) {
   canvas.addEventListener('touchend', end);
 }
 
-// Marks the card revealed and credits the amount to that specific shop's
-// discount balance (customers/{number}/shopDiscounts/{restId}), not a
-// global wallet — so it only ever comes off an order placed at that shop.
-async function revealScratchCard(id, amount) {
-  if (!state.user || !state.user.number) return;
-  const number = state.user.number;
-  const card = state.scratchCards[id];
-  const restId = card && card.restId;
-  // Optimistically mark it locally so a re-render (e.g. from another
-  // listener tick) doesn't redraw the canvas on top of an already-wiped card.
-  if (card) card.revealed = true;
-  if (!restId) { console.error("Scratch card missing restId, can't credit a shop-specific discount:", id); return; }
-  try {
-    const { db, ref, get, update } = window.fb;
-    const balSnap = await get(ref(db, 'customers/' + number + '/shopDiscounts/' + restId));
-    const currentBalance = balSnap.val() || 0;
-    const updates = {};
-    updates['scratchCards/' + id + '/revealed'] = true;
-    updates['scratchCards/' + id + '/revealedAt'] = Date.now();
-    updates['shopDiscounts/' + restId] = currentBalance + (amount || 0);
-    await update(ref(db, 'customers/' + number), updates);
-  } catch (e) {
-    console.error("Couldn't claim scratch card:", e);
-  }
+// Marks the discount revealed for this checkout and applies it to the bill
+// right away — purely client-side/session state, nothing to write to
+// Firebase since this isn't tied to one customer's account.
+function revealShopDiscount(restId, amount) {
+  state.discountReveal = { restId, amount: Number(amount) || 0 };
+  renderCheckoutScratchCards();
+  updateLocSummary();
 }
 
 // ---------- HOME ----------
@@ -1814,6 +1759,9 @@ function openRestaurant(id) {
   state.selectedRestaurant = RESTAURANTS.find(r => r.id === id);
   state.cart = {};
   state.menuSearch = '';
+  // Fresh shop, fresh discount card — any earlier reveal was scoped to a
+  // different shop's checkout (or a completed order) and shouldn't carry over.
+  state.discountReveal = null;
   menuSearchInput.value = '';
   renderMenu();
   showScreen('menu');
@@ -2937,20 +2885,6 @@ payConfirmBtn.addEventListener('click', async () => {
     }
     await set(orderRef, orderPayload);
 
-    // Deduct the used amount from this shop's discount balance only —
-    // other shops' balances (and this shop's balance for other customers)
-    // are untouched. Best-effort: if it fails, the order itself still went
-    // through fine, so we don't block on it.
-    if (shopDiscount > 0 && state.user && state.user.number) {
-      try {
-        const balSnap = await get(ref(db, 'customers/' + state.user.number + '/shopDiscounts/' + r.id));
-        const currentBalance = balSnap.val() || 0;
-        await set(ref(db, 'customers/' + state.user.number + '/shopDiscounts/' + r.id), Math.max(0, currentBalance - shopDiscount));
-      } catch (e) {
-        console.error("Couldn't deduct shop discount after order:", e);
-      }
-    }
-
     document.getElementById('confirm-order-num').textContent = orderNumber;
     document.getElementById('confirm-rest-name').textContent = "from " + r.name;
     // Remember which order this is so the "Track your Order" button knows
@@ -2960,6 +2894,7 @@ payConfirmBtn.addEventListener('click', async () => {
     updateHomeTrackBtn();
     state.cart = {};
     state.pendingCheckout = null;
+    state.discountReveal = null;
     closePaymentConfirm();
     showScreen('placed');
     persistScreen('track', { trackReturnScreen: 'home' });
