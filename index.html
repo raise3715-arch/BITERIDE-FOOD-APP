@@ -442,6 +442,52 @@
   }
   .logout-btn:active{ transform:scale(0.94); }
 
+  /* Scratch card reward: header entry point + list screen */
+  .scratch-nav-btn{
+    width:34px; height:34px; border-radius:50%; border:1.5px solid var(--field-border); background:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; position:relative;
+  }
+  .scratch-nav-btn:active{ transform:scale(0.94); }
+  .scratch-badge{
+    position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; padding:0 3px; border-radius:8px;
+    background:var(--chili); color:#fff; font-size:10px; font-weight:700; line-height:16px; text-align:center;
+    font-family:'Inter',sans-serif; box-shadow:0 0 0 2px #fff;
+  }
+  .scratch-header{ padding:40px 24px 8px; display:flex; align-items:center; gap:14px; }
+  .scratch-title{ color:var(--ink); font-family:'Fraunces',serif; font-size:24px; font-weight:700; margin:2px 0 0; }
+  .scratch-wallet-pill{
+    margin:16px 24px 0; padding:14px 16px; border-radius:16px; background:var(--marigold);
+    box-shadow:0 6px 16px rgba(242,183,5,.3);
+  }
+  .scratch-wallet-label{ color:#2B2410; font-size:11px; font-weight:700; letter-spacing:.5px; margin:0; text-transform:uppercase; }
+  .scratch-wallet-amount{ color:#2B2410; font-family:'Fraunces',serif; font-size:24px; font-weight:700; margin:2px 0 0; }
+  .scratch-list{ padding:20px 24px 24px; display:flex; flex-direction:column; gap:16px; }
+  .scratch-card{
+    position:relative; border-radius:18px; background:#fff;
+    border:1.5px dashed var(--marigold-dark); padding:16px; box-shadow:var(--card-shadow);
+  }
+  .scratch-card-shop{ color:var(--muted-2); font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; margin:0; }
+  .scratch-card-amount-wrap{
+    position:relative; margin-top:10px; height:68px; border-radius:12px; overflow:hidden;
+    background:var(--field-bg); border:1px solid var(--field-border);
+  }
+  .scratch-card-amount{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--leaf);
+  }
+  .scratch-card-canvas{ position:absolute; inset:0; touch-action:none; cursor:pointer; }
+  .scratch-card-scratch-hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:12px; letter-spacing:.5px;
+    pointer-events:none;
+  }
+  .scratch-card-date{ color:var(--muted); font-size:11px; margin:10px 0 0; }
+  .scratch-card-claimed-tag{
+    display:inline-flex; align-items:center; gap:4px; margin-top:10px; padding:4px 10px; border-radius:20px;
+    background:rgba(27,166,114,.08); border:1.5px solid var(--leaf); color:var(--leaf); font-size:11px; font-weight:700;
+  }
+  .scratch-empty{ padding:60px 24px; text-align:center; color:var(--muted-2); font-size:14px; line-height:1.5; }
+
   .your-orders-btn{
     display:inline-flex; align-items:center; gap:6px; margin-top:10px;
     padding:7px 12px; border-radius:20px; border:1.5px solid var(--marigold);
@@ -823,6 +869,10 @@
         <button class="home-track-btn hidden" id="home-track-btn" title="Track your order">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
         </button>
+        <button class="scratch-nav-btn" id="scratch-nav-btn" title="Scratch cards">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M19 8V6a3 3 0 0 0-6 0 3 3 0 0 0-6 0v2"/></svg>
+          <span class="scratch-badge" id="scratch-badge" style="display:none;">0</span>
+        </button>
         <button class="install-icon-btn hidden" id="install-icon-btn" title="Install app">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>
         </button>
@@ -849,6 +899,25 @@
       </div>
     </div>
     <div class="rest-list" id="rest-list"></div>
+  </section>
+
+  <!-- SCRATCH CARDS -->
+  <section class="screen" id="screen-scratch">
+    <div class="scratch-header">
+      <button class="btn-back" id="scratch-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <p class="eyebrow" style="margin:0;">REWARDS</p>
+        <h1 class="scratch-title">Scratch Cards</h1>
+      </div>
+    </div>
+    <div class="scratch-wallet-pill">
+      <p class="scratch-wallet-label">Wallet balance</p>
+      <p class="scratch-wallet-amount" id="scratch-wallet-amount">₹0</p>
+    </div>
+    <div class="scratch-list" id="scratch-list"></div>
+    <p class="scratch-empty" id="scratch-empty" style="display:none;">No scratch cards yet — a shop will send you one whenever they add an amount to your account.</p>
   </section>
 
   <!-- MENU -->
@@ -1005,7 +1074,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, push, set, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, push, set, get, update, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCrM5wKwsnGtIc7HSTk_5R1d3dXEcYyd7o",
@@ -1099,7 +1168,7 @@
   // this same path and pops up an alert the moment a new order lands here.
   // onValue is also used by the order-tracking screen to live-watch an
   // order's status as the restaurant partner app updates it.
-  window.fb = { db, ref, push, set, get, onValue };
+  window.fb = { db, ref, push, set, get, update, onValue };
 
   // Operator-set flat amount (₹) added on top of every restaurant's own item
   // price before it's shown to customers. Set/edited from the Operator Panel
@@ -1227,6 +1296,7 @@ try {
   const savedUser = JSON.parse(localStorage.getItem('asfood_customer_user') || 'null');
   if (savedUser && savedUser.number) {
     state.user = savedUser;
+    attachScratchListener(savedUser.number);
   }
 } catch (e) {}
 
@@ -1315,6 +1385,7 @@ loginSubmitBtn.addEventListener('click', async () => {
     }
     state.user = { name: record.name, address: record.address, location: record.location, number: record.number };
     saveUserSession(state.user);
+    attachScratchListener(state.user.number);
     loginErrorEl.style.display = "none";
     goToCategoryScreen();
   } catch (e) {
@@ -1451,6 +1522,7 @@ otpVerifyBtn.addEventListener('click', async () => {
       await set(ref(db, 'customers/' + newUser.number), newUser);
       state.user = { name: newUser.name, address: newUser.address, location: newUser.location, number: newUser.number };
       saveUserSession(state.user);
+      attachScratchListener(state.user.number);
     } catch (e) {
       showOtpError("Couldn't create your account — check your connection and try again.");
       otpVerifyBtn.disabled = false;
@@ -1467,6 +1539,198 @@ function showOtpError(msg) {
   otpErrorEl.style.display = "block";
   otpBoxes.forEach(b => b.classList.add('error'));
 }
+
+// ---------- SCRATCH CARDS ----------
+// A shop adds an amount to a customer's account (from the restaurant partner
+// app's "Add Wallet Amount" screen), which writes a new entry under
+// customers/{number}/scratchCards/{pushId} = { amount, restId, restName,
+// createdAt, revealed }. This customer app listens on that same path so a
+// fresh card shows up live, scoped to the shop that sent it. Scratching a
+// card reveals the amount and credits customers/{number}/walletBalance —
+// nothing else in the app spends the balance yet, this is just the reward.
+state.scratchCards = {}; // pushId -> card data, as last seen from Firebase
+state.walletBalance = 0;
+let scratchListenerNumber = null; // which customer number the listener below is attached for
+let scratchUnsubFns = [];
+
+function attachScratchListener(number) {
+  if (!number || scratchListenerNumber === number) return;
+  if (!window.fb) { setTimeout(() => attachScratchListener(number), 300); return; }
+  scratchListenerNumber = number;
+  const { db, ref, onValue } = window.fb;
+  scratchUnsubFns.push(onValue(ref(db, 'customers/' + number + '/scratchCards'), snap => {
+    state.scratchCards = snap.val() || {};
+    updateScratchBadge();
+    renderScratchList();
+  }));
+  scratchUnsubFns.push(onValue(ref(db, 'customers/' + number + '/walletBalance'), snap => {
+    state.walletBalance = snap.val() || 0;
+    const el = document.getElementById('scratch-wallet-amount');
+    if (el) el.textContent = "₹" + state.walletBalance;
+  }));
+}
+
+function detachScratchListener() {
+  scratchUnsubFns.forEach(fn => { try { fn(); } catch (e) {} });
+  scratchUnsubFns = [];
+  scratchListenerNumber = null;
+  state.scratchCards = {};
+  state.walletBalance = 0;
+  updateScratchBadge();
+}
+
+function updateScratchBadge() {
+  const badge = document.getElementById('scratch-badge');
+  if (!badge) return;
+  const count = Object.values(state.scratchCards).filter(c => c && !c.revealed).length;
+  if (count > 0) {
+    badge.textContent = String(count);
+    badge.style.display = "flex";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+function renderScratchList() {
+  const listEl = document.getElementById('scratch-list');
+  const emptyEl = document.getElementById('scratch-empty');
+  if (!listEl) return;
+  const entries = Object.entries(state.scratchCards).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  if (entries.length === 0) {
+    listEl.innerHTML = "";
+    emptyEl.style.display = "block";
+    return;
+  }
+  emptyEl.style.display = "none";
+  listEl.innerHTML = entries.map(([id, card]) => `
+    <div class="scratch-card">
+      <p class="scratch-card-shop">From ${escapeHtml(card.restName || 'a shop')}</p>
+      <div class="scratch-card-amount-wrap" id="scratch-wrap-${id}">
+        <div class="scratch-card-amount">₹${card.amount || 0}</div>
+        ${card.revealed ? "" : `<canvas class="scratch-card-canvas" id="scratch-canvas-${id}"></canvas>`}
+      </div>
+      <p class="scratch-card-date">${formatScratchDate(card.createdAt)}</p>
+      ${card.revealed ? `<span class="scratch-card-claimed-tag">✓ Added to wallet</span>` : `<p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch to reveal</p>`}
+    </div>
+  `).join('');
+  entries.forEach(([id, card]) => {
+    if (!card.revealed) setupScratchCanvas(id, card);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function formatScratchDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Draws a scratch-off gold layer on the card's canvas and lets the user
+// wipe it away with a finger/mouse. Once enough of the layer is cleared,
+// the card is revealed for good and credited to the wallet in Firebase.
+function setupScratchCanvas(id, card) {
+  const canvas = document.getElementById('scratch-canvas-' + id);
+  const wrap = document.getElementById('scratch-wrap-' + id);
+  if (!canvas || !wrap) return;
+  const rect = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const grad = ctx.createLinearGradient(0, 0, rect.width, rect.height);
+  grad.addColorStop(0, '#F2B705');
+  grad.addColorStop(1, '#D69E00');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, rect.width, rect.height);
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.font = "700 12px 'Inter', sans-serif";
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SCRATCH HERE', rect.width / 2, rect.height / 2);
+
+  let scratching = false;
+  let revealedAlready = false;
+
+  function pos(evt) {
+    const r = canvas.getBoundingClientRect();
+    const p = evt.touches ? evt.touches[0] : evt;
+    return { x: p.clientX - r.left, y: p.clientY - r.top };
+  }
+  function scratchAt(x, y) {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(x, y, 16, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  function checkRevealPercent() {
+    if (revealedAlready) return;
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let cleared = 0;
+    const total = imgData.length / 4;
+    for (let i = 3; i < imgData.length; i += 4 * 24) { // sample every 24th pixel for speed
+      if (imgData[i] === 0) cleared++;
+    }
+    const sampled = Math.ceil(total / 24);
+    if (cleared / sampled > 0.45) {
+      revealedAlready = true;
+      canvas.style.transition = 'opacity .3s ease';
+      canvas.style.opacity = '0';
+      setTimeout(() => canvas.remove(), 300);
+      revealScratchCard(id, card.amount);
+    }
+  }
+  function start(e) { scratching = true; const p = pos(e); scratchAt(p.x, p.y); }
+  function move(e) {
+    if (!scratching) return;
+    e.preventDefault();
+    const p = pos(e);
+    scratchAt(p.x, p.y);
+    checkRevealPercent();
+  }
+  function end() { scratching = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, { passive: true });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', end);
+}
+
+// Marks the card revealed and credits the amount to the customer's wallet
+// balance, both under their own customers/{number} node in Firebase.
+async function revealScratchCard(id, amount) {
+  if (!state.user || !state.user.number) return;
+  const number = state.user.number;
+  // Optimistically mark it locally so a re-render (e.g. from another
+  // listener tick) doesn't redraw the canvas on top of an already-wiped card.
+  if (state.scratchCards[id]) state.scratchCards[id].revealed = true;
+  try {
+    const { db, ref, get, update } = window.fb;
+    const balSnap = await get(ref(db, 'customers/' + number + '/walletBalance'));
+    const currentBalance = balSnap.val() || 0;
+    const updates = {};
+    updates['scratchCards/' + id + '/revealed'] = true;
+    updates['scratchCards/' + id + '/revealedAt'] = Date.now();
+    updates['walletBalance'] = currentBalance + (amount || 0);
+    await update(ref(db, 'customers/' + number), updates);
+  } catch (e) {
+    console.error("Couldn't claim scratch card:", e);
+  }
+}
+
+document.getElementById('scratch-nav-btn').addEventListener('click', () => {
+  showScreen('scratch');
+});
+document.getElementById('scratch-back-btn').addEventListener('click', () => {
+  showScreen('home');
+});
 
 // ---------- HOME ----------
 const homeLocation = document.getElementById('home-location');
@@ -2947,6 +3211,7 @@ function logoutUser() {
   state.selectedRestaurant = null;
   state.category = null;
   state.pendingCheckout = null;
+  detachScratchListener();
   try { localStorage.removeItem('asfood_customer_user'); } catch (e) {}
   try { localStorage.removeItem('asfood_screen'); } catch (e) {}
   try { localStorage.removeItem('asfood_last_order'); } catch (e) {}
