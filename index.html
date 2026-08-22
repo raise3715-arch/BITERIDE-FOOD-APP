@@ -442,21 +442,51 @@
   }
   .logout-btn:active{ transform:scale(0.94); }
 
-  /* Scratch card reward: now shown inline in the checkout/payment sheet
-     for whichever shop sent it, not on a separate screen. */
-  .scratch-card{
-    position:relative; border-radius:18px; background:#fff;
-    border:1.5px dashed var(--marigold-dark); padding:16px; box-shadow:var(--card-shadow);
+  /* Scratch card reward: shown as a full-screen popup modal (like the
+     Google Pay reward popup) as soon as the customer reaches the payment
+     sheet, if the shop has an unclaimed discount for them. */
+  .scratch-modal-overlay{
+    position:fixed; inset:0; background:rgba(20,15,10,.86); z-index:2200;
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px; animation:scratchFadeIn .2s ease-out;
   }
-  .scratch-card-amount-wrap{
-    position:relative; margin-top:0; height:68px; border-radius:12px; overflow:hidden;
-    background:var(--field-bg); border:1px solid var(--field-border);
+  .scratch-modal-overlay.show{ display:flex; }
+  @keyframes scratchFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  .scratch-modal-close{
+    position:absolute; top:22px; left:20px; width:38px; height:38px; border-radius:50%;
+    border:none; background:rgba(255,255,255,.14); color:#fff; font-size:18px; line-height:1;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
   }
-  .scratch-card-amount{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--leaf);
+  .scratch-modal-card{
+    position:relative; width:100%; max-width:270px; aspect-ratio:3/4; border-radius:26px;
+    overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.45);
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,.18) 0, transparent 40%),
+      radial-gradient(circle at 80% 75%, rgba(255,255,255,.14) 0, transparent 40%),
+      linear-gradient(160deg, #F2B705, #D69E00);
+    animation:scratchPopIn .3s cubic-bezier(.2,.9,.3,1.2);
   }
-  .scratch-card-canvas{ position:absolute; inset:0; touch-action:none; cursor:pointer; }
+  @keyframes scratchPopIn{ from{ transform:scale(.85); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .scratch-modal-canvas{ position:absolute; inset:0; touch-action:none; cursor:pointer; }
+  .scratch-modal-reveal{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; background:#fff; gap:6px; text-align:center; padding:20px;
+  }
+  .scratch-modal-reveal-icon{ font-size:38px; }
+  .scratch-modal-reveal-amount{
+    font-family:'Fraunces',serif; font-size:32px; font-weight:700; color:var(--leaf);
+  }
+  .scratch-modal-reveal-sub{ font-size:12px; color:var(--muted); font-family:'Inter',sans-serif; }
+  .scratch-modal-claim-btn{
+    margin-top:20px; padding:12px 30px; border-radius:26px; border:none;
+    background:#fff; color:var(--chili); font-weight:700; font-size:14px;
+    font-family:'Inter',sans-serif; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.25);
+  }
+  .scratch-modal-sheet{ margin-top:26px; text-align:center; max-width:280px; }
+  .scratch-modal-sheet-title{
+    color:#fff; font-family:'Fraunces',serif; font-size:16px; font-weight:700; margin:0 0 6px;
+  }
+  .scratch-modal-sheet-desc{ color:rgba(255,255,255,.6); font-size:12px; margin:0; font-family:'Inter',sans-serif; }
 
   .your-orders-btn{
     display:inline-flex; align-items:center; gap:6px; margin-top:10px;
@@ -617,7 +647,7 @@
         <button type="button" id="pay-edit-address-btn" style="background:none; border:none; padding:4px 0 0; color:var(--leaf); font-weight:700; font-size:12px; font-family:'Inter',sans-serif; cursor:pointer;">Edit address</button>
       </div>
 
-      <div id="checkout-scratch-wrap" style="display:none; margin:0 0 14px;"></div>
+      <div id="checkout-scratch-wrap" style="display:none;"></div>
 
       <div class="chit" style="margin:0 0 14px;">
         <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;"><span>Item total</span><span id="loc-summary-items">₹0</span></div>
@@ -646,6 +676,24 @@
         <button class="loc-cancel-btn" id="pay-cancel-btn">Cancel</button>
         <button class="btn-primary" id="pay-confirm-btn" style="flex:1;">Confirm & place order</button>
       </div>
+    </div>
+  </div>
+
+  <!-- SHOP DISCOUNT SCRATCH CARD (popup, Google-Pay-reward style) -->
+  <div class="scratch-modal-overlay" id="scratch-modal-overlay">
+    <button type="button" class="scratch-modal-close" id="scratch-modal-close">✕</button>
+    <div class="scratch-modal-card" id="scratch-modal-card">
+      <canvas class="scratch-modal-canvas" id="scratch-modal-canvas"></canvas>
+      <div class="scratch-modal-reveal" id="scratch-modal-reveal" style="display:none;">
+        <div class="scratch-modal-reveal-icon">🎁</div>
+        <div class="scratch-modal-reveal-amount" id="scratch-modal-reveal-amount">₹0</div>
+        <div class="scratch-modal-reveal-sub">Added to your bill</div>
+      </div>
+    </div>
+    <button type="button" class="scratch-modal-claim-btn" id="scratch-modal-claim-btn">Claim reward</button>
+    <div class="scratch-modal-sheet">
+      <p class="scratch-modal-sheet-title" id="scratch-modal-sheet-title">🎁 Discount for you</p>
+      <p class="scratch-modal-sheet-desc">Scratch the card — it comes straight off this bill.</p>
     </div>
   </div>
 
@@ -1170,7 +1218,8 @@
           gpayNumber: v.gpayNumber || "",
           zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null,
           deliveryCharges: v.deliveryCharges || null,
-          discountAmount: Number(v.discountAmount) || 0
+          discountAmount: Number(v.discountAmount) || 0,
+          discountCardImage: v.discountCardImage || null
         });
       } catch (e) {
         console.error('Skipped one broken restaurant record while rendering:', child.key, e);
@@ -1514,81 +1563,131 @@ function currentShopDiscount(restId) {
   return state.discountReveal.restId === restId ? (Number(state.discountReveal.amount) || 0) : 0;
 }
 
-// Shows the current shop's scratch card in the payment sheet if it has an
-// active discount and the customer hasn't already revealed it this
-// checkout. Scratching happens at the moment of paying, not on some
-// separate screen — and it's the same guaranteed amount for every customer.
+// Shows the current shop's scratch reward as a full-screen popup (like the
+// Google Pay reward popup) as soon as the payment sheet opens, if the shop
+// has an active discount the customer hasn't revealed yet this checkout.
 function renderCheckoutScratchCards() {
-  const wrap = document.getElementById('checkout-scratch-wrap');
-  if (!wrap) return;
+  const overlay = document.getElementById('scratch-modal-overlay');
+  if (!overlay) return;
   const r = state.selectedRestaurant;
   const amount = r ? (Number(r.discountAmount) || 0) : 0;
   const alreadyRevealed = state.discountReveal && state.discountReveal.restId === (r && r.id);
   if (!r || amount <= 0 || alreadyRevealed) {
-    wrap.style.display = "none";
-    wrap.innerHTML = "";
+    closeScratchModal();
     return;
   }
-  wrap.style.display = "block";
-  // The real amount is intentionally NOT put in the DOM yet — only a
-  // placeholder — so there's nothing for the customer to see until they
-  // actually scratch or claim it, even if the canvas fails to size/draw.
-  wrap.innerHTML = `<p class="loc-field-label" style="margin-top:0;">🎁 ${escapeHtml(r.name)} is giving you a discount</p>
-    <div class="scratch-card" style="margin-bottom:10px;">
-      <div class="scratch-card-amount-wrap" id="scratch-wrap-shop-discount">
-        <div class="scratch-card-amount" id="scratch-amount-shop-discount">🎁</div>
-        <canvas class="scratch-card-canvas" id="scratch-canvas-shop-discount"></canvas>
-      </div>
-      <p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch the card, or</p>
-      <button type="button" class="btn-secondary" id="claim-btn-shop-discount" style="width:100%; margin-top:8px; padding:10px; border-radius:12px; border:1.5px solid var(--marigold-dark); background:#fff; color:var(--chili); font-weight:700; font-size:13px; cursor:pointer;">Claim reward</button>
-    </div>`;
-  // Only set up the canvas (which needs real, on-screen dimensions to draw
-  // correctly) once the payment sheet is actually visible — otherwise it
-  // sizes itself to 0x0 and nothing gets covered up. requestAnimationFrame
-  // waits one paint frame so layout is settled first.
-  requestAnimationFrame(() => setupScratchCanvas('shop-discount', { amount, restId: r.id }));
-  const claimBtn = document.getElementById('claim-btn-shop-discount');
-  if (claimBtn) {
-    claimBtn.addEventListener('click', () => {
-      const canvas = document.getElementById('scratch-canvas-shop-discount');
-      if (canvas) { canvas.style.transition = 'opacity .3s ease'; canvas.style.opacity = '0'; setTimeout(() => canvas.remove(), 300); }
-      revealShopDiscount(r.id, amount);
-    });
-  }
+  openScratchModal(r, amount);
 }
 
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// Draws a scratch-off gold layer on the card's canvas and lets the user
-// wipe it away with a finger/mouse. Once enough of the layer is cleared,
-// the discount is revealed and applied to the current order.
-function setupScratchCanvas(id, card) {
-  const canvas = document.getElementById('scratch-canvas-' + id);
-  const wrap = document.getElementById('scratch-wrap-' + id);
+let scratchModalCleanup = null;
+
+// Opens the popup and (re)builds a fresh, unscratched canvas for it. The
+// real amount is never written into the DOM until it's actually revealed —
+// only a hidden placeholder — so nothing can leak if the canvas fails to
+// size/draw.
+function openScratchModal(r, amount) {
+  const overlay = document.getElementById('scratch-modal-overlay');
+  const titleEl = document.getElementById('scratch-modal-sheet-title');
+  const revealBox = document.getElementById('scratch-modal-reveal');
+  const revealAmountEl = document.getElementById('scratch-modal-reveal-amount');
+  const claimBtn = document.getElementById('scratch-modal-claim-btn');
+  const closeBtn = document.getElementById('scratch-modal-close');
+  if (!overlay) return;
+
+  if (scratchModalCleanup) { scratchModalCleanup(); scratchModalCleanup = null; }
+
+  titleEl.textContent = "🎁 " + r.name + " is giving you a discount";
+  revealBox.style.display = "none";
+  revealAmountEl.textContent = "₹0";
+  claimBtn.style.display = "block";
+  claimBtn.disabled = false;
+  overlay.classList.add('show');
+
+  const onClaim = () => revealShopDiscount(r.id, amount);
+  const onClose = () => closeScratchModal();
+  claimBtn.addEventListener('click', onClaim);
+  closeBtn.addEventListener('click', onClose);
+  scratchModalCleanup = () => {
+    claimBtn.removeEventListener('click', onClaim);
+    closeBtn.removeEventListener('click', onClose);
+  };
+
+  // Canvas needs real on-screen dimensions to draw correctly, so size it
+  // only after the popup is actually visible (one paint frame later).
+  requestAnimationFrame(() => setupScratchCanvas('scratch-modal-canvas', 'scratch-modal-card', {
+    amount, restId: r.id,
+    imageUrl: r.discountCardImage || null,
+    onReveal: (a) => revealShopDiscount(r.id, a),
+  }));
+}
+
+// Closing without scratching just dismisses the popup — the reward stays
+// unclaimed and the customer can reopen it (e.g. by reopening the payment
+// sheet) to try again; nothing is applied to the bill.
+function closeScratchModal() {
+  const overlay = document.getElementById('scratch-modal-overlay');
+  if (overlay) overlay.classList.remove('show');
+  if (scratchModalCleanup) { scratchModalCleanup(); scratchModalCleanup = null; }
+}
+
+// Draws a scratch-off layer over a canvas and lets the user wipe it away
+// with a finger/mouse. Uses the shop's own uploaded photo as the design
+// when they've set one (cover-fit, like a background-image), otherwise
+// falls back to the plain gold gradient. Once enough of the layer is
+// cleared, calls card.onReveal with the amount.
+function setupScratchCanvas(canvasId, wrapId, card) {
+  const canvas = document.getElementById(canvasId);
+  const wrap = document.getElementById(wrapId);
   if (!canvas || !wrap) return;
   const rect = wrap.getBoundingClientRect();
+  if (!rect.width || !rect.height) return; // popup not laid out yet
   const dpr = window.devicePixelRatio || 1;
   canvas.width = rect.width * dpr;
   canvas.height = rect.height * dpr;
   canvas.style.width = rect.width + 'px';
   canvas.style.height = rect.height + 'px';
+  canvas.style.opacity = '1';
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
-  const grad = ctx.createLinearGradient(0, 0, rect.width, rect.height);
-  grad.addColorStop(0, '#F2B705');
-  grad.addColorStop(1, '#D69E00');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, rect.width, rect.height);
-  ctx.fillStyle = 'rgba(255,255,255,.85)';
-  ctx.font = "700 12px 'Inter', sans-serif";
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('SCRATCH HERE', rect.width / 2, rect.height / 2);
+
+  function drawScratchBandAndText() {
+    ctx.fillStyle = 'rgba(20,15,10,.4)';
+    ctx.fillRect(0, rect.height / 2 - 18, rect.width, 36);
+    ctx.fillStyle = '#fff';
+    ctx.font = "700 14px 'Inter', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('SCRATCH HERE', rect.width / 2, rect.height / 2);
+    startListening();
+  }
+  function drawGradient() {
+    const grad = ctx.createLinearGradient(0, 0, rect.width, rect.height);
+    grad.addColorStop(0, '#F2B705');
+    grad.addColorStop(1, '#D69E00');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, rect.width, rect.height);
+  }
+  function drawCoverLayer() {
+    if (!card.imageUrl) { drawGradient(); drawScratchBandAndText(); return; }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const scale = Math.max(rect.width / img.width, rect.height / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (rect.width - w) / 2, (rect.height - h) / 2, w, h);
+      drawScratchBandAndText();
+    };
+    img.onerror = () => { drawGradient(); drawScratchBandAndText(); };
+    img.src = card.imageUrl;
+  }
 
   let scratching = false;
   let revealedAlready = false;
+  let listening = false;
 
   function pos(evt) {
     const r = canvas.getBoundingClientRect();
@@ -1598,7 +1697,7 @@ function setupScratchCanvas(id, card) {
   function scratchAt(x, y) {
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
-    ctx.arc(x, y, 16, 0, Math.PI * 2);
+    ctx.arc(x, y, 22, 0, Math.PI * 2);
     ctx.fill();
   }
   function checkRevealPercent() {
@@ -1610,15 +1709,12 @@ function setupScratchCanvas(id, card) {
       if (imgData[i] === 0) cleared++;
     }
     const sampled = Math.ceil(total / 24);
-    if (cleared / sampled > 0.45) {
+    if (cleared / sampled > 0.4) {
       revealedAlready = true;
-      canvas.style.transition = 'opacity .3s ease';
-      canvas.style.opacity = '0';
-      setTimeout(() => canvas.remove(), 300);
-      revealShopDiscount(card.restId, card.amount);
+      card.onReveal(card.amount);
     }
   }
-  function start(e) { scratching = true; const p = pos(e); scratchAt(p.x, p.y); }
+  function start(e) { scratching = true; const p = pos(e); scratchAt(p.x, p.y); checkRevealPercent(); }
   function move(e) {
     if (!scratching) return;
     e.preventDefault();
@@ -1628,33 +1724,40 @@ function setupScratchCanvas(id, card) {
   }
   function end() { scratching = false; }
 
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', end);
-  canvas.addEventListener('touchstart', start, { passive: true });
-  canvas.addEventListener('touchmove', move, { passive: false });
-  canvas.addEventListener('touchend', end);
+  function startListening() {
+    if (listening) return;
+    listening = true;
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', start, { passive: true });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
+  }
+
+  drawCoverLayer();
 }
 
-// Marks the discount revealed for this checkout and applies it to the bill
-// right away — purely client-side/session state, nothing to write to
+// Marks the discount revealed for this checkout, applies it to the bill
+// right away, and shows the revealed amount in the popup before it closes
+// on its own — purely client-side/session state, nothing written to
 // Firebase since this isn't tied to one customer's account.
 function revealShopDiscount(restId, amount) {
   state.discountReveal = { restId, amount: Number(amount) || 0 };
-  // Briefly show the actual revealed amount with a "claimed" state before
-  // the card disappears, so the customer sees what they just won and that
-  // it's already been applied — then re-render collapses the card away and
-  // the bill updates.
-  const amountEl = document.getElementById('scratch-amount-shop-discount');
-  const hintEl = document.querySelector('#checkout-scratch-wrap .scratch-hint');
-  const claimBtn = document.getElementById('claim-btn-shop-discount');
-  if (amountEl) amountEl.textContent = "₹" + (Number(amount) || 0) + " claimed!";
-  if (amountEl) amountEl.style.color = "var(--leaf)";
-  if (hintEl) hintEl.textContent = "Added to your bill below ↓";
-  if (claimBtn) claimBtn.style.display = "none";
   updateLocSummary();
-  setTimeout(() => { renderCheckoutScratchCards(); }, 900);
+
+  const canvas = document.getElementById('scratch-modal-canvas');
+  const revealBox = document.getElementById('scratch-modal-reveal');
+  const revealAmountEl = document.getElementById('scratch-modal-reveal-amount');
+  const claimBtn = document.getElementById('scratch-modal-claim-btn');
+  if (canvas) { canvas.style.transition = 'opacity .3s ease'; canvas.style.opacity = '0'; }
+  if (revealAmountEl) revealAmountEl.textContent = "₹" + (Number(amount) || 0);
+  if (revealBox) revealBox.style.display = "flex";
+  if (claimBtn) claimBtn.style.display = "none";
+
+  setTimeout(() => { closeScratchModal(); }, 1200);
 }
+
 
 // ---------- HOME ----------
 const homeLocation = document.getElementById('home-location');
