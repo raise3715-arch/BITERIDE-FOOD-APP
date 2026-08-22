@@ -1259,8 +1259,32 @@ window.onRestaurantsUpdated = () => {
     const updated = RESTAURANTS.find(r => r.id === state.selectedRestaurant.id);
     if (updated) { state.selectedRestaurant = updated; renderMenu(); }
   }
+  tryOpenPendingShopLink();
 };
 const DEMO_OTP = "1234";
+
+// ---------- SHOP DEEP LINK ----------
+// A shop's own "share link" (e.g. .../?shop=<restId>, generated in the
+// restaurant partner app) lands here straight on that shop's menu instead
+// of the home screen. Handled once RESTAURANTS has loaded and the customer
+// is logged in — whichever happens last — since both are async.
+let pendingShopLinkId = null;
+try {
+  const shopParam = new URLSearchParams(window.location.search).get('shop');
+  if (shopParam) pendingShopLinkId = shopParam;
+} catch (e) {}
+let shopLinkHandled = false;
+function tryOpenPendingShopLink() {
+  if (!pendingShopLinkId || shopLinkHandled) return false;
+  if (!state.user) return false; // wait for login first
+  const rest = RESTAURANTS.find(r => r.id === pendingShopLinkId);
+  if (!rest) return false; // restaurant list not loaded yet, or a bad/old link
+  shopLinkHandled = true;
+  state.category = rest.businessType || 'hotel';
+  openRestaurant(rest.id);
+  try { window.history.replaceState({}, '', window.location.pathname); } catch (e) {}
+  return true;
+}
 
 // ---------- State ----------
 let state = {
@@ -1387,7 +1411,7 @@ loginSubmitBtn.addEventListener('click', async () => {
     saveUserSession(state.user);
     attachScratchListener(state.user.number);
     loginErrorEl.style.display = "none";
-    goToCategoryScreen();
+    if (!tryOpenPendingShopLink()) goToCategoryScreen();
   } catch (e) {
     showLoginError("DEBUG: " + (e && e.message ? e.message : String(e)));
   } finally {
@@ -1531,7 +1555,7 @@ otpVerifyBtn.addEventListener('click', async () => {
     otpVerifyBtn.disabled = false;
   }
   otpErrorEl.style.display = "none";
-  goToCategoryScreen();
+  if (!tryOpenPendingShopLink()) goToCategoryScreen();
 });
 
 function showOtpError(msg) {
@@ -3308,7 +3332,12 @@ try {
 
 let resumed = false;
 if (state.user) {
-  try {
+  // A fresh shop link takes priority over resuming wherever the customer
+  // was last — that's the whole point of tapping a shared link. If
+  // RESTAURANTS hasn't loaded yet, this quietly does nothing and
+  // onRestaurantsUpdated will retry it once the data arrives.
+  if (pendingShopLinkId) resumed = tryOpenPendingShopLink();
+  if (!resumed) try {
     const saved = JSON.parse(localStorage.getItem('asfood_screen') || 'null');
     if (saved) {
       if (saved.id === 'menu' && saved.restaurantId) {
