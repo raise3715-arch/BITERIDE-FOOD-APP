@@ -651,8 +651,14 @@
         <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;"><span>Item total</span><span id="loc-summary-items">₹0</span></div>
         <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;" id="loc-summary-fee-row"><span>Platform fee</span><span id="loc-summary-fee">₹0</span></div>
         <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;" id="loc-summary-delivery-row"><span>Delivery charge</span><span id="loc-summary-delivery">₹0</span></div>
+        <div style="display:none; justify-content:space-between; font-size:13px; color:var(--leaf); font-weight:700; padding:2px 0;" id="loc-summary-wallet-row"><span>Wallet balance (this shop)</span><span id="loc-summary-wallet">-₹0</span></div>
         <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:700; color:var(--ink); border-top:1px dashed var(--marigold-dark); margin-top:6px; padding-top:6px;"><span>Total</span><span id="loc-summary-total">₹0</span></div>
       </div>
+
+      <label class="gpay-paid-check" id="loc-wallet-toggle-row" style="display:none; margin-bottom:14px;">
+        <input type="checkbox" id="loc-wallet-use-checkbox" checked />
+        <span id="loc-wallet-toggle-label">Use ₹0 wallet balance from this shop</span>
+      </label>
 
       <p class="loc-field-label">Payment method</p>
       <div class="pay-method-row" id="pay-method-row">
@@ -672,6 +678,20 @@
       <div class="loc-btn-row">
         <button class="loc-cancel-btn" id="pay-cancel-btn">Cancel</button>
         <button class="btn-primary" id="pay-confirm-btn" style="flex:1;">Confirm & place order</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOP SCRATCH CARD POPUP — shown right when a shop with a pending
+       scratch card for you is opened, so you scratch it there and then. -->
+  <div class="loc-overlay" id="shop-scratch-overlay">
+    <div class="loc-sheet" style="text-align:center;">
+      <p class="loc-eyebrow">SCRATCH CARD</p>
+      <h2 class="loc-title" style="margin-bottom:6px;">This shop sent you a reward!</h2>
+      <p class="hint-text" style="margin:0 0 16px;">Scratch below — it'll be added to your wallet for this shop only.</p>
+      <div id="shop-scratch-popup-list" style="display:flex; flex-direction:column; gap:16px;"></div>
+      <div class="loc-btn-row" style="margin-top:16px;">
+        <button class="loc-cancel-btn" id="shop-scratch-popup-close-btn" style="flex:1;">Later</button>
       </div>
     </div>
   </div>
@@ -936,6 +956,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="menu-search-input" type="text" placeholder="Search items in this menu" />
       </div>
+    </div>
+    <div id="menu-shop-wallet-pill" style="display:none; margin:0 16px 12px; padding:10px 14px; border-radius:14px; background:var(--marigold); align-items:center; justify-content:space-between;">
+      <span style="color:#2B2410; font-size:12px; font-weight:700;">Wallet balance at this shop</span>
+      <span id="menu-shop-wallet-amount" style="color:#2B2410; font-family:'Fraunces',serif; font-size:16px; font-weight:700;">₹0</span>
     </div>
     <p class="item-list-label" id="item-list-label">Recommended</p>
     <div class="item-grid" id="item-list"></div>
@@ -1545,13 +1569,19 @@ function showOtpError(msg) {
 // app's "Add Wallet Amount" screen), which writes a new entry under
 // customers/{number}/scratchCards/{pushId} = { amount, restId, restName,
 // createdAt, revealed }. This customer app listens on that same path so a
-// fresh card shows up live, scoped to the shop that sent it. Scratching a
-// card reveals the amount and credits customers/{number}/walletBalance —
-// nothing else in the app spends the balance yet, this is just the reward.
+// fresh card shows up live, scoped to the shop that sent it — and pops up
+// right on that shop's menu screen as soon as it's opened. Scratching a
+// card reveals the amount and credits customers/{number}/walletByShop/{restId}
+// — a wallet balance that's only usable on orders placed with that same
+// shop (applied automatically as a discount at checkout there).
 state.scratchCards = {}; // pushId -> card data, as last seen from Firebase
-state.walletBalance = 0;
+state.walletByShop = {}; // restId -> balance, as last seen from Firebase
 let scratchListenerNumber = null; // which customer number the listener below is attached for
 let scratchUnsubFns = [];
+
+function totalWalletAcrossShops() {
+  return Object.values(state.walletByShop || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
+}
 
 function attachScratchListener(number) {
   if (!number || scratchListenerNumber === number) return;
@@ -1562,11 +1592,17 @@ function attachScratchListener(number) {
     state.scratchCards = snap.val() || {};
     updateScratchBadge();
     renderScratchList();
+    // If the customer already has this shop's menu open when a fresh card
+    // lands (or on first load once the listener catches up), surface it
+    // right there instead of making them hunt for the Scratch Cards tab.
+    if (state.selectedRestaurant) maybeShowShopScratchPopup(state.selectedRestaurant.id);
   }));
-  scratchUnsubFns.push(onValue(ref(db, 'customers/' + number + '/walletBalance'), snap => {
-    state.walletBalance = snap.val() || 0;
+  scratchUnsubFns.push(onValue(ref(db, 'customers/' + number + '/walletByShop'), snap => {
+    state.walletByShop = snap.val() || {};
     const el = document.getElementById('scratch-wallet-amount');
-    if (el) el.textContent = "₹" + state.walletBalance;
+    if (el) el.textContent = "₹" + totalWalletAcrossShops();
+    updateShopWalletPill();
+    if (paymentOverlay && paymentOverlay.classList.contains('show')) updateLocSummary();
   }));
 }
 
@@ -1575,7 +1611,7 @@ function detachScratchListener() {
   scratchUnsubFns = [];
   scratchListenerNumber = null;
   state.scratchCards = {};
-  state.walletBalance = 0;
+  state.walletByShop = {};
   updateScratchBadge();
 }
 
@@ -1610,11 +1646,11 @@ function renderScratchList() {
         ${card.revealed ? "" : `<canvas class="scratch-card-canvas" id="scratch-canvas-${id}"></canvas>`}
       </div>
       <p class="scratch-card-date">${formatScratchDate(card.createdAt)}</p>
-      ${card.revealed ? `<span class="scratch-card-claimed-tag">✓ Added to wallet</span>` : `<p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch to reveal</p>`}
+      ${card.revealed ? `<span class="scratch-card-claimed-tag">✓ Added to wallet</span><p class="hint-text" style="margin:6px 0 0; font-size:11px;">Usable only on orders from ${escapeHtml(card.restName || 'this shop')}</p>` : `<p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch to reveal</p>`}
     </div>
   `).join('');
   entries.forEach(([id, card]) => {
-    if (!card.revealed) setupScratchCanvas(id, card);
+    if (!card.revealed) setupScratchCanvas(id, card, 'scratch');
   });
 }
 
@@ -1631,9 +1667,10 @@ function formatScratchDate(ts) {
 // Draws a scratch-off gold layer on the card's canvas and lets the user
 // wipe it away with a finger/mouse. Once enough of the layer is cleared,
 // the card is revealed for good and credited to the wallet in Firebase.
-function setupScratchCanvas(id, card) {
-  const canvas = document.getElementById('scratch-canvas-' + id);
-  const wrap = document.getElementById('scratch-wrap-' + id);
+function setupScratchCanvas(id, card, prefix) {
+  prefix = prefix || 'scratch';
+  const canvas = document.getElementById(prefix + '-canvas-' + id);
+  const wrap = document.getElementById(prefix + '-wrap-' + id);
   if (!canvas || !wrap) return;
   const rect = wrap.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -1682,7 +1719,7 @@ function setupScratchCanvas(id, card) {
       canvas.style.transition = 'opacity .3s ease';
       canvas.style.opacity = '0';
       setTimeout(() => canvas.remove(), 300);
-      revealScratchCard(id, card.amount);
+      revealScratchCard(id, card.amount, card.restId);
     }
   }
   function start(e) { scratching = true; const p = pos(e); scratchAt(p.x, p.y); }
@@ -1703,25 +1740,69 @@ function setupScratchCanvas(id, card) {
   canvas.addEventListener('touchend', end);
 }
 
-// Marks the card revealed and credits the amount to the customer's wallet
-// balance, both under their own customers/{number} node in Firebase.
-async function revealScratchCard(id, amount) {
-  if (!state.user || !state.user.number) return;
+// Marks the card revealed and credits the amount to the customer's
+// per-shop wallet balance (customers/{number}/walletByShop/{restId}) —
+// so it only ever counts toward orders placed with that same shop.
+async function revealScratchCard(id, amount, restId) {
+  if (!state.user || !state.user.number || !restId) return;
   const number = state.user.number;
   // Optimistically mark it locally so a re-render (e.g. from another
   // listener tick) doesn't redraw the canvas on top of an already-wiped card.
   if (state.scratchCards[id]) state.scratchCards[id].revealed = true;
   try {
     const { db, ref, get, update } = window.fb;
-    const balSnap = await get(ref(db, 'customers/' + number + '/walletBalance'));
+    const balSnap = await get(ref(db, 'customers/' + number + '/walletByShop/' + restId));
     const currentBalance = balSnap.val() || 0;
     const updates = {};
     updates['scratchCards/' + id + '/revealed'] = true;
     updates['scratchCards/' + id + '/revealedAt'] = Date.now();
-    updates['walletBalance'] = currentBalance + (amount || 0);
+    updates['walletByShop/' + restId] = currentBalance + (amount || 0);
     await update(ref(db, 'customers/' + number), updates);
   } catch (e) {
     console.error("Couldn't claim scratch card:", e);
+  }
+}
+
+// ---------- Shop-scoped scratch popup + wallet pill (shown on a shop's menu screen) ----------
+let shopScratchPopupShownIds = new Set(); // card ids already surfaced in a popup this session
+
+function maybeShowShopScratchPopup(restId) {
+  const overlay = document.getElementById('shop-scratch-overlay');
+  if (!overlay || overlay.classList.contains('show')) return;
+  const pending = Object.entries(state.scratchCards || {})
+    .filter(([id, c]) => c && !c.revealed && c.restId === restId && !shopScratchPopupShownIds.has(id))
+    .sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
+  if (pending.length === 0) return;
+  pending.forEach(([id]) => shopScratchPopupShownIds.add(id));
+  const listEl = document.getElementById('shop-scratch-popup-list');
+  listEl.innerHTML = pending.map(([id, card]) => `
+    <div class="scratch-card">
+      <p class="scratch-card-shop">From ${escapeHtml(card.restName || 'this shop')}</p>
+      <div class="scratch-card-amount-wrap" id="shop-scratch-popup-wrap-${id}">
+        <div class="scratch-card-amount">₹${card.amount || 0}</div>
+        <canvas class="scratch-card-canvas" id="shop-scratch-popup-canvas-${id}"></canvas>
+      </div>
+    </div>
+  `).join('');
+  overlay.classList.add('show');
+  pending.forEach(([id, card]) => setupScratchCanvas(id, card, 'shop-scratch-popup'));
+}
+
+document.getElementById('shop-scratch-popup-close-btn').addEventListener('click', () => {
+  document.getElementById('shop-scratch-overlay').classList.remove('show');
+});
+
+function updateShopWalletPill() {
+  const pill = document.getElementById('menu-shop-wallet-pill');
+  const amountEl = document.getElementById('menu-shop-wallet-amount');
+  if (!pill || !amountEl) return;
+  const r = state.selectedRestaurant;
+  const balance = r ? (Number((state.walletByShop || {})[r.id]) || 0) : 0;
+  if (r && balance > 0) {
+    amountEl.textContent = "₹" + balance;
+    pill.style.display = 'flex';
+  } else {
+    pill.style.display = 'none';
   }
 }
 
@@ -1866,6 +1947,8 @@ function openRestaurant(id) {
   renderMenu();
   showScreen('menu');
   persistScreen('menu', { restaurantId: id, cart: state.cart });
+  updateShopWalletPill();
+  maybeShowShopScratchPopup(id);
 }
 
 const itemListLabel = document.getElementById('item-list-label');
@@ -2086,11 +2169,36 @@ function currentCartItemsTotal() {
   if (!r) return 0;
   return r.items.reduce((sum, it) => sum + (state.cart[it.id] || 0) * it.price, 0);
 }
+// The shop-scratch wallet balance for whichever shop is currently selected —
+// only ever usable on an order placed with that same shop.
+function currentShopWalletBalance() {
+  const r = state.selectedRestaurant;
+  if (!r) return 0;
+  return Number((state.walletByShop || {})[r.id]) || 0;
+}
+function currentWalletDiscount() {
+  const checkbox = document.getElementById('loc-wallet-use-checkbox');
+  if (checkbox && !checkbox.checked) return 0;
+  const balance = currentShopWalletBalance();
+  if (balance <= 0) return 0;
+  const subtotal = currentCartItemsTotal() + currentPlatformFee() + currentDeliveryFee();
+  return Math.min(balance, subtotal);
+}
 function updateLocSummary() {
   const itemsTotal = currentCartItemsTotal();
   const fee = currentPlatformFee();
   const dc = state.selectedRestaurant && state.selectedRestaurant.deliveryCharges;
   const deliveryFee = currentDeliveryFee();
+  const balance = currentShopWalletBalance();
+  const walletToggleRow = document.getElementById('loc-wallet-toggle-row');
+  const walletToggleLabel = document.getElementById('loc-wallet-toggle-label');
+  const walletSummaryRow = document.getElementById('loc-summary-wallet-row');
+  const walletSummaryEl = document.getElementById('loc-summary-wallet');
+  if (walletToggleRow) walletToggleRow.style.display = balance > 0 ? "flex" : "none";
+  if (walletToggleLabel) walletToggleLabel.textContent = "Use ₹" + balance + " wallet balance from this shop";
+  const walletDiscount = currentWalletDiscount();
+  if (walletSummaryRow) walletSummaryRow.style.display = walletDiscount > 0 ? "flex" : "none";
+  if (walletSummaryEl) walletSummaryEl.textContent = "-₹" + walletDiscount;
   if (locSummaryItemsEl) locSummaryItemsEl.textContent = "₹" + itemsTotal;
   if (locSummaryFeeEl) locSummaryFeeEl.textContent = "₹" + fee;
   if (locSummaryFeeRowEl) locSummaryFeeRowEl.style.display = fee > 0 ? "flex" : "none";
@@ -2100,7 +2208,7 @@ function updateLocSummary() {
   const showLoading = state.roadDistanceLoading && dc;
   if (locSummaryDeliveryEl) locSummaryDeliveryEl.textContent = showLoading ? "Calculating…" : "₹" + deliveryFee;
   if (locSummaryDeliveryRowEl) locSummaryDeliveryRowEl.style.display = (deliveryFee > 0 || showLoading) ? "flex" : "none";
-  if (locSummaryTotalEl) locSummaryTotalEl.textContent = showLoading ? "…" : "₹" + (itemsTotal + fee + deliveryFee);
+  if (locSummaryTotalEl) locSummaryTotalEl.textContent = showLoading ? "…" : "₹" + (itemsTotal + fee + deliveryFee - walletDiscount);
 }
 // If the operator changes the fee while this checkout sheet happens to be
 // open, keep the summary (and GPay QR amount) in sync live.
@@ -2445,6 +2553,8 @@ function openPaymentConfirm() {
   if (!pc) return;
   const addressBits = [pc.landmark, pc.place].filter(Boolean).join(", ");
   payAddressSummary.textContent = addressBits || pc.text || "Delivery address set";
+  const walletCheckbox = document.getElementById('loc-wallet-use-checkbox');
+  if (walletCheckbox) walletCheckbox.checked = true; // default to using the shop wallet if there's a balance
   updateLocSummary();
   setPaymentMethod('cod');
   const hasGpay = !!(state.selectedRestaurant && state.selectedRestaurant.gpayNumber);
@@ -2887,6 +2997,9 @@ locProceedBtn.addEventListener('click', () => {
   ensureRoadDistance();
 });
 
+const locWalletUseCheckbox = document.getElementById('loc-wallet-use-checkbox');
+if (locWalletUseCheckbox) locWalletUseCheckbox.addEventListener('change', updateLocSummary);
+
 payEditAddressBtn.addEventListener('click', () => {
   closePaymentConfirm();
   openLocationConfirm();
@@ -2921,7 +3034,12 @@ payConfirmBtn.addEventListener('click', async () => {
   const platformFee = currentPlatformFee();
   const deliveryFee = currentDeliveryFee();
   const deliveryKmInfo = currentDeliveryKm();
-  const total = itemsTotal + platformFee + deliveryFee;
+  // Wallet balance is scoped to this same shop, so it only ever discounts
+  // an order placed here — platformDue below stays the full fee regardless,
+  // since that's what the shop owes the platform and isn't affected by the
+  // customer's wallet.
+  const walletDiscount = currentWalletDiscount();
+  const total = Math.max(0, itemsTotal + platformFee + deliveryFee - walletDiscount);
 
   payConfirmBtn.disabled = true;
   payConfirmBtn.textContent = "Placing order…";
@@ -2932,7 +3050,7 @@ payConfirmBtn.addEventListener('click', async () => {
     // will pop up an alert with sound as soon as this write lands. Lat/lng
     // (when available) let the restaurant app open the exact pinned spot
     // on the map instead of a text search.
-    const { db, ref, push, set } = window.fb;
+    const { db, ref, push, set, get } = window.fb;
     const orderRef = push(ref(db, 'restaurants/' + r.id + '/orders'));
     const orderPayload = {
       orderNumber,
@@ -2951,6 +3069,7 @@ payConfirmBtn.addEventListener('click', async () => {
       deliveryFee,
       paymentMethod: selectedPaymentMethod === 'gpay' ? 'GPay (Scanner)' : 'Cash on Delivery'
     };
+    if (walletDiscount > 0) orderPayload.walletDiscount = walletDiscount;
     if (selectedPaymentMethod === 'gpay' && r.gpayNumber) {
       orderPayload.gpayNumber = r.gpayNumber;
     }
@@ -2963,6 +3082,18 @@ payConfirmBtn.addEventListener('click', async () => {
       orderPayload.deliveryDistanceIsRoadRoute = deliveryKmInfo.isRoadDistance;
     }
     await set(orderRef, orderPayload);
+
+    // Spend down this shop's wallet balance by exactly what was used —
+    // never touches any other shop's balance.
+    if (walletDiscount > 0 && state.user && state.user.number) {
+      try {
+        const balSnap = await get(ref(db, 'customers/' + state.user.number + '/walletByShop/' + r.id));
+        const currentBal = balSnap.val() || 0;
+        await set(ref(db, 'customers/' + state.user.number + '/walletByShop/' + r.id), Math.max(0, currentBal - walletDiscount));
+      } catch (e) {
+        console.error("Couldn't deduct wallet balance after order:", e);
+      }
+    }
 
     document.getElementById('confirm-order-num').textContent = orderNumber;
     document.getElementById('confirm-rest-name').textContent = "from " + r.name;
