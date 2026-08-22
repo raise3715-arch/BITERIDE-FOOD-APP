@@ -1530,15 +1530,31 @@ function renderCheckoutScratchCards() {
     return;
   }
   wrap.style.display = "block";
+  // The real amount is intentionally NOT put in the DOM yet — only a
+  // placeholder — so there's nothing for the customer to see until they
+  // actually scratch or claim it, even if the canvas fails to size/draw.
   wrap.innerHTML = `<p class="loc-field-label" style="margin-top:0;">🎁 ${escapeHtml(r.name)} is giving you a discount</p>
     <div class="scratch-card" style="margin-bottom:10px;">
       <div class="scratch-card-amount-wrap" id="scratch-wrap-shop-discount">
-        <div class="scratch-card-amount">₹${amount}</div>
+        <div class="scratch-card-amount" id="scratch-amount-shop-discount">🎁</div>
         <canvas class="scratch-card-canvas" id="scratch-canvas-shop-discount"></canvas>
       </div>
-      <p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch to reveal — it'll come straight off this bill</p>
+      <p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch the card, or</p>
+      <button type="button" class="btn-secondary" id="claim-btn-shop-discount" style="width:100%; margin-top:8px; padding:10px; border-radius:12px; border:1.5px solid var(--marigold-dark); background:#fff; color:var(--chili); font-weight:700; font-size:13px; cursor:pointer;">Claim reward</button>
     </div>`;
-  setupScratchCanvas('shop-discount', { amount, restId: r.id });
+  // Only set up the canvas (which needs real, on-screen dimensions to draw
+  // correctly) once the payment sheet is actually visible — otherwise it
+  // sizes itself to 0x0 and nothing gets covered up. requestAnimationFrame
+  // waits one paint frame so layout is settled first.
+  requestAnimationFrame(() => setupScratchCanvas('shop-discount', { amount, restId: r.id }));
+  const claimBtn = document.getElementById('claim-btn-shop-discount');
+  if (claimBtn) {
+    claimBtn.addEventListener('click', () => {
+      const canvas = document.getElementById('scratch-canvas-shop-discount');
+      if (canvas) { canvas.style.transition = 'opacity .3s ease'; canvas.style.opacity = '0'; setTimeout(() => canvas.remove(), 300); }
+      revealShopDiscount(r.id, amount);
+    });
+  }
 }
 
 function escapeHtml(s) {
@@ -1625,8 +1641,19 @@ function setupScratchCanvas(id, card) {
 // Firebase since this isn't tied to one customer's account.
 function revealShopDiscount(restId, amount) {
   state.discountReveal = { restId, amount: Number(amount) || 0 };
-  renderCheckoutScratchCards();
+  // Briefly show the actual revealed amount with a "claimed" state before
+  // the card disappears, so the customer sees what they just won and that
+  // it's already been applied — then re-render collapses the card away and
+  // the bill updates.
+  const amountEl = document.getElementById('scratch-amount-shop-discount');
+  const hintEl = document.querySelector('#checkout-scratch-wrap .scratch-hint');
+  const claimBtn = document.getElementById('claim-btn-shop-discount');
+  if (amountEl) amountEl.textContent = "₹" + (Number(amount) || 0) + " claimed!";
+  if (amountEl) amountEl.style.color = "var(--leaf)";
+  if (hintEl) hintEl.textContent = "Added to your bill below ↓";
+  if (claimBtn) claimBtn.style.display = "none";
   updateLocSummary();
+  setTimeout(() => { renderCheckoutScratchCards(); }, 900);
 }
 
 // ---------- HOME ----------
@@ -2360,13 +2387,15 @@ function openPaymentConfirm() {
   if (!pc) return;
   const addressBits = [pc.landmark, pc.place].filter(Boolean).join(", ");
   payAddressSummary.textContent = addressBits || pc.text || "Delivery address set";
-  renderCheckoutScratchCards();
   updateLocSummary();
   setPaymentMethod('cod');
   const hasGpay = !!(state.selectedRestaurant && state.selectedRestaurant.gpayNumber);
   payGpayBtn.disabled = !hasGpay;
   payGpayBtn.title = hasGpay ? "" : "This restaurant hasn't set up GPay yet";
   paymentOverlay.classList.add('show');
+  // Render the scratch card only after the sheet is actually visible —
+  // it needs real on-screen dimensions to size its canvas correctly.
+  renderCheckoutScratchCards();
 }
 
 function closePaymentConfirm() {
