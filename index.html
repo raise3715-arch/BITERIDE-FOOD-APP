@@ -442,33 +442,14 @@
   }
   .logout-btn:active{ transform:scale(0.94); }
 
-  /* Scratch card reward: header entry point + list screen */
-  .scratch-nav-btn{
-    width:34px; height:34px; border-radius:50%; border:1.5px solid var(--field-border); background:#fff;
-    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; position:relative;
-  }
-  .scratch-nav-btn:active{ transform:scale(0.94); }
-  .scratch-badge{
-    position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; padding:0 3px; border-radius:8px;
-    background:var(--chili); color:#fff; font-size:10px; font-weight:700; line-height:16px; text-align:center;
-    font-family:'Inter',sans-serif; box-shadow:0 0 0 2px #fff;
-  }
-  .scratch-header{ padding:40px 24px 8px; display:flex; align-items:center; gap:14px; }
-  .scratch-title{ color:var(--ink); font-family:'Fraunces',serif; font-size:24px; font-weight:700; margin:2px 0 0; }
-  .scratch-wallet-pill{
-    margin:16px 24px 0; padding:14px 16px; border-radius:16px; background:var(--marigold);
-    box-shadow:0 6px 16px rgba(242,183,5,.3);
-  }
-  .scratch-wallet-label{ color:#2B2410; font-size:11px; font-weight:700; letter-spacing:.5px; margin:0; text-transform:uppercase; }
-  .scratch-wallet-amount{ color:#2B2410; font-family:'Fraunces',serif; font-size:24px; font-weight:700; margin:2px 0 0; }
-  .scratch-list{ padding:20px 24px 24px; display:flex; flex-direction:column; gap:16px; }
+  /* Scratch card reward: now shown inline in the checkout/payment sheet
+     for whichever shop sent it, not on a separate screen. */
   .scratch-card{
     position:relative; border-radius:18px; background:#fff;
     border:1.5px dashed var(--marigold-dark); padding:16px; box-shadow:var(--card-shadow);
   }
-  .scratch-card-shop{ color:var(--muted-2); font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; margin:0; }
   .scratch-card-amount-wrap{
-    position:relative; margin-top:10px; height:68px; border-radius:12px; overflow:hidden;
+    position:relative; margin-top:0; height:68px; border-radius:12px; overflow:hidden;
     background:var(--field-bg); border:1px solid var(--field-border);
   }
   .scratch-card-amount{
@@ -476,17 +457,6 @@
     font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--leaf);
   }
   .scratch-card-canvas{ position:absolute; inset:0; touch-action:none; cursor:pointer; }
-  .scratch-card-scratch-hint{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:12px; letter-spacing:.5px;
-    pointer-events:none;
-  }
-  .scratch-card-date{ color:var(--muted); font-size:11px; margin:10px 0 0; }
-  .scratch-card-claimed-tag{
-    display:inline-flex; align-items:center; gap:4px; margin-top:10px; padding:4px 10px; border-radius:20px;
-    background:rgba(27,166,114,.08); border:1.5px solid var(--leaf); color:var(--leaf); font-size:11px; font-weight:700;
-  }
-  .scratch-empty{ padding:60px 24px; text-align:center; color:var(--muted-2); font-size:14px; line-height:1.5; }
 
   .your-orders-btn{
     display:inline-flex; align-items:center; gap:6px; margin-top:10px;
@@ -646,6 +616,8 @@
         <p class="loc-current-value" id="pay-address-summary">—</p>
         <button type="button" id="pay-edit-address-btn" style="background:none; border:none; padding:4px 0 0; color:var(--leaf); font-weight:700; font-size:12px; font-family:'Inter',sans-serif; cursor:pointer;">Edit address</button>
       </div>
+
+      <div id="checkout-scratch-wrap" style="display:none; margin:0 0 14px;"></div>
 
       <div class="chit" style="margin:0 0 14px;">
         <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--ink); padding:2px 0;"><span>Item total</span><span id="loc-summary-items">₹0</span></div>
@@ -870,10 +842,6 @@
         <button class="home-track-btn hidden" id="home-track-btn" title="Track your order">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
         </button>
-        <button class="scratch-nav-btn" id="scratch-nav-btn" title="Scratch cards">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M19 8V6a3 3 0 0 0-6 0 3 3 0 0 0-6 0v2"/></svg>
-          <span class="scratch-badge" id="scratch-badge" style="display:none;">0</span>
-        </button>
         <button class="install-icon-btn hidden" id="install-icon-btn" title="Install app">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>
         </button>
@@ -900,26 +868,6 @@
       </div>
     </div>
     <div class="rest-list" id="rest-list"></div>
-  </section>
-
-  <!-- SCRATCH CARDS -->
-  <section class="screen" id="screen-scratch">
-    <div class="scratch-header">
-      <button class="btn-back" id="scratch-back-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <div>
-        <p class="eyebrow" style="margin:0;">REWARDS</p>
-        <h1 class="scratch-title">Scratch Cards</h1>
-      </div>
-    </div>
-    <div class="scratch-wallet-pill">
-      <p class="scratch-wallet-label">Total shop discounts</p>
-      <p class="scratch-wallet-amount" id="scratch-wallet-amount">₹0</p>
-    </div>
-    <p class="hint-text" style="padding:0 4px 4px;">Each discount is only valid at the shop that sent it — it's applied automatically at checkout there.</p>
-    <div class="scratch-list" id="scratch-list"></div>
-    <p class="scratch-empty" id="scratch-empty" style="display:none;">No scratch cards yet — a shop will send you one whenever they add an amount to your account.</p>
   </section>
 
   <!-- MENU -->
@@ -1544,14 +1492,16 @@ function showOtpError(msg) {
 
 // ---------- SCRATCH CARDS ----------
 // A shop adds an amount to a customer's account (from the restaurant partner
-// app's "Add Wallet Amount" screen), which writes a new entry under
+// app's "Add Shop Discount" screen), which writes a new entry under
 // customers/{number}/scratchCards/{pushId} = { amount, restId, restName,
-// createdAt, revealed }. This customer app listens on that same path so a
-// fresh card shows up live, scoped to the shop that sent it. Scratching a
-// card reveals the amount and credits customers/{number}/shopDiscounts/{restId}
+// createdAt, revealed }. This customer app listens on that same path. There
+// is no separate "Scratch Cards" screen anymore — an unrevealed card only
+// shows up inline in the checkout/payment sheet for the shop that sent it,
+// once the customer reaches checkout with that shop. Scratching it there
+// reveals the amount and credits customers/{number}/shopDiscounts/{restId}
 // — a balance tied to that one shop only. It is NOT a spendable-anywhere
 // wallet: it's auto-applied as a discount only when the customer orders
-// from that same shop again (see currentShopDiscount() / checkout).
+// from that same shop (see currentShopDiscount() / renderCheckoutScratchCards()).
 state.scratchCards = {}; // pushId -> card data, as last seen from Firebase
 state.shopDiscounts = {}; // restId -> discount balance available at that shop
 let scratchListenerNumber = null; // which customer number the listener below is attached for
@@ -1564,12 +1514,13 @@ function attachScratchListener(number) {
   const { db, ref, onValue } = window.fb;
   scratchUnsubFns.push(onValue(ref(db, 'customers/' + number + '/scratchCards'), snap => {
     state.scratchCards = snap.val() || {};
-    updateScratchBadge();
-    renderScratchList();
+    // Scratch cards no longer live on a separate screen — they surface
+    // inline in the checkout sheet for whichever shop sent them, right
+    // where the customer is about to pay.
+    renderCheckoutScratchCards();
   }));
   scratchUnsubFns.push(onValue(ref(db, 'customers/' + number + '/shopDiscounts'), snap => {
     state.shopDiscounts = snap.val() || {};
-    renderScratchWalletPill();
     // If the customer currently has a shop's menu/checkout open, refresh
     // the discount line live in case a fresh balance just came in.
     if (typeof updateLocSummary === 'function') updateLocSummary();
@@ -1582,17 +1533,6 @@ function detachScratchListener() {
   scratchListenerNumber = null;
   state.scratchCards = {};
   state.shopDiscounts = {};
-  updateScratchBadge();
-}
-
-// The scratch-cards screen shows one pill summarising discounts across all
-// shops that have sent this customer a card — but each rupee in it is only
-// spendable back at the specific shop that gave it (see currentShopDiscount).
-function renderScratchWalletPill() {
-  const el = document.getElementById('scratch-wallet-amount');
-  if (!el) return;
-  const total = Object.values(state.shopDiscounts).reduce((sum, v) => sum + (Number(v) || 0), 0);
-  el.textContent = "₹" + total;
 }
 
 // Discount balance the current customer has at a specific shop (restId),
@@ -1602,43 +1542,35 @@ function currentShopDiscount(restId) {
   return Number(state.shopDiscounts[restId]) || 0;
 }
 
-function updateScratchBadge() {
-  const badge = document.getElementById('scratch-badge');
-  if (!badge) return;
-  const count = Object.values(state.scratchCards).filter(c => c && !c.revealed).length;
-  if (count > 0) {
-    badge.textContent = String(count);
-    badge.style.display = "flex";
-  } else {
-    badge.style.display = "none";
-  }
-}
-
-function renderScratchList() {
-  const listEl = document.getElementById('scratch-list');
-  const emptyEl = document.getElementById('scratch-empty');
-  if (!listEl) return;
-  const entries = Object.entries(state.scratchCards).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+// Shows any not-yet-scratched cards for the shop the customer is currently
+// checking out with, right in the payment sheet — scratching happens at
+// the moment of paying, not on some separate screen. Cards from other
+// shops simply don't show here (they'll show at their own shop's checkout).
+function renderCheckoutScratchCards() {
+  const wrap = document.getElementById('checkout-scratch-wrap');
+  if (!wrap) return;
+  const r = state.selectedRestaurant;
+  if (!r) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
+  const entries = Object.entries(state.scratchCards)
+    .filter(([, c]) => c && c.restId === r.id && !c.revealed)
+    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
   if (entries.length === 0) {
-    listEl.innerHTML = "";
-    emptyEl.style.display = "block";
+    wrap.style.display = "none";
+    wrap.innerHTML = "";
     return;
   }
-  emptyEl.style.display = "none";
-  listEl.innerHTML = entries.map(([id, card]) => `
-    <div class="scratch-card">
-      <p class="scratch-card-shop">From ${escapeHtml(card.restName || 'a shop')}</p>
+  wrap.style.display = "block";
+  wrap.innerHTML = `<p class="loc-field-label" style="margin-top:0;">🎁 ${escapeHtml(r.name)} sent you a discount</p>` +
+    entries.map(([id, card]) => `
+    <div class="scratch-card" style="margin-bottom:10px;">
       <div class="scratch-card-amount-wrap" id="scratch-wrap-${id}">
         <div class="scratch-card-amount">₹${card.amount || 0}</div>
-        ${card.revealed ? "" : `<canvas class="scratch-card-canvas" id="scratch-canvas-${id}"></canvas>`}
+        <canvas class="scratch-card-canvas" id="scratch-canvas-${id}"></canvas>
       </div>
-      <p class="scratch-card-date">${formatScratchDate(card.createdAt)}</p>
-      ${card.revealed ? `<span class="scratch-card-claimed-tag">✓ Discount added for ${escapeHtml(card.restName || 'this shop')}</span>` : `<p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch to reveal</p>`}
+      <p class="scratch-hint" style="text-align:center; color:var(--muted); font-size:11px; margin:8px 0 0;">Scratch to reveal — it'll come straight off this bill</p>
     </div>
   `).join('');
-  entries.forEach(([id, card]) => {
-    if (!card.revealed) setupScratchCanvas(id, card);
-  });
+  entries.forEach(([id, card]) => setupScratchCanvas(id, card));
 }
 
 function escapeHtml(s) {
@@ -1751,13 +1683,6 @@ async function revealScratchCard(id, amount) {
     console.error("Couldn't claim scratch card:", e);
   }
 }
-
-document.getElementById('scratch-nav-btn').addEventListener('click', () => {
-  showScreen('scratch');
-});
-document.getElementById('scratch-back-btn').addEventListener('click', () => {
-  showScreen('home');
-});
 
 // ---------- HOME ----------
 const homeLocation = document.getElementById('home-location');
@@ -2487,6 +2412,7 @@ function openPaymentConfirm() {
   if (!pc) return;
   const addressBits = [pc.landmark, pc.place].filter(Boolean).join(", ");
   payAddressSummary.textContent = addressBits || pc.text || "Delivery address set";
+  renderCheckoutScratchCards();
   updateLocSummary();
   setPaymentMethod('cod');
   const hasGpay = !!(state.selectedRestaurant && state.selectedRestaurant.gpayNumber);
