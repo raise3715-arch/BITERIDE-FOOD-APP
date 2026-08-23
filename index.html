@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>NESH Delivery and Market</title>
 <meta name="description" content="NESH Delivery and Market - Fastest delivery in your area. Exclusive app-only offers & discounts. Live order tracking. Order groceries and food online with NESH." />
 <link rel="manifest" href="manifest.json" />
@@ -53,6 +53,7 @@
     min-height:100vh;
     background:var(--bg);
     position:relative;
+    padding-top:env(safe-area-inset-top);
   }
   .screen{ display:none; padding-bottom:24px; }
   .screen.active{ display:block; }
@@ -203,9 +204,20 @@
   .rest-time{ color:var(--muted-2); font-family:'IBM Plex Mono',monospace; }
   .empty-text{ color:var(--muted); font-size:14px; }
 
-  .menu-header{ padding:32px 24px 0; display:flex; align-items:center; gap:12px; }
-  .menu-rest-name{ color:var(--ink); font-family:'Poppins',sans-serif; font-size:19px; font-weight:700; margin:0; }
-  .menu-rest-meta{ color:var(--muted-2); font-size:12px; margin:2px 0 0; }
+  .menu-header{
+    padding:36px 24px 16px; display:flex; align-items:center; gap:12px;
+    background:var(--bg); position:relative; z-index:1;
+  }
+  .menu-header-logo{
+    width:48px; height:48px; border-radius:14px; object-fit:cover; flex-shrink:0;
+    background:var(--field-bg); border:1px solid var(--field-border);
+  }
+  .menu-header-text{ min-width:0; }
+  .menu-rest-name{
+    color:var(--ink); font-family:'Poppins',sans-serif; font-size:19px; font-weight:700;
+    line-height:1.35; margin:0; overflow-wrap:break-word;
+  }
+  .menu-rest-meta{ color:var(--muted-2); font-size:12px; line-height:1.4; margin:3px 0 0; }
 
   .item-list{ padding:24px 24px 100px; display:flex; flex-direction:column; gap:12px; }
   .item-card{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -924,7 +936,8 @@
       <button class="btn-back" onclick="showScreen('home'); persistScreen('home', { category: state.category });">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
-      <div>
+      <img class="menu-header-logo" id="menu-rest-logo" src="" alt="" />
+      <div class="menu-header-text">
         <p class="menu-rest-name" id="menu-rest-name"></p>
         <p class="menu-rest-meta" id="menu-rest-meta"></p>
       </div>
@@ -1903,6 +1916,7 @@ searchInput.addEventListener('input', renderRestaurantList);
 // ---------- MENU ----------
 const menuRestName = document.getElementById('menu-rest-name');
 const menuRestMeta = document.getElementById('menu-rest-meta');
+const menuRestLogo = document.getElementById('menu-rest-logo');
 const itemListEl = document.getElementById('item-list');
 const cartBar = document.getElementById('cart-bar');
 const cartCountText = document.getElementById('cart-count-text');
@@ -1930,6 +1944,9 @@ function renderMenu() {
   const r = state.selectedRestaurant;
   menuRestName.textContent = r.name;
   menuRestMeta.textContent = r.cuisine;
+  menuRestLogo.src = r.image || '';
+  menuRestLogo.alt = r.name || '';
+  menuRestLogo.style.display = r.image ? 'block' : 'none';
   const query = (state.menuSearch || '').trim().toLowerCase();
   const items = query
     ? r.items.filter(it =>
