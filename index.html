@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>NESH Delivery and Market</title>
 <meta name="description" content="NESH Delivery and Market - Fastest delivery in your area. Exclusive app-only offers & discounts. Live order tracking. Order groceries and food online with NESH." />
 <link rel="manifest" href="manifest.json" />
@@ -3250,7 +3250,7 @@ payConfirmBtn.addEventListener('click', async () => {
     document.getElementById('confirm-rest-name').textContent = "from " + r.name;
     // Remember which order this is so the "Track your Order" button knows
     // exactly which Firebase node to watch for live status updates.
-    state.lastOrder = { restId: r.id, orderKey: orderRef.key, orderNumber, restName: r.name };
+    state.lastOrder = { restId: r.id, orderKey: orderRef.key, orderNumber, restName: r.name, businessType: r.businessType };
     try { localStorage.setItem('asfood_last_order', JSON.stringify(state.lastOrder)); } catch (e) {}
     updateHomeTrackBtn();
     state.cart = {};
@@ -3281,14 +3281,27 @@ const confirmTrackBtn = document.getElementById('confirm-track-btn');
 // tracked. Cleared whenever the user leaves the track screen so it doesn't
 // keep firing (and doesn't leak) once they're back browsing restaurants.
 let trackUnsub = null;
+// businessType of the order currently on screen — set in openTrackOrder,
+// used by renderTrackTimeline to pick food vs generic order wording.
+let trackBusinessType = 'hotel';
 
-const ORDER_STEPS = [
-  { key: 'awaiting_payment',  label: 'Waiting for payment confirmation' },
-  { key: 'pending',          label: 'Order received' },
-  { key: 'preparing',        label: 'Preparing your food' },
-  { key: 'out_for_delivery', label: 'Out for delivery' },
-  { key: 'delivered',        label: 'Delivered' },
-];
+// Label wording only differs for the "preparing" step — food orders (hotel)
+// say "Preparing your food", everything else (groceries, online_shop) says
+// the generic "Preparing your order" so it doesn't misleadingly call a
+// grocery/shop order "food".
+function getOrderSteps(businessType) {
+  const isFood = businessType !== 'groceries' && businessType !== 'online_shop';
+  return [
+    { key: 'awaiting_payment',  label: 'Waiting for payment confirmation' },
+    { key: 'pending',          label: 'Order received' },
+    { key: 'preparing',        label: isFood ? 'Preparing your food' : 'Preparing your order' },
+    { key: 'out_for_delivery', label: 'Out for delivery' },
+    { key: 'delivered',        label: 'Delivered' },
+  ];
+}
+// Default (hotel) steps — used wherever businessType isn't known yet, e.g.
+// for chip labels before an order's restaurant type has been resolved.
+const ORDER_STEPS = getOrderSteps('hotel');
 const CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
 
 // The restaurant partner app may write any of a few common spellings for
@@ -3307,6 +3320,8 @@ function normalizeStatus(raw) {
 
 function renderTrackTimeline(rawStatus) {
   const status = normalizeStatus(rawStatus);
+  const isFood = trackBusinessType !== 'groceries' && trackBusinessType !== 'online_shop';
+  const steps = getOrderSteps(trackBusinessType);
 
   if (status === 'cancelled') {
     trackStatusText.textContent = "Order cancelled";
@@ -3315,19 +3330,19 @@ function renderTrackTimeline(rawStatus) {
     return;
   }
 
-  const currentIdx = ORDER_STEPS.findIndex(s => s.key === status);
-  trackStatusText.textContent = ORDER_STEPS[currentIdx].label;
-  trackEtaText.textContent = status === 'delivered' ? "Enjoy your meal!" : "Estimated arrival: 30–35 min";
+  const currentIdx = steps.findIndex(s => s.key === status);
+  trackStatusText.textContent = steps[currentIdx].label;
+  trackEtaText.textContent = status === 'delivered' ? (isFood ? "Enjoy your meal!" : "Your order has been delivered!") : "Estimated arrival: 30–35 min";
 
   trackTimelineEl.innerHTML = "";
-  ORDER_STEPS.forEach((step, idx) => {
+  steps.forEach((step, idx) => {
     const stepState = idx < currentIdx ? 'done' : idx === currentIdx ? 'current' : 'pending';
     const row = document.createElement('div');
     row.className = "timeline-step " + stepState;
     row.innerHTML = `
       <div class="timeline-dotcol">
         <div class="timeline-dot">${idx <= currentIdx ? CHECK_ICON : ''}</div>
-        ${idx < ORDER_STEPS.length - 1 ? '<div class="timeline-line"></div>' : ''}
+        ${idx < steps.length - 1 ? '<div class="timeline-line"></div>' : ''}
       </div>
       <div class="timeline-content">
         <p class="timeline-label">${step.label}</p>
@@ -3346,6 +3361,7 @@ function openTrackOrder(order, returnScreen) {
   order = order || state.lastOrder;
   if (!order) return;
   trackReturnScreen = returnScreen || 'home';
+  trackBusinessType = order.businessType || 'hotel';
   trackRestName.textContent = order.restName;
   trackOrderNum.textContent = "Order " + order.orderNumber;
   renderTrackTimeline('pending');
@@ -3380,16 +3396,16 @@ const ordersPastSection = document.getElementById('orders-past-section');
 // cleared when the user leaves so it doesn't keep running in the background.
 let ordersUnsub = null;
 
-function statusChipInfo(status) {
+function statusChipInfo(status, businessType) {
   if (status === 'delivered') return { cls: 'delivered', label: 'Delivered' };
   if (status === 'cancelled') return { cls: 'cancelled', label: 'Cancelled' };
-  const step = ORDER_STEPS.find(s => s.key === status);
+  const step = getOrderSteps(businessType).find(s => s.key === status);
   return { cls: 'live', label: step ? step.label : 'In progress' };
 }
 
 function renderOrderRow(o) {
   const status = normalizeStatus(o.status);
-  const chip = statusChipInfo(status);
+  const chip = statusChipInfo(status, o.businessType);
   const itemCount = Array.isArray(o.items) ? o.items.reduce((a, it) => a + (it.qty || 0), 0) : 0;
   const row = document.createElement('div');
   row.className = "card order-row";
@@ -3401,7 +3417,7 @@ function renderOrderRow(o) {
     <span class="order-status-chip ${chip.cls}">${chip.label}</span>
   `;
   row.addEventListener('click', () => openTrackOrder(
-    { restId: o.restId, orderKey: o.orderKey, orderNumber: o.orderNumber, restName: o.restName },
+    { restId: o.restId, orderKey: o.orderKey, orderNumber: o.orderNumber, restName: o.restName, businessType: o.businessType },
     'orders'
   ));
   return row;
@@ -3457,6 +3473,7 @@ function openOrdersScreen() {
     snap.forEach(restSnap => {
       const restVal = restSnap.val() || {};
       const restName = restVal.restaurantName || 'Restaurant';
+      const businessType = restVal.businessType || 'hotel';
       const ordersVal = restVal.orders;
       if (!ordersVal) return;
       Object.keys(ordersVal).forEach(orderKey => {
@@ -3466,6 +3483,7 @@ function openOrdersScreen() {
           restId: restSnap.key,
           orderKey,
           restName,
+          businessType,
           orderNumber: o.orderNumber,
           status: o.status,
           items: o.items,
