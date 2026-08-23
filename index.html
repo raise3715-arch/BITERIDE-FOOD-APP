@@ -592,6 +592,28 @@
   .item-price2{ color:var(--ink); font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:14px; }
   .item-row2 .add-btn{ padding:8px 14px; font-size:12px; }
   .item-row2 .qty-wrap{ padding:6px 8px; gap:8px; }
+  .item-img-wrap{ cursor:pointer; }
+
+  /* ---------- Item detail ---------- */
+  .item-detail-back-row{ padding:16px 20px 0; }
+  .item-detail-photo-wrap{ position:relative; width:100%; height:300px; background:var(--field-bg); }
+  .item-detail-photo{ width:100%; height:100%; object-fit:cover; display:block; }
+  .item-detail-photo-wrap .item-veg{ top:16px; left:16px; width:20px; height:20px; }
+  .item-detail-photo-wrap .item-veg span{ width:9px; height:9px; }
+  .item-detail-photo-wrap .item-rating2{ top:16px; right:16px; font-size:12.5px; padding:4px 9px; }
+  .item-detail-body{ padding:22px 24px 130px; }
+  .item-detail-name{
+    color:var(--ink); font-family:'Poppins',sans-serif; font-size:21px; font-weight:800;
+    letter-spacing:.2px; margin:0; line-height:1.3;
+  }
+  .item-detail-desc{ color:var(--muted-2); font-size:14px; line-height:1.6; margin:12px 0 0; }
+  .item-detail-price{ color:var(--marigold-dark); font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; margin:18px 0 0; }
+  .item-detail-cta{
+    position:fixed; bottom:0; width:100%; max-width:420px;
+    padding:14px 24px 24px; background:linear-gradient(to top, var(--bg) 70%, transparent);
+  }
+  .item-detail-cta .add-btn{ width:100%; padding:15px 20px; font-size:14.5px; border-radius:12px; }
+  .item-detail-cta .qty-wrap{ width:100%; justify-content:center; padding:12px; border-radius:12px; }
 </style>
 </head>
 <body>
@@ -962,6 +984,28 @@
     </div>
   </section>
 
+  <!-- ITEM DETAIL -->
+  <section class="screen" id="screen-item-detail">
+    <div class="item-detail-back-row">
+      <button class="btn-back" id="item-detail-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+    <div class="item-detail-photo-wrap">
+      <img class="item-detail-photo" id="item-detail-photo" src="" alt="" />
+      <span class="item-veg" id="item-detail-veg"><span></span></span>
+      <span class="item-rating2" id="item-detail-rating"></span>
+    </div>
+    <div class="item-detail-body">
+      <p class="item-detail-name" id="item-detail-name"></p>
+      <p class="item-detail-desc" id="item-detail-desc" style="display:none;"></p>
+      <p class="item-detail-price" id="item-detail-price"></p>
+    </div>
+    <div class="item-detail-cta">
+      <div class="qty-slot" id="item-detail-qty-slot"></div>
+    </div>
+  </section>
+
   <!-- ORDER PLACED -->
   <section class="screen" id="screen-placed">
     <div class="confirm-wrap">
@@ -1304,6 +1348,7 @@ let state = {
   user: null,
   otpFlowFrom: "register",
   selectedRestaurant: null,
+  selectedItem: null, // itemId currently shown on the item-detail screen
   cart: {}, // itemId -> qty
   lastOrder: null, // { restId, orderKey, orderNumber, restName } for the "Track your Order" screen
   customerPos: null, // { lat, lng } — set via "Select your location", used to filter restaurants by delivery zone
@@ -1980,6 +2025,7 @@ function renderMenu() {
       `;
       const qtySlot = card.querySelector('.qty-slot');
       renderQtyControl(qtySlot, it.id, qty);
+      card.querySelector('.item-img-wrap').addEventListener('click', () => openItemDetail(it.id));
       itemListEl.appendChild(card);
     } catch (e) {
       console.error('Skipped one broken menu item while rendering:', it && it.id, e);
@@ -2024,7 +2070,47 @@ function changeQty(itemId, delta) {
   if (next === 0) delete state.cart[itemId];
   else state.cart[itemId] = next;
   renderMenu();
+  if (state.selectedItem === itemId) renderItemDetail();
   persistCart();
+}
+
+// ---------- Item detail ----------
+const itemDetailPhoto = document.getElementById('item-detail-photo');
+const itemDetailVeg = document.getElementById('item-detail-veg');
+const itemDetailRating = document.getElementById('item-detail-rating');
+const itemDetailName = document.getElementById('item-detail-name');
+const itemDetailDesc = document.getElementById('item-detail-desc');
+const itemDetailPrice = document.getElementById('item-detail-price');
+const itemDetailQtySlot = document.getElementById('item-detail-qty-slot');
+document.getElementById('item-detail-back-btn').addEventListener('click', () => {
+  showScreen('menu');
+  persistScreen('menu', { restaurantId: state.selectedRestaurant.id, cart: state.cart });
+});
+
+function openItemDetail(itemId) {
+  state.selectedItem = itemId;
+  renderItemDetail();
+  showScreen('item-detail');
+  persistScreen('item-detail', { restaurantId: state.selectedRestaurant.id, itemId, cart: state.cart });
+}
+
+function renderItemDetail() {
+  if (!state.selectedItem || !state.selectedRestaurant) return;
+  const it = state.selectedRestaurant.items.find(i => i.id === state.selectedItem);
+  if (!it) return;
+  const qty = state.cart[it.id] || 0;
+  itemDetailPhoto.src = it.image || '';
+  itemDetailPhoto.alt = it.name || '';
+  itemDetailRating.textContent = `★ ${it.rating || '4.5'}${it.ratingCount ? ' (' + it.ratingCount + ')' : ''}`;
+  itemDetailName.textContent = it.name;
+  if (it.desc) {
+    itemDetailDesc.textContent = it.desc;
+    itemDetailDesc.style.display = 'block';
+  } else {
+    itemDetailDesc.style.display = 'none';
+  }
+  itemDetailPrice.textContent = `₹${it.price}`;
+  renderQtyControl(itemDetailQtySlot, it.id, qty);
 }
 
 function updateCartBar() {
@@ -3364,6 +3450,15 @@ if (state.user) {
           state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
           renderMenu();
           showScreen('menu');
+          resumed = true;
+        }
+      } else if (saved.id === 'item-detail' && saved.restaurantId && saved.itemId) {
+        const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
+        if (rest && rest.items.some(i => i.id === saved.itemId)) {
+          state.selectedRestaurant = rest;
+          state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+          renderMenu();
+          openItemDetail(saved.itemId);
           resumed = true;
         }
       } else if (saved.id === 'checkout_payment' && saved.restaurantId && saved.pendingCheckout) {
