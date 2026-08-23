@@ -1359,6 +1359,22 @@ window.onRestaurantsUpdated = () => {
     if (updated) { state.selectedRestaurant = updated; renderMenu(); }
   }
   tryOpenPendingShopLink();
+  // If the customer was on their menu/checkout/km-calculation screen when
+  // the app got refreshed, the very first attempt at init below can race
+  // this live Firebase fetch (RESTAURANTS may still have been empty then).
+  // Retry now that real data has actually landed, so it resumes correctly
+  // on its own instead of needing a second manual refresh.
+  if (pendingScreenResume) {
+    const done = tryResumeScreen(pendingScreenResume);
+    if (done) {
+      pendingScreenResume = null;
+    } else {
+      // RESTAURANTS is now genuinely loaded and the saved restaurant still
+      // isn't in it (deleted / stale link) — fall back instead of waiting forever.
+      pendingScreenResume = null;
+      goToCategoryScreen();
+    }
+  }
 };
 const DEMO_OTP = "1234";
 
@@ -1402,6 +1418,78 @@ let state = {
   roadDistanceKey: null,  // which rest/customer coordinate pair roadDistanceKm belongs to
   roadDistanceLoading: false,
 };
+
+// ---------- Resume-on-refresh bookkeeping ----------
+// `resumed` becomes true once we've successfully placed the customer back
+// on their saved screen. `pendingScreenResume` holds a saved screen that
+// COULDN'T be resumed yet because it needed the live `restaurants` list from
+// Firebase and that list hadn't arrived at page-load time — onRestaurantsUpdated
+// retries it the moment real data shows up, so the customer never has to
+// manually refresh a second time.
+let resumed = false;
+let pendingScreenResume = null;
+// Attempts to put the customer back on `saved` (a persisted screen object).
+// Returns true if handled (either resumed, or confirmed there's nothing to
+// resume to), and false only when the attempt needs the live RESTAURANTS
+// list and that list isn't loaded yet — signalling "try again later".
+function tryResumeScreen(saved) {
+  if (saved.id === 'menu' && saved.restaurantId) {
+    const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
+    if (!rest) return false;
+    state.selectedRestaurant = rest;
+    state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+    renderMenu();
+    showScreen('menu');
+    resumed = true;
+    return true;
+  } else if (saved.id === 'item-detail' && saved.restaurantId && saved.itemId) {
+    const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
+    if (!rest) return false;
+    if (!rest.items.some(i => i.id === saved.itemId)) { resumed = true; return true; }
+    state.selectedRestaurant = rest;
+    state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+    renderMenu();
+    openItemDetail(saved.itemId);
+    resumed = true;
+    return true;
+  } else if (saved.id === 'checkout_payment' && saved.restaurantId && saved.pendingCheckout) {
+    // Customer had already tapped "Proceed" on the location step (their
+    // delivery km/fee calc lives inside this flow) and was on payment when
+    // the app refreshed or was closed — take them straight back to payment
+    // instead of making them re-enter details and redo the km calculation.
+    const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
+    if (!rest) return false;
+    state.selectedRestaurant = rest;
+    state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+    state.pendingCheckout = saved.pendingCheckout;
+    renderMenu();
+    showScreen('menu');
+    openPaymentConfirm();
+    ensureRoadDistance();
+    resumed = true;
+    return true;
+  } else if (saved.id === 'track' && state.lastOrder) {
+    openTrackOrder(state.lastOrder, saved.trackReturnScreen || 'home');
+    resumed = true;
+    return true;
+  } else if (saved.id === 'orders') {
+    openOrdersScreen();
+    resumed = true;
+    return true;
+  } else if (saved.id === 'home') {
+    state.category = saved.category || state.category;
+    openCategory(state.category || 'hotel');
+    resumed = true;
+    return true;
+  } else if (saved.id === 'category') {
+    goToCategoryScreen();
+    resumed = true;
+    return true;
+  }
+  // Unrecognized saved.id — nothing we know how to resume.
+  resumed = true;
+  return true;
+}
 
 // Restore the customer's chosen browsing location (if any) across sessions.
 try {
@@ -3553,66 +3641,28 @@ try {
   if (savedOrder && savedOrder.orderKey) state.lastOrder = savedOrder;
 } catch (e) {}
 
-let resumed = false;
 if (state.user) {
   // A fresh shop link takes priority over resuming wherever the customer
   // was last — that's the whole point of tapping a shared link. If
   // RESTAURANTS hasn't loaded yet, this quietly does nothing and
   // onRestaurantsUpdated will retry it once the data arrives.
   if (pendingShopLinkId) resumed = tryOpenPendingShopLink();
-  if (!resumed) try {
-    const saved = JSON.parse(localStorage.getItem('asfood_screen') || 'null');
-    if (saved) {
-      if (saved.id === 'menu' && saved.restaurantId) {
-        const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
-        if (rest) {
-          state.selectedRestaurant = rest;
-          state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
-          renderMenu();
-          showScreen('menu');
-          resumed = true;
-        }
-      } else if (saved.id === 'item-detail' && saved.restaurantId && saved.itemId) {
-        const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
-        if (rest && rest.items.some(i => i.id === saved.itemId)) {
-          state.selectedRestaurant = rest;
-          state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
-          renderMenu();
-          openItemDetail(saved.itemId);
-          resumed = true;
-        }
-      } else if (saved.id === 'checkout_payment' && saved.restaurantId && saved.pendingCheckout) {
-        // Customer had already tapped "Proceed" on the location step and
-        // was on payment when the app refreshed or was closed — take them
-        // straight back to payment instead of making them re-enter details.
-        const rest = RESTAURANTS.find(r => r.id === saved.restaurantId);
-        if (rest) {
-          state.selectedRestaurant = rest;
-          state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
-          state.pendingCheckout = saved.pendingCheckout;
-          renderMenu();
-          showScreen('menu');
-          openPaymentConfirm();
-          ensureRoadDistance();
-          resumed = true;
-        }
-      } else if (saved.id === 'track' && state.lastOrder) {
-        openTrackOrder(state.lastOrder, saved.trackReturnScreen || 'home');
-        resumed = true;
-      } else if (saved.id === 'orders') {
-        openOrdersScreen();
-        resumed = true;
-      } else if (saved.id === 'home') {
-        state.category = saved.category || state.category;
-        openCategory(state.category || 'hotel');
-        resumed = true;
-      } else if (saved.id === 'category') {
-        goToCategoryScreen();
-        resumed = true;
+  if (!resumed) {
+    try {
+      const saved = JSON.parse(localStorage.getItem('asfood_screen') || 'null');
+      if (saved) {
+        const done = tryResumeScreen(saved);
+        // If it needed the live restaurants list and that hasn't arrived
+        // from Firebase yet, don't drop the customer back to the category
+        // screen — hold onto `saved` and let onRestaurantsUpdated retry it
+        // the moment real data comes in, so a manual refresh is never needed.
+        if (!done) pendingScreenResume = saved;
+      } else {
+        resumed = true; // nothing was saved — landing on the default screen is correct
       }
-    }
-  } catch (e) {}
-  if (!resumed) goToCategoryScreen();
+    } catch (e) { resumed = true; }
+  }
+  if (!resumed && !pendingScreenResume) goToCategoryScreen();
 }
 
 // ---------- PWA: register service worker ----------
