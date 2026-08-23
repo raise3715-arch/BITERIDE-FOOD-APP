@@ -1351,8 +1351,10 @@
 <script>
 // ---------- Live data (populated from Firebase, see module script above) ----------
 let RESTAURANTS = [];
+let restaurantsLoadedOnce = false; // true once the FIRST real snapshot has arrived from Firebase
 window.onRestaurantsUpdated = () => {
   RESTAURANTS = window.RESTAURANTS || [];
+  restaurantsLoadedOnce = true;
   renderRestaurantList();
   if (state.selectedRestaurant) {
     const updated = RESTAURANTS.find(r => r.id === state.selectedRestaurant.id);
@@ -1360,22 +1362,36 @@ window.onRestaurantsUpdated = () => {
   }
   tryOpenPendingShopLink();
   // If the customer was on their menu/checkout/km-calculation screen when
-  // the app got refreshed, the very first attempt at init below can race
-  // this live Firebase fetch (RESTAURANTS may still have been empty then).
-  // Retry now that real data has actually landed, so it resumes correctly
-  // on its own instead of needing a second manual refresh.
+  // the app got refreshed, or arrived via a shop link, the very first
+  // attempt at init below can race this live Firebase fetch (RESTAURANTS
+  // may still have been empty then). Retry now that real data has actually
+  // landed, so it resumes correctly on its own instead of needing a second
+  // manual refresh or flashing NESH's home page before the shop opens.
+  attemptNormalResumeIfNeeded();
+};
+// Falls back to resuming whatever screen was saved (or the category
+// screen) — but ONLY once we're sure there's no shop link still waiting to
+// be opened, so a shared shop link always wins and the customer never sees
+// the home/category screen first.
+function attemptNormalResumeIfNeeded() {
+  if (resumed || pendingShopLinkId) return;
   if (pendingScreenResume) {
     const done = tryResumeScreen(pendingScreenResume);
-    if (done) {
-      pendingScreenResume = null;
-    } else {
-      // RESTAURANTS is now genuinely loaded and the saved restaurant still
-      // isn't in it (deleted / stale link) — fall back instead of waiting forever.
-      pendingScreenResume = null;
-      goToCategoryScreen();
-    }
+    if (!done) return; // still waiting on RESTAURANTS — try again next update
+    pendingScreenResume = null;
+    return;
   }
-};
+  try {
+    const saved = JSON.parse(localStorage.getItem('asfood_screen') || 'null');
+    if (saved) {
+      const done = tryResumeScreen(saved);
+      if (!done) { pendingScreenResume = saved; return; }
+    } else {
+      resumed = true;
+    }
+  } catch (e) { resumed = true; }
+  if (!resumed && !pendingScreenResume) goToCategoryScreen();
+}
 const DEMO_OTP = "1234";
 
 // ---------- SHOP DEEP LINK ----------
@@ -1393,8 +1409,18 @@ function tryOpenPendingShopLink() {
   if (!pendingShopLinkId || shopLinkHandled) return false;
   if (!state.user) return false; // wait for login first
   const rest = RESTAURANTS.find(r => r.id === pendingShopLinkId);
-  if (!rest) return false; // restaurant list not loaded yet, or a bad/old link
+  if (!rest) {
+    // Not found yet could just mean the live `restaurants` list from
+    // Firebase hasn't arrived — keep waiting in that case (init/below will
+    // NOT fall through to the home/category screen while this is still
+    // set, so the customer never sees NESH's home page flash before their
+    // shop). Only once we've actually received real data and it's still
+    // missing do we treat it as a genuinely bad/old link and give up on it.
+    if (restaurantsLoadedOnce) pendingShopLinkId = null;
+    return false;
+  }
   shopLinkHandled = true;
+  pendingShopLinkId = null;
   state.category = rest.businessType || 'hotel';
   openRestaurant(rest.id);
   try { window.history.replaceState({}, '', window.location.pathname); } catch (e) {}
@@ -3643,26 +3669,14 @@ try {
 
 if (state.user) {
   // A fresh shop link takes priority over resuming wherever the customer
-  // was last — that's the whole point of tapping a shared link. If
-  // RESTAURANTS hasn't loaded yet, this quietly does nothing and
-  // onRestaurantsUpdated will retry it once the data arrives.
+  // was last, and over the default home/category screen — that's the whole
+  // point of tapping a shared link, it should open straight to that shop
+  // and nothing else. If RESTAURANTS hasn't loaded yet, tryOpenPendingShopLink
+  // leaves pendingShopLinkId set, and attemptNormalResumeIfNeeded() below
+  // (and again from onRestaurantsUpdated once real data lands) will keep
+  // deferring to it instead of showing home/category first.
   if (pendingShopLinkId) resumed = tryOpenPendingShopLink();
-  if (!resumed) {
-    try {
-      const saved = JSON.parse(localStorage.getItem('asfood_screen') || 'null');
-      if (saved) {
-        const done = tryResumeScreen(saved);
-        // If it needed the live restaurants list and that hasn't arrived
-        // from Firebase yet, don't drop the customer back to the category
-        // screen — hold onto `saved` and let onRestaurantsUpdated retry it
-        // the moment real data comes in, so a manual refresh is never needed.
-        if (!done) pendingScreenResume = saved;
-      } else {
-        resumed = true; // nothing was saved — landing on the default screen is correct
-      }
-    } catch (e) { resumed = true; }
-  }
-  if (!resumed && !pendingScreenResume) goToCategoryScreen();
+  attemptNormalResumeIfNeeded();
 }
 
 // ---------- PWA: register service worker ----------
