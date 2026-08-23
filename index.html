@@ -240,7 +240,7 @@
   .cart-bar{
     position:fixed; bottom:0; width:100%; max-width:420px;
     padding:12px 24px 24px; background:linear-gradient(to top, var(--bg) 65%, transparent);
-    display:none;
+    display:none; z-index:50;
   }
   .cart-bar.visible{ display:block; }
   .cart-btn{
@@ -601,19 +601,42 @@
   .item-detail-photo-wrap .item-veg{ top:16px; left:16px; width:20px; height:20px; }
   .item-detail-photo-wrap .item-veg span{ width:9px; height:9px; }
   .item-detail-photo-wrap .item-rating2{ top:16px; right:16px; font-size:12.5px; padding:4px 9px; }
-  .item-detail-body{ padding:22px 24px 130px; }
+  .item-detail-body{ padding:22px 24px 110px; }
   .item-detail-name{
     color:var(--ink); font-family:'Poppins',sans-serif; font-size:21px; font-weight:800;
     letter-spacing:.2px; margin:0; line-height:1.3;
   }
   .item-detail-desc{ color:var(--muted-2); font-size:14px; line-height:1.6; margin:12px 0 0; }
   .item-detail-price{ color:var(--marigold-dark); font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; margin:18px 0 0; }
-  .item-detail-cta{
-    position:fixed; bottom:0; width:100%; max-width:420px;
-    padding:14px 24px 24px; background:linear-gradient(to top, var(--bg) 70%, transparent);
+  .item-detail-qty-row{ margin-top:20px; }
+  .item-detail-qty-row .add-btn{ padding:12px 24px; font-size:13.5px; }
+  .item-detail-qty-row .qty-wrap{ padding:10px 14px; gap:16px; display:inline-flex; }
+
+  /* ---------- Order summary sheet (full itemized list before checkout) ---------- */
+  .order-summary-sheet{
+    padding:18px 24px 28px; border-top-left-radius:22px; border-top-right-radius:22px;
+    background:var(--bg); max-height:78vh; display:flex; flex-direction:column;
   }
-  .item-detail-cta .add-btn{ width:100%; padding:15px 20px; font-size:14.5px; border-radius:12px; }
-  .item-detail-cta .qty-wrap{ width:100%; justify-content:center; padding:12px; border-radius:12px; }
+  .order-summary-title{ color:var(--ink); font-family:'Poppins',sans-serif; font-size:18px; font-weight:800; margin:6px 0 2px; }
+  .order-summary-rest{ color:var(--muted-2); font-size:13px; margin:0 0 14px; }
+  .order-summary-list{ overflow-y:auto; display:flex; flex-direction:column; gap:14px; padding-bottom:6px; }
+  .order-summary-row{ display:flex; align-items:center; gap:12px; }
+  .order-summary-row-img{ width:52px; height:52px; border-radius:10px; object-fit:cover; background:var(--field-bg); flex-shrink:0; }
+  .order-summary-row-mid{ flex:1; min-width:0; }
+  .order-summary-row-name{ color:var(--ink); font-weight:700; font-size:14px; margin:0; font-family:'Poppins',sans-serif; }
+  .order-summary-row-price{ color:var(--muted-2); font-size:12.5px; margin:3px 0 0; font-family:'IBM Plex Mono',monospace; }
+  .order-summary-row-qty{ flex-shrink:0; }
+  .order-summary-row-total{ color:var(--ink); font-weight:700; font-size:13.5px; font-family:'IBM Plex Mono',monospace; min-width:52px; text-align:right; flex-shrink:0; }
+  .order-summary-totals{ border-top:1px dashed var(--field-border); margin-top:16px; padding-top:12px; display:flex; flex-direction:column; gap:4px; }
+  .order-summary-total-row{ display:flex; justify-content:space-between; font-size:13px; color:var(--ink); }
+  .order-summary-grand-row{ display:flex; justify-content:space-between; font-size:15px; color:var(--ink); font-weight:800; margin-top:4px; }
+  .order-summary-close-btn{ position:absolute; top:16px; right:20px; background:none; border:none; cursor:pointer; padding:4px; }
+  .order-summary-overlay{
+    position:fixed; inset:0; background:rgba(36,31,27,.55); z-index:2050;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .order-summary-overlay.show{ display:flex; }
+  .order-summary-sheet{ width:100%; max-width:420px; position:relative; animation:locUp .25s ease-out; }
 </style>
 </head>
 <body>
@@ -973,15 +996,6 @@
     <p class="item-list-label" id="item-list-label">Recommended</p>
     <div class="item-grid" id="item-list"></div>
     <p class="item-list-label" id="menu-no-results" style="display:none; text-align:center; color:var(--muted); font-weight:500;">No items match your search</p>
-    <div class="cart-bar" id="cart-bar">
-      <button class="cart-btn" id="cart-btn">
-        <span class="cart-btn-left">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-          <span id="cart-count-text">0 items</span>
-        </span>
-        <span class="cart-btn-right" id="cart-total-text">Place order · ₹0</span>
-      </button>
-    </div>
   </section>
 
   <!-- ITEM DETAIL -->
@@ -1000,9 +1014,9 @@
       <p class="item-detail-name" id="item-detail-name"></p>
       <p class="item-detail-desc" id="item-detail-desc" style="display:none;"></p>
       <p class="item-detail-price" id="item-detail-price"></p>
-    </div>
-    <div class="item-detail-cta">
-      <div class="qty-slot" id="item-detail-qty-slot"></div>
+      <div class="item-detail-qty-row">
+        <div class="qty-slot" id="item-detail-qty-slot"></div>
+      </div>
     </div>
   </section>
 
@@ -1122,6 +1136,34 @@
       <div class="install-sheet-btn-row">
         <button class="btn-primary" id="install-confirm-btn" style="width:100%;">Install</button>
       </div>
+    </div>
+  </div>
+
+  <!-- PLACE ORDER BAR (shared across Menu and Item Detail screens) -->
+  <div class="cart-bar" id="cart-bar">
+    <button class="cart-btn" id="cart-btn">
+      <span class="cart-btn-left">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F7F3EA" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span id="cart-count-text">0 items</span>
+      </span>
+      <span class="cart-btn-right" id="cart-total-text">Place order · ₹0</span>
+    </button>
+  </div>
+
+  <!-- ORDER SUMMARY (full itemized list shown when "Place order" is tapped) -->
+  <div class="order-summary-overlay" id="order-summary-overlay">
+    <div class="order-summary-sheet">
+      <button class="order-summary-close-btn" id="order-summary-close-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B5E3D" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <p class="order-summary-title">Your order</p>
+      <p class="order-summary-rest" id="order-summary-rest"></p>
+      <div class="order-summary-list" id="order-summary-list"></div>
+      <div class="order-summary-totals">
+        <div class="order-summary-total-row"><span>Item total</span><span id="order-summary-items-total">₹0</span></div>
+        <div class="order-summary-grand-row"><span>Total</span><span id="order-summary-grand-total">₹0</span></div>
+      </div>
+      <button class="btn-primary" id="order-summary-proceed-btn" style="width:100%; margin-top:16px;">Proceed to checkout →</button>
     </div>
   </div>
 
@@ -1406,10 +1448,16 @@ function persistCart() {
 }
 
 // ---------- Helpers ----------
+const CART_BAR_SCREENS = ['menu', 'item-detail'];
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
   window.scrollTo(0, 0);
+  // The "Place order" bar lives outside the .screen sections now (so it can
+  // be shared by both the menu grid and the item detail page) — keep it
+  // hidden on every other screen regardless of what updateCartBar last set.
+  if (!CART_BAR_SCREENS.includes(id)) cartBar.classList.remove('visible');
+  else updateCartBar();
 }
 
 function digitsOnly(v) { return v.replace(/\D/g, ''); }
@@ -2071,6 +2119,10 @@ function changeQty(itemId, delta) {
   else state.cart[itemId] = next;
   renderMenu();
   if (state.selectedItem === itemId) renderItemDetail();
+  if (orderSummaryOverlay.classList.contains('show')) {
+    const count = Object.values(state.cart).reduce((a, b) => a + b, 0);
+    if (count === 0) closeOrderSummary(); else openOrderSummary();
+  }
   persistCart();
 }
 
@@ -3011,6 +3063,56 @@ browseLocConfirmBtn.addEventListener('click', () => {
 
 cartBtn.addEventListener('click', () => {
   if (!state.selectedRestaurant) return;
+  openOrderSummary();
+});
+
+// ---------- Order summary sheet (full itemized list, shown before checkout) ----------
+const orderSummaryOverlay = document.getElementById('order-summary-overlay');
+const orderSummaryRestEl = document.getElementById('order-summary-rest');
+const orderSummaryListEl = document.getElementById('order-summary-list');
+const orderSummaryItemsTotalEl = document.getElementById('order-summary-items-total');
+const orderSummaryGrandTotalEl = document.getElementById('order-summary-grand-total');
+const orderSummaryCloseBtn = document.getElementById('order-summary-close-btn');
+const orderSummaryProceedBtn = document.getElementById('order-summary-proceed-btn');
+
+function openOrderSummary() {
+  const r = state.selectedRestaurant;
+  if (!r) return;
+  orderSummaryRestEl.textContent = r.name;
+  orderSummaryListEl.innerHTML = "";
+  let itemsTotal = 0;
+  r.items.forEach(it => {
+    const qty = state.cart[it.id] || 0;
+    if (qty === 0) return;
+    itemsTotal += qty * it.price;
+    const row = document.createElement('div');
+    row.className = "order-summary-row";
+    row.innerHTML = `
+      <img class="order-summary-row-img" src="${it.image || ''}" alt="${it.name}" loading="lazy" />
+      <div class="order-summary-row-mid">
+        <p class="order-summary-row-name">${it.name}</p>
+        <p class="order-summary-row-price">₹${it.price} × ${qty}</p>
+      </div>
+      <div class="order-summary-row-qty qty-slot"></div>
+    `;
+    renderQtyControl(row.querySelector('.qty-slot'), it.id, qty);
+    orderSummaryListEl.appendChild(row);
+  });
+  orderSummaryItemsTotalEl.textContent = "₹" + itemsTotal;
+  orderSummaryGrandTotalEl.textContent = "₹" + itemsTotal;
+  orderSummaryOverlay.classList.add('show');
+}
+function closeOrderSummary() {
+  orderSummaryOverlay.classList.remove('show');
+}
+orderSummaryCloseBtn.addEventListener('click', closeOrderSummary);
+orderSummaryOverlay.addEventListener('click', (e) => {
+  if (e.target === orderSummaryOverlay) closeOrderSummary();
+});
+orderSummaryProceedBtn.addEventListener('click', () => {
+  const count = Object.values(state.cart).reduce((a, b) => a + b, 0);
+  if (count === 0) { closeOrderSummary(); return; }
+  closeOrderSummary();
   state.pendingCheckout = null;
   openLocationConfirm();
 });
