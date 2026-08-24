@@ -1427,6 +1427,28 @@ function tryOpenPendingShopLink() {
   return true;
 }
 
+// ---------- Order push notifier ----------
+// URL of the Cloudflare Worker that pushes a real phone notification to
+// the restaurant partner app the instant a new order lands (works even
+// if the partner's app is fully closed). Fill this in once the Worker
+// is deployed (see cloudflare-worker.js) — until then this is skipped.
+const ORDER_PUSH_WORKER_URL = "https://order-alert.raise3715.workers.dev";
+
+function notifyRestaurantOfNewOrder(restId, orderNumber) {
+  if (!ORDER_PUSH_WORKER_URL || ORDER_PUSH_WORKER_URL.startsWith('PASTE_')) return;
+  // Best-effort / fire-and-forget: a notification hiccup should never
+  // stop or delay the customer's order from going through.
+  fetch(ORDER_PUSH_WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      restId,
+      title: 'New order! ' + orderNumber,
+      body: 'Tap to open and start preparing.'
+    })
+  }).catch(() => {});
+}
+
 // ---------- State ----------
 let state = {
   user: null,
@@ -3359,6 +3381,7 @@ payConfirmBtn.addEventListener('click', async () => {
       orderPayload.deliveryDistanceIsRoadRoute = deliveryKmInfo.isRoadDistance;
     }
     await set(orderRef, orderPayload);
+    notifyRestaurantOfNewOrder(r.id, orderNumber);
 
     document.getElementById('confirm-order-num').textContent = orderNumber;
     document.getElementById('confirm-rest-name').textContent = "from " + r.name;
