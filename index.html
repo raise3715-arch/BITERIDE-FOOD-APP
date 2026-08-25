@@ -3371,6 +3371,10 @@ payConfirmBtn.addEventListener('click', async () => {
         restId: r.id,
         orderNumber: orderNumber,
         itemsSummary: orderItems.map(it => `${it.qty}x ${it.name}`).join(', '),
+        customerName: state.user?.name || "Guest",
+        customerPhone: pc.contact,
+        customerAddress: pc.text || state.user?.address || "",
+        totalAmount: total,
       }),
     }).catch(() => {});
 
