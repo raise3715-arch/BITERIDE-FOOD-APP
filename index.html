@@ -438,6 +438,10 @@
   .timeline-label{ color:var(--ink); font-weight:600; font-size:14px; margin:2px 0 0; }
   .timeline-step.pending .timeline-label{ color:var(--muted); font-weight:500; }
   .timeline-step.current .timeline-label{ color:var(--chili); font-weight:700; }
+  .track-reason-box{ margin-top:14px; padding:12px 14px; border-radius:10px; background:#FDEDED; border:1px solid #F3C6C6; }
+  .track-reason-label{ color:#B23B3B; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin:0 0 4px; font-family:'IBM Plex Mono',monospace; }
+  .track-reason-text{ color:#7A2A1D; font-size:13px; margin:0; line-height:1.4; }
+  .order-row-reason{ color:#B23B3B; font-size:11px; margin:3px 0 0; font-family:'Inter',sans-serif; }
 
   /* Home screen: big track-order shortcut */
   .top-row-right{ display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
@@ -1066,6 +1070,10 @@
         <p class="ticket-num" id="track-status-text">Order received</p>
         <div class="ticket-divider">
           <p class="ticket-eta" id="track-eta-text">Estimated arrival: 30–35 min</p>
+        </div>
+        <div class="track-reason-box" id="track-reason-box" style="display:none;">
+          <p class="track-reason-label">Reason</p>
+          <p class="track-reason-text" id="track-reason-text"></p>
         </div>
       </div>
       <div class="timeline" id="track-timeline"></div>
@@ -3434,6 +3442,8 @@ const trackOrderNum = document.getElementById('track-order-num');
 const trackStatusText = document.getElementById('track-status-text');
 const trackEtaText = document.getElementById('track-eta-text');
 const trackTimelineEl = document.getElementById('track-timeline');
+const trackReasonBox = document.getElementById('track-reason-box');
+const trackReasonText = document.getElementById('track-reason-text');
 const confirmTrackBtn = document.getElementById('confirm-track-btn');
 
 // Unsubscribe function for the live Firebase listener on the order being
@@ -3477,7 +3487,7 @@ function normalizeStatus(raw) {
   return 'pending';
 }
 
-function renderTrackTimeline(rawStatus) {
+function renderTrackTimeline(rawStatus, reason) {
   const status = normalizeStatus(rawStatus);
   const isFood = trackBusinessType !== 'groceries' && trackBusinessType !== 'online_shop';
   const steps = getOrderSteps(trackBusinessType);
@@ -3486,8 +3496,15 @@ function renderTrackTimeline(rawStatus) {
     trackStatusText.textContent = "Order cancelled";
     trackEtaText.textContent = "The restaurant wasn't able to take this order.";
     trackTimelineEl.innerHTML = "";
+    if (reason) {
+      trackReasonText.textContent = reason; // textContent — safe by default, no HTML injection
+      trackReasonBox.style.display = "block";
+    } else {
+      trackReasonBox.style.display = "none";
+    }
     return;
   }
+  trackReasonBox.style.display = "none";
 
   const currentIdx = steps.findIndex(s => s.key === status);
   trackStatusText.textContent = steps[currentIdx].label;
@@ -3530,8 +3547,11 @@ function openTrackOrder(order, returnScreen) {
   if (trackUnsub) { trackUnsub(); trackUnsub = null; }
   const { db, ref, onValue } = window.fb;
   trackUnsub = onValue(
-    ref(db, 'restaurants/' + order.restId + '/orders/' + order.orderKey + '/status'),
-    snap => renderTrackTimeline(snap.val())
+    ref(db, 'restaurants/' + order.restId + '/orders/' + order.orderKey),
+    snap => {
+      const o = snap.val() || {};
+      renderTrackTimeline(o.status, o.statusReason);
+    }
   );
 }
 
@@ -3572,6 +3592,7 @@ function renderOrderRow(o) {
     <div>
       <p class="order-row-name">${o.restName}</p>
       <p class="order-row-meta">${o.orderNumber} · ${itemCount} item${itemCount === 1 ? '' : 's'} · ₹${o.total || 0}</p>
+      ${status === 'cancelled' && o.statusReason ? `<p class="order-row-reason">Reason: ${escapeHtml(o.statusReason)}</p>` : ''}
     </div>
     <span class="order-status-chip ${chip.cls}">${chip.label}</span>
   `;
@@ -3645,6 +3666,7 @@ function openOrdersScreen() {
           businessType,
           orderNumber: o.orderNumber,
           status: o.status,
+          statusReason: o.statusReason,
           items: o.items,
           total: o.total,
           createdAt: o.createdAt,
