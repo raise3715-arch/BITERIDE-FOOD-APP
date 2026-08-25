@@ -987,11 +987,16 @@
         <p class="menu-rest-meta" id="menu-rest-meta"></p>
       </div>
     </div>
-    <div class="search-wrap">
+    <div class="search-wrap" id="menu-search-wrap">
       <div class="field">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="menu-search-input" type="text" placeholder="Search items in this menu" />
       </div>
+    </div>
+    <div id="shop-unavailable-panel" style="display:none; text-align:center; padding:40px 24px;">
+      <p style="font-size:40px; margin:0 0 12px;">🚫</p>
+      <p style="font-family:'Fraunces',serif; font-weight:700; font-size:18px; margin:0 0 8px;">This shop isn't taking orders right now</p>
+      <p id="shop-unavailable-message-text" style="color:var(--muted-2); font-size:14px; margin:0;"></p>
     </div>
     <p class="item-list-label" id="item-list-label">Recommended</p>
     <div class="item-grid" id="item-list"></div>
@@ -1292,13 +1297,15 @@
         const businessType = v.businessType === 'groceries' ? 'groceries' : v.businessType === 'online_shop' ? 'online_shop' : 'hotel';
         const itemPhotoSet = businessType === 'groceries' ? GROCERY_ITEM_PHOTOS : businessType === 'online_shop' ? SHOP_ITEM_PHOTOS : DISH_PHOTOS;
         const menuItems = v.menu
-          ? Object.keys(v.menu).map((k, di) => ({
-              id: k, name: v.menu[k].name, desc: v.menu[k].desc || '',
-              price: Number(v.menu[k].price) || 0,
-              image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
-              rating: (4 + (di % 8) / 10).toFixed(1),
-              ratingCount: 2 + (di % 9)
-            }))
+          ? Object.keys(v.menu)
+              .filter(k => !v.menu[k].unavailable)
+              .map((k, di) => ({
+                id: k, name: v.menu[k].name, desc: v.menu[k].desc || '',
+                price: Number(v.menu[k].price) || 0,
+                image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
+                rating: (4 + (di % 8) / 10).toFixed(1),
+                ratingCount: 2 + (di % 9)
+              }))
           : [];
         const storePhotoSet = businessType === 'groceries' ? GROCERY_PHOTOS : businessType === 'online_shop' ? SHOP_PHOTOS : REST_PHOTOS;
         list.push({
@@ -1318,7 +1325,9 @@
           zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null,
           deliveryCharges: v.deliveryCharges || null,
           discountAmount: Number(v.discountAmount) || 0,
-          discountCardImage: v.discountCardImage || null
+          discountCardImage: v.discountCardImage || null,
+          shopUnavailable: !!v.shopUnavailable,
+          shopUnavailableMessage: v.shopUnavailableMessage || ""
         });
       } catch (e) {
         console.error('Skipped one broken restaurant record while rendering:', child.key, e);
@@ -2154,6 +2163,24 @@ function renderMenu() {
   menuRestLogo.src = r.image || '';
   menuRestLogo.alt = r.name || '';
   menuRestLogo.style.display = r.image ? 'block' : 'none';
+
+  const unavailablePanel = document.getElementById('shop-unavailable-panel');
+  const searchWrap = document.getElementById('menu-search-wrap');
+  const cartBar = document.getElementById('cart-bar');
+  if (r.shopUnavailable) {
+    document.getElementById('shop-unavailable-message-text').textContent =
+      r.shopUnavailableMessage || "Please check back soon.";
+    unavailablePanel.style.display = 'block';
+    searchWrap.style.display = 'none';
+    document.getElementById('item-list-label').style.display = 'none';
+    document.getElementById('item-list').innerHTML = '';
+    document.getElementById('menu-no-results').style.display = 'none';
+    cartBar.classList.remove('visible');
+    return;
+  }
+  unavailablePanel.style.display = 'none';
+  searchWrap.style.display = 'block';
+
   const query = (state.menuSearch || '').trim().toLowerCase();
   const items = query
     ? r.items.filter(it =>
