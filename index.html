@@ -15,9 +15,9 @@
 <link rel="icon" href="icon-192.png" />
 <meta property="og:title" content="NESH Delivery and Market" />
 <meta property="og:description" content="Fastest delivery in your area. Exclusive app-only offers & discounts. Live order tracking." />
-<meta property="og:image" content="https://raise3715-arch.github.io/BITERIDE-FOOD-APP/icon-512.png" />
+<meta property="og:image" content="https://nesh-group.github.io/NESH-APP/icon-512.png" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://raise3715-arch.github.io/BITERIDE-FOOD-APP/" />
+<meta property="og:url" content="https://nesh-group.github.io/NESH-APP/" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -441,6 +441,42 @@
   .track-reason-box{ margin-top:14px; padding:12px 14px; border-radius:10px; background:#FDEDED; border:1px solid #F3C6C6; }
   .track-reason-label{ color:#B23B3B; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin:0 0 4px; font-family:'IBM Plex Mono',monospace; }
   .track-reason-text{ color:#7A2A1D; font-size:13px; margin:0; line-height:1.4; }
+
+  /* ---- TAXI ---- */
+  .taxi-header{ padding:40px 24px 8px; display:flex; align-items:center; gap:14px; }
+  .taxi-title{ color:var(--ink); font-family:'Fraunces',serif; font-size:22px; font-weight:700; margin:2px 0 0; }
+  .taxi-body{ padding:20px 24px 40px; }
+  .taxi-pin-row{ display:flex; align-items:center; gap:10px; padding:13px 14px; border-radius:12px; background:var(--field-bg); border:1.5px solid var(--field-border); cursor:pointer; }
+  .taxi-pin-row.active{ border-color:var(--marigold-dark); }
+  .taxi-pin-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .taxi-pin-dot.pickup{ background:var(--leaf); }
+  .taxi-pin-dot.drop{ background:var(--chili); }
+  .taxi-pin-row input{ background:transparent; border:none; outline:none; width:100%; font-size:14px; color:var(--ink); font-family:'Inter',sans-serif; cursor:pointer; }
+  .taxi-pin-row input::placeholder{ color:var(--muted); }
+  .taxi-gps-btn{ flex-shrink:0; background:none; border:none; color:var(--chili); font-size:11px; font-weight:700; cursor:pointer; padding:0; white-space:nowrap; }
+  .taxi-map-wrap{ position:relative; margin:14px 0 4px; }
+  .taxi-map{ width:100%; height:200px; border-radius:14px; overflow:hidden; background:var(--cloud); }
+  .taxi-map-hint{ color:var(--muted); font-size:11px; text-align:center; margin:6px 0 0; }
+
+  /* Live driver-tracking map — shown on the ride/order status screens once
+     a driver has been assigned, so the customer can watch them approach. */
+  .track-map-wrap{ margin:0 24px 0; }
+  .track-map-wrap.hidden{ display:none; }
+  .track-map{ width:100%; height:180px; border-radius:14px; overflow:hidden; background:var(--cloud); }
+  .taxi-distance-text{ color:var(--muted-2); font-size:12px; text-align:center; margin:8px 0 0; font-weight:600; }
+  .ride-options{ display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+  .ride-option{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; background:#fff; border:1.5px solid var(--field-border); cursor:pointer; }
+  .ride-option.selected{ border-color:var(--marigold); background:rgba(242,183,5,.08); }
+  .ride-option-icon{ font-size:26px; width:36px; text-align:center; flex-shrink:0; }
+  .ride-option-mid{ flex:1; }
+  .ride-option-name{ color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:14px; margin:0; }
+  .ride-option-eta{ color:var(--muted-2); font-size:12px; margin:2px 0 0; }
+  .ride-option-fare{ color:var(--ink); font-weight:700; font-size:15px; font-family:'Poppins',sans-serif; flex-shrink:0; }
+  .taxi-driver-card{ display:flex; align-items:center; gap:12px; margin-top:16px; padding:14px; border-radius:14px; background:#fff; border:1px solid var(--field-border); }
+  .taxi-driver-card.hidden{ display:none; }
+  .taxi-driver-avatar{ width:44px; height:44px; border-radius:50%; background:var(--marigold); display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Poppins',sans-serif; color:var(--ink); font-size:18px; flex-shrink:0; }
+  .taxi-driver-name{ color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:14px; margin:0; }
+  .taxi-driver-meta{ color:var(--muted-2); font-size:12px; margin:2px 0 0; }
   .order-row-reason{ color:#B23B3B; font-size:11px; margin:3px 0 0; font-family:'Inter',sans-serif; }
 
   /* Home screen: big track-order shortcut */
@@ -921,6 +957,16 @@
           <p class="cat-card-sub">Shop products, delivered to you</p>
         </div>
       </div>
+      <div class="cat-card" id="cat-card-taxi" style="background-image:url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800&q=80');">
+        <div class="cat-card-icon">🚕</div>
+        <div class="cat-card-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#241F1B" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="cat-card-text">
+          <p class="cat-card-title">Taxi</p>
+          <p class="cat-card-sub">Book a ride, anywhere you go</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1076,6 +1122,9 @@
           <p class="track-reason-text" id="track-reason-text"></p>
         </div>
       </div>
+      <div class="track-map-wrap hidden" id="track-map-wrap">
+        <div class="track-map" id="track-map"></div>
+      </div>
       <div class="timeline" id="track-timeline"></div>
     </div>
   </section>
@@ -1095,6 +1144,79 @@
       <p class="empty-text" id="orders-empty" style="display:none;">No orders yet — your placed orders will show up here.</p>
       <div id="orders-live-section"></div>
       <div id="orders-past-section"></div>
+    </div>
+  </section>
+
+  <!-- TAXI BOOKING -->
+  <section class="screen" id="screen-taxi-book">
+    <div class="taxi-header">
+      <button class="btn-back" id="taxi-book-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <p class="eyebrow">BOOK A RIDE</p>
+        <h1 class="taxi-title">Where to?</h1>
+      </div>
+    </div>
+    <div class="taxi-body">
+      <div class="stack">
+        <div class="taxi-pin-row active" id="taxi-pickup-row">
+          <div class="taxi-pin-dot pickup"></div>
+          <input id="taxi-pickup-input" type="text" placeholder="Pickup location" readonly />
+          <button class="taxi-gps-btn" id="taxi-pickup-gps-btn">📍 GPS</button>
+        </div>
+        <div class="taxi-pin-row" id="taxi-drop-row">
+          <div class="taxi-pin-dot drop"></div>
+          <input id="taxi-drop-input" type="text" placeholder="Where do you want to go?" readonly />
+        </div>
+      </div>
+
+      <div class="taxi-map-wrap">
+        <div class="taxi-map" id="taxi-map"></div>
+        <p class="taxi-map-hint" id="taxi-map-hint">Tap the map (or drag the pin) to set your pickup point</p>
+      </div>
+      <p class="taxi-distance-text" id="taxi-distance-text" style="display:none;"></p>
+
+      <div class="ride-options" id="taxi-ride-options"></div>
+
+      <div class="stack" style="margin-top:24px;">
+        <button class="btn-primary" id="taxi-book-btn" disabled>Set pickup &amp; drop to continue</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAXI TRACK -->
+  <section class="screen" id="screen-taxi-track">
+    <div class="track-header">
+      <button class="btn-back" id="taxi-track-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <p class="eyebrow">LIVE STATUS</p>
+        <h1 class="track-title">Your ride</h1>
+        <p class="track-sub" id="taxi-track-ride-num"></p>
+      </div>
+    </div>
+    <div class="track-body">
+      <div class="chit ticket track-ticket">
+        <p class="ticket-label">RIDE STATUS</p>
+        <p class="ticket-num" id="taxi-track-status-text">Finding a nearby driver</p>
+        <div class="ticket-divider">
+          <p class="ticket-eta" id="taxi-track-eta-text">This usually takes a minute or two</p>
+        </div>
+      </div>
+      <div class="taxi-driver-card hidden" id="taxi-driver-card">
+        <div class="taxi-driver-avatar" id="taxi-driver-avatar">🧑</div>
+        <div>
+          <p class="taxi-driver-name" id="taxi-driver-name"></p>
+          <p class="taxi-driver-meta" id="taxi-driver-meta"></p>
+        </div>
+      </div>
+      <div class="track-map-wrap hidden" id="taxi-track-map-wrap">
+        <div class="track-map" id="taxi-track-map"></div>
+      </div>
+      <div class="timeline" id="taxi-track-timeline" style="margin-top:20px;"></div>
+      <button class="btn-link" id="taxi-cancel-ride-btn" style="margin-top:8px;">Cancel ride</button>
     </div>
   </section>
 
@@ -1528,6 +1650,14 @@ function tryResumeScreen(saved) {
     goToCategoryScreen();
     resumed = true;
     return true;
+  } else if (saved.id === 'taxi-book') {
+    goToTaxiBooking();
+    resumed = true;
+    return true;
+  } else if (saved.id === 'taxi-track' && saved.rideKey) {
+    openTaxiTrack(saved.rideKey);
+    resumed = true;
+    return true;
   }
   // Unrecognized saved.id — nothing we know how to resume.
   resumed = true;
@@ -1610,6 +1740,368 @@ document.getElementById('cat-card-food').addEventListener('click', () => openCat
 document.getElementById('cat-card-groceries').addEventListener('click', () => openCategory('groceries'));
 document.getElementById('cat-card-online-shop').addEventListener('click', () => openCategory('online_shop'));
 document.getElementById('home-cat-back-btn').addEventListener('click', goToCategoryScreen);
+document.getElementById('cat-card-taxi').addEventListener('click', () => goToTaxiBooking());
+
+// ---------- TAXI (Uber-style ride booking) ----------
+const RIDE_TYPES = [
+  { key: 'bike', label: 'Bike', icon: '🏍️', base: 15, perKm: 6,  etaMin: 3 },
+  { key: 'auto', label: 'Auto', icon: '🛺', base: 25, perKm: 10, etaMin: 4 },
+  { key: 'cab',  label: 'Cab',  icon: '🚗', base: 40, perKm: 14, etaMin: 6 },
+];
+const TAXI_STEPS = [
+  { key: 'searching', label: 'Finding a nearby driver' },
+  { key: 'accepted',  label: 'Driver assigned' },
+  { key: 'arriving',  label: 'Driver is arriving' },
+  { key: 'ontrip',    label: 'On the way to your drop' },
+  { key: 'completed', label: 'Trip completed' },
+];
+
+let taxiMap = null, taxiPickupMarker = null, taxiDropMarker = null;
+let taxiPickup = null;         // { lat, lng, text }
+let taxiDrop = null;           // { lat, lng, text }
+let taxiActivePin = 'pickup';  // which pin the next map tap / drag sets
+let taxiSelectedType = 'auto';
+let taxiRoadKm = null;
+let taxiRoadKey = null;
+let taxiRouteAbort = null;
+let taxiTrackUnsub = null;
+let currentRideKey = null;
+
+const taxiPickupRow = document.getElementById('taxi-pickup-row');
+const taxiDropRow = document.getElementById('taxi-drop-row');
+const taxiPickupInput = document.getElementById('taxi-pickup-input');
+const taxiDropInput = document.getElementById('taxi-drop-input');
+const taxiMapHint = document.getElementById('taxi-map-hint');
+const taxiDistanceText = document.getElementById('taxi-distance-text');
+const taxiRideOptionsEl = document.getElementById('taxi-ride-options');
+const taxiBookBtn = document.getElementById('taxi-book-btn');
+const taxiTrackStatusText = document.getElementById('taxi-track-status-text');
+const taxiTrackEtaText = document.getElementById('taxi-track-eta-text');
+const taxiTrackTimelineEl = document.getElementById('taxi-track-timeline');
+const taxiDriverCard = document.getElementById('taxi-driver-card');
+const taxiDriverName = document.getElementById('taxi-driver-name');
+const taxiDriverMeta = document.getElementById('taxi-driver-meta');
+const taxiCancelBtn = document.getElementById('taxi-cancel-ride-btn');
+let taxiTrackMap = null; // live-driver map on the ride tracking screen — created lazily, see renderTaxiTimeline
+let taxiTrackMapDriverId = null; // which driver we're currently watching, so we don't re-subscribe every snapshot
+
+function goToTaxiBooking() {
+  showScreen('taxi-book');
+  persistScreen('taxi-book');
+  taxiActivePin = taxiPickup ? 'drop' : 'pickup';
+  updateTaxiPinRows();
+  renderRideOptions();
+  updateTaxiBookBtn();
+  setTimeout(() => {
+    ensureTaxiMap();
+    taxiMap.invalidateSize();
+    if (!taxiPickup) useTaxiGps();
+  }, 60);
+}
+
+function taxiMarkerIcon(color) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);"></div>`,
+    iconSize: [16, 16], iconAnchor: [8, 8]
+  });
+}
+
+function ensureTaxiMap() {
+  if (taxiMap) return;
+  const c = state.customerPos || DEFAULT_MAP_CENTER;
+  taxiMap = L.map('taxi-map', { zoomControl: false, attributionControl: false }).setView([c.lat, c.lng], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(taxiMap);
+  taxiMap.on('click', (e) => {
+    placeTaxiPin(taxiActivePin, e.latlng.lat, e.latlng.lng);
+    if (taxiActivePin === 'pickup' && !taxiDrop) taxiActivePin = 'drop';
+    updateTaxiPinRows();
+  });
+}
+
+function placeTaxiPin(which, lat, lng) {
+  const pos = { lat, lng, text: lat.toFixed(5) + ", " + lng.toFixed(5) };
+  if (which === 'pickup') {
+    taxiPickup = pos;
+    taxiPickupInput.value = pos.text;
+    if (taxiPickupMarker) taxiPickupMarker.setLatLng([lat, lng]);
+    else taxiPickupMarker = L.marker([lat, lng], { draggable: true, icon: taxiMarkerIcon('#1BA672') })
+      .addTo(taxiMap)
+      .on('dragend', (e) => { const p = e.target.getLatLng(); placeTaxiPin('pickup', p.lat, p.lng); });
+  } else {
+    taxiDrop = pos;
+    taxiDropInput.value = pos.text;
+    if (taxiDropMarker) taxiDropMarker.setLatLng([lat, lng]);
+    else taxiDropMarker = L.marker([lat, lng], { draggable: true, icon: taxiMarkerIcon('#C97F00') })
+      .addTo(taxiMap)
+      .on('dragend', (e) => { const p = e.target.getLatLng(); placeTaxiPin('drop', p.lat, p.lng); });
+  }
+  ensureTaxiRoadDistance();
+  renderRideOptions();
+  updateTaxiBookBtn();
+}
+
+function updateTaxiPinRows() {
+  taxiPickupRow.classList.toggle('active', taxiActivePin === 'pickup');
+  taxiDropRow.classList.toggle('active', taxiActivePin === 'drop');
+  taxiMapHint.textContent = taxiActivePin === 'pickup'
+    ? 'Tap the map (or drag the pin) to set your pickup point'
+    : 'Tap the map (or drag the pin) to set your drop point';
+}
+taxiPickupRow.addEventListener('click', () => { taxiActivePin = 'pickup'; updateTaxiPinRows(); });
+taxiDropRow.addEventListener('click', () => { taxiActivePin = 'drop'; updateTaxiPinRows(); });
+
+function useTaxiGps() {
+  if (!navigator.geolocation) return;
+  const btn = document.getElementById('taxi-pickup-gps-btn');
+  const prevLabel = btn.textContent;
+  btn.textContent = '…';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      btn.textContent = prevLabel;
+      const { latitude, longitude } = pos.coords;
+      ensureTaxiMap();
+      taxiMap.setView([latitude, longitude], 15);
+      placeTaxiPin('pickup', latitude, longitude);
+      taxiActivePin = 'drop';
+      updateTaxiPinRows();
+    },
+    () => { btn.textContent = prevLabel; },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+document.getElementById('taxi-pickup-gps-btn').addEventListener('click', useTaxiGps);
+
+// Straight-line distance (nudged up ~30% as a road-distance stand-in) is used
+// instantly so fares never sit blank; OSRM's real driving-route distance
+// (same free service already used for delivery) swaps in the moment it's back.
+function taxiDistanceKey() {
+  if (!taxiPickup || !taxiDrop) return null;
+  return taxiPickup.lat.toFixed(5) + ',' + taxiPickup.lng.toFixed(5) + '|' + taxiDrop.lat.toFixed(5) + ',' + taxiDrop.lng.toFixed(5);
+}
+function currentTaxiKm() {
+  if (!taxiPickup || !taxiDrop) return null;
+  const key = taxiDistanceKey();
+  if (taxiRoadKey === key && taxiRoadKm != null) return taxiRoadKm;
+  return (haversineMeters(taxiPickup.lat, taxiPickup.lng, taxiDrop.lat, taxiDrop.lng) / 1000) * 1.3;
+}
+async function ensureTaxiRoadDistance() {
+  if (!taxiPickup || !taxiDrop) return;
+  const key = taxiDistanceKey();
+  if (taxiRoadKey === key && taxiRoadKm != null) return;
+  if (taxiRouteAbort) taxiRouteAbort.abort();
+  taxiRouteAbort = new AbortController();
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${taxiPickup.lng},${taxiPickup.lat};${taxiDrop.lng},${taxiDrop.lat}?overview=false`;
+    const res = await fetch(url, { signal: taxiRouteAbort.signal });
+    const data = await res.json();
+    const meters = data && data.routes && data.routes[0] && data.routes[0].distance;
+    if (typeof meters === 'number' && taxiDistanceKey() === key) {
+      taxiRoadKm = meters / 1000;
+      taxiRoadKey = key;
+      renderRideOptions();
+      updateTaxiBookBtn();
+    }
+  } catch (e) {
+    // Aborted or offline — the straight-line estimate above already covers it.
+  }
+}
+
+function renderRideOptions() {
+  const km = currentTaxiKm();
+  taxiDistanceText.style.display = km != null ? 'block' : 'none';
+  if (km != null) taxiDistanceText.textContent = km.toFixed(1) + ' km ride';
+  taxiRideOptionsEl.innerHTML = '';
+  if (km == null) return;
+  RIDE_TYPES.forEach(rt => {
+    const fare = Math.round(rt.base + rt.perKm * km);
+    const el = document.createElement('div');
+    el.className = 'ride-option' + (taxiSelectedType === rt.key ? ' selected' : '');
+    el.innerHTML = `
+      <div class="ride-option-icon">${rt.icon}</div>
+      <div class="ride-option-mid">
+        <p class="ride-option-name">${rt.label}</p>
+        <p class="ride-option-eta">${rt.etaMin} min away</p>
+      </div>
+      <div class="ride-option-fare">₹${fare}</div>
+    `;
+    el.addEventListener('click', () => { taxiSelectedType = rt.key; renderRideOptions(); updateTaxiBookBtn(); });
+    taxiRideOptionsEl.appendChild(el);
+  });
+}
+
+function updateTaxiBookBtn() {
+  const km = currentTaxiKm();
+  if (km == null) {
+    taxiBookBtn.disabled = true;
+    taxiBookBtn.textContent = 'Set pickup & drop to continue';
+    return;
+  }
+  const rt = RIDE_TYPES.find(r => r.key === taxiSelectedType);
+  const fare = Math.round(rt.base + rt.perKm * km);
+  taxiBookBtn.disabled = false;
+  taxiBookBtn.textContent = `Book ${rt.label} · ₹${fare}`;
+}
+
+document.getElementById('taxi-book-back-btn').addEventListener('click', () => {
+  showScreen('category');
+  persistScreen('category');
+});
+
+taxiBookBtn.addEventListener('click', async () => {
+  const km = currentTaxiKm();
+  if (km == null) return;
+  const rt = RIDE_TYPES.find(r => r.key === taxiSelectedType);
+  const fare = Math.round(rt.base + rt.perKm * km);
+  taxiBookBtn.disabled = true;
+  taxiBookBtn.textContent = 'Booking…';
+  const { db, ref, push, set } = window.fb;
+  const rideRef = push(ref(db, 'rides'));
+  const ride = {
+    customerNumber: state.user?.number || '',
+    customerName: state.user?.name || 'Customer',
+    pickup: taxiPickup,
+    drop: taxiDrop,
+    vehicleType: rt.key,
+    vehicleLabel: rt.label,
+    distanceKm: Number(km.toFixed(2)),
+    fare,
+    status: 'searching',
+    createdAt: Date.now(),
+  };
+  try {
+    await set(rideRef, ride);
+
+    // Fire-and-forget: ask the dispatch worker to alert the nearest online
+    // driver first (Uber-style) — pickup lat/lng is what lets it rank
+    // drivers by distance. Never blocks or fails the booking on this.
+    fetch('https://broad-paper-6445.raise3715.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'ride',
+        rideId: rideRef.key,
+        vehicleType: rt.key,
+        pickupLat: taxiPickup.lat,
+        pickupLng: taxiPickup.lng,
+        pickupAddress: taxiPickup.text,
+        dropAddress: taxiDrop.text,
+        customerName: state.user?.name || 'Customer',
+        customerPhone: state.user?.number || '',
+        fare,
+      }),
+    }).catch(() => {});
+
+    openTaxiTrack(rideRef.key, ride);
+  } catch (e) {
+    taxiBookBtn.disabled = false;
+    updateTaxiBookBtn();
+    alert("Couldn't book your ride — check your connection and try again.");
+  }
+});
+
+// The driver-side app may write any of a few common spellings for each
+// stage — normalize onto one of our known steps (or 'cancelled') the same
+// way normalizeStatus() does for food/grocery orders above.
+function normalizeRideStatus(raw) {
+  const s = String(raw || 'searching').toLowerCase().trim();
+  if (['searching', 'pending', 'requested'].includes(s)) return 'searching';
+  if (['accepted', 'assigned', 'confirmed'].includes(s)) return 'accepted';
+  if (['arriving', 'arrived'].includes(s)) return 'arriving';
+  if (['ontrip', 'on_trip', 'in_progress', 'started'].includes(s)) return 'ontrip';
+  if (['completed', 'done', 'finished'].includes(s)) return 'completed';
+  if (['cancelled', 'canceled', 'rejected'].includes(s)) return 'cancelled';
+  return 'searching';
+}
+
+function renderTaxiTimeline(ride) {
+  const status = normalizeRideStatus(ride.status);
+  if (status === 'cancelled') {
+    taxiTrackStatusText.textContent = 'Ride cancelled';
+    taxiTrackEtaText.textContent = 'This ride was cancelled.';
+    taxiTrackTimelineEl.innerHTML = '';
+    taxiDriverCard.classList.add('hidden');
+    taxiCancelBtn.style.display = 'none';
+    return;
+  }
+
+  const currentIdx = TAXI_STEPS.findIndex(s => s.key === status);
+  taxiTrackStatusText.textContent = TAXI_STEPS[currentIdx].label;
+  taxiTrackEtaText.textContent = status === 'completed'
+    ? `Trip complete — ₹${ride.fare} · ${ride.distanceKm} km`
+    : `${ride.vehicleLabel || ''} · ₹${ride.fare} · ${ride.distanceKm} km`;
+
+  if (ride.driverName) {
+    taxiDriverCard.classList.remove('hidden');
+    taxiDriverName.textContent = ride.driverName;
+    taxiDriverMeta.textContent = [ride.driverVehicleNumber, ride.driverPhone].filter(Boolean).join(' · ') || 'Your driver';
+  } else {
+    taxiDriverCard.classList.add('hidden');
+  }
+
+  // Live map: only once a driver is on the ride, and only while the trip
+  // is actually in progress — hide it again once the ride wraps up.
+  if (!taxiTrackMap) taxiTrackMap = createDriverTrackMap('taxi-track-map-wrap', 'taxi-track-map');
+  if (ride.driverId && ['accepted', 'arriving', 'ontrip'].includes(status)) {
+    if (!taxiTrackMap.isMounted()) taxiTrackMap.show(ride.pickup, ride.drop);
+    if (taxiTrackMapDriverId !== ride.driverId) {
+      taxiTrackMap.watchDriver(ride.driverId);
+      taxiTrackMapDriverId = ride.driverId;
+    }
+  } else {
+    taxiTrackMap.hide();
+    taxiTrackMapDriverId = null;
+  }
+
+  taxiCancelBtn.style.display = (status === 'searching' || status === 'accepted') ? 'block' : 'none';
+
+  taxiTrackTimelineEl.innerHTML = '';
+  TAXI_STEPS.forEach((step, idx) => {
+    const stepState = idx < currentIdx ? 'done' : idx === currentIdx ? 'current' : 'pending';
+    const row = document.createElement('div');
+    row.className = 'timeline-step ' + stepState;
+    row.innerHTML = `
+      <div class="timeline-dotcol">
+        <div class="timeline-dot">${idx <= currentIdx ? CHECK_ICON : ''}</div>
+        ${idx < TAXI_STEPS.length - 1 ? '<div class="timeline-line"></div>' : ''}
+      </div>
+      <div class="timeline-content">
+        <p class="timeline-label">${step.label}</p>
+      </div>
+    `;
+    taxiTrackTimelineEl.appendChild(row);
+  });
+}
+
+function openTaxiTrack(rideKey, initialRide) {
+  currentRideKey = rideKey;
+  document.getElementById('taxi-track-ride-num').textContent = 'Ride ' + rideKey.slice(-6).toUpperCase();
+  renderTaxiTimeline(initialRide || { status: 'searching', fare: 0, distanceKm: 0 });
+  showScreen('taxi-track');
+  persistScreen('taxi-track', { rideKey });
+
+  if (taxiTrackUnsub) { taxiTrackUnsub(); taxiTrackUnsub = null; }
+  const { db, ref, onValue } = window.fb;
+  taxiTrackUnsub = onValue(ref(db, 'rides/' + rideKey), snap => {
+    const r = snap.val();
+    if (r) renderTaxiTimeline(r);
+  });
+}
+
+function leaveTaxiTrack() {
+  if (taxiTrackUnsub) { taxiTrackUnsub(); taxiTrackUnsub = null; }
+  if (taxiTrackMap) { taxiTrackMap.hide(); taxiTrackMapDriverId = null; }
+  showScreen('taxi-book');
+  persistScreen('taxi-book');
+}
+document.getElementById('taxi-track-back-btn').addEventListener('click', leaveTaxiTrack);
+
+taxiCancelBtn.addEventListener('click', async () => {
+  if (!currentRideKey) return;
+  if (!confirm('Cancel this ride?')) return;
+  const { db, ref, update } = window.fb;
+  try { await update(ref(db, 'rides/' + currentRideKey), { status: 'cancelled' }); } catch (e) {}
+});
 
 // ---------- LOGIN ----------
 const loginNumberInput = document.getElementById('login-number');
@@ -2533,6 +3025,70 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+// ---------- Live driver-tracking map (Uber-style "watch them approach") ----------
+// One small factory, used on both the taxi-ride tracking screen and the
+// food/grocery order tracking screen — each gets its own map instance, its
+// own Firebase listener on the assigned driver's live location, and shows/
+// hides itself depending on whether a driver has actually been assigned yet.
+function createDriverTrackMap(wrapId, mapId) {
+  let map = null, driverMarker = null, pickupMarker = null, dropMarker = null, unsub = null, mounted = false;
+  const wrapEl = document.getElementById(wrapId);
+
+  function ensureMap() {
+    if (map) return;
+    map = L.map(mapId, { zoomControl: false, attributionControl: false }).setView([DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  }
+
+  function fitToMarkers() {
+    const pts = [pickupMarker, dropMarker, driverMarker].filter(Boolean).map(m => m.getLatLng());
+    if (!pts.length) return;
+    if (pts.length === 1) map.setView(pts[0], 15);
+    else map.fitBounds(L.latLngBounds(pts), { padding: [24, 24] });
+  }
+
+  return {
+    // pickup/drop: { lat, lng } or null. Shows the map with static pins for
+    // whichever of those are known, even before a driver has been assigned.
+    show(pickup, drop) {
+      wrapEl.classList.remove('hidden');
+      mounted = true;
+      setTimeout(() => {
+        ensureMap();
+        map.invalidateSize();
+        if (pickup && !pickupMarker) pickupMarker = L.marker([pickup.lat, pickup.lng], { icon: taxiMarkerIcon('#1BA672') }).addTo(map);
+        if (drop && !dropMarker) dropMarker = L.marker([drop.lat, drop.lng], { icon: taxiMarkerIcon('#C97F00') }).addTo(map);
+        fitToMarkers();
+      }, 60);
+    },
+    // Starts (or restarts, for a new driverId) a live listener on that
+    // driver's taxi_drivers/{id}/location node, moving a marker as it updates.
+    watchDriver(driverId) {
+      if (!driverId || !window.fb) return;
+      if (unsub) { unsub(); unsub = null; }
+      const { db, ref, onValue } = window.fb;
+      unsub = onValue(ref(db, 'taxi_drivers/' + driverId + '/location'), snap => {
+        const loc = snap.val();
+        if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
+        ensureMap();
+        if (driverMarker) driverMarker.setLatLng([loc.lat, loc.lng]);
+        else driverMarker = L.marker([loc.lat, loc.lng], { icon: taxiMarkerIcon('#2F80ED') }).addTo(map);
+        fitToMarkers();
+      });
+    },
+    stopWatchingDriver() {
+      if (unsub) { unsub(); unsub = null; }
+      if (driverMarker && map) { map.removeLayer(driverMarker); driverMarker = null; }
+    },
+    hide() {
+      wrapEl.classList.add('hidden');
+      if (unsub) { unsub(); unsub = null; }
+      mounted = false;
+    },
+    isMounted() { return mounted; },
+  };
+}
+
 function renderLandmarkSuggestions(places, lat, lng) {
   if (!locLandmarkSuggestionsEl) return;
   locLandmarkSuggestionsEl.innerHTML = "";
@@ -3453,6 +4009,9 @@ let trackUnsub = null;
 // businessType of the order currently on screen — set in openTrackOrder,
 // used by renderTrackTimeline to pick food vs generic order wording.
 let trackBusinessType = 'hotel';
+let trackCurrentRestId = null; // used to look up the restaurant's pickup location for the live map
+let trackMap = null; // live-driver map on the food/grocery order tracking screen
+let trackMapDriverId = null;
 
 // Label wording only differs for the "preparing" step — food orders (hotel)
 // say "Preparing your food", everything else (groceries, online_shop) says
@@ -3487,10 +4046,12 @@ function normalizeStatus(raw) {
   return 'pending';
 }
 
-function renderTrackTimeline(rawStatus, reason) {
+function renderTrackTimeline(rawStatus, reason, o) {
   const status = normalizeStatus(rawStatus);
   const isFood = trackBusinessType !== 'groceries' && trackBusinessType !== 'online_shop';
   const steps = getOrderSteps(trackBusinessType);
+
+  if (!trackMap) trackMap = createDriverTrackMap('track-map-wrap', 'track-map');
 
   if (status === 'cancelled') {
     trackStatusText.textContent = "Order cancelled";
@@ -3502,6 +4063,8 @@ function renderTrackTimeline(rawStatus, reason) {
     } else {
       trackReasonBox.style.display = "none";
     }
+    trackMap.hide();
+    trackMapDriverId = null;
     return;
   }
   trackReasonBox.style.display = "none";
@@ -3509,6 +4072,24 @@ function renderTrackTimeline(rawStatus, reason) {
   const currentIdx = steps.findIndex(s => s.key === status);
   trackStatusText.textContent = steps[currentIdx].label;
   trackEtaText.textContent = status === 'delivered' ? (isFood ? "Enjoy your meal!" : "Your order has been delivered!") : "Estimated arrival: 30–35 min";
+
+  // Live map: once the shop has assigned a delivery driver, show them
+  // approaching on the map — same idea as the taxi tracking screen. Hidden
+  // again once the order is delivered.
+  const driverId = o && o.deliveryDriverId;
+  if (driverId && status !== 'delivered') {
+    const rest = RESTAURANTS.find(r => r.id === trackCurrentRestId);
+    const pickup = rest ? parseLatLng(rest.location) : null;
+    const drop = (o && typeof o.customerLat === 'number' && typeof o.customerLng === 'number') ? { lat: o.customerLat, lng: o.customerLng } : null;
+    if (!trackMap.isMounted()) trackMap.show(pickup, drop);
+    if (trackMapDriverId !== driverId) {
+      trackMap.watchDriver(driverId);
+      trackMapDriverId = driverId;
+    }
+  } else {
+    trackMap.hide();
+    trackMapDriverId = null;
+  }
 
   trackTimelineEl.innerHTML = "";
   steps.forEach((step, idx) => {
@@ -3538,6 +4119,7 @@ function openTrackOrder(order, returnScreen) {
   if (!order) return;
   trackReturnScreen = returnScreen || 'home';
   trackBusinessType = order.businessType || 'hotel';
+  trackCurrentRestId = order.restId || null;
   trackRestName.textContent = order.restName;
   trackOrderNum.textContent = "Order " + order.orderNumber;
   renderTrackTimeline('pending');
@@ -3550,13 +4132,14 @@ function openTrackOrder(order, returnScreen) {
     ref(db, 'restaurants/' + order.restId + '/orders/' + order.orderKey),
     snap => {
       const o = snap.val() || {};
-      renderTrackTimeline(o.status, o.statusReason);
+      renderTrackTimeline(o.status, o.statusReason, o);
     }
   );
 }
 
 function leaveTrackScreen() {
   if (trackUnsub) { trackUnsub(); trackUnsub = null; }
+  if (trackMap) { trackMap.hide(); trackMapDriverId = null; }
   showScreen(trackReturnScreen);
   persistScreen(trackReturnScreen === 'orders' ? 'orders' : 'home');
 }
