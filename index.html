@@ -108,6 +108,12 @@
 
   .btn-back{ background:none; border:none; color:var(--chili); cursor:pointer; padding:0; display:flex; }
 
+  .btn-link-inline{
+    background:none; border:none; color:var(--chili); font-size:12px; font-weight:700;
+    cursor:pointer; font-family:'Inter',sans-serif; padding:0; text-decoration:underline;
+  }
+  .btn-link-inline:disabled{ color:var(--muted); text-decoration:none; cursor:default; }
+
   .gps-btn{
     padding:12px 14px; border:none; border-radius:12px; background:var(--leaf);
     color:#fff; font-size:12px; font-weight:700; white-space:nowrap; cursor:pointer;
@@ -171,6 +177,31 @@
   .cat-card-text{ position:absolute; left:18px; right:18px; bottom:16px; z-index:2; }
   .cat-card-title{ color:#fff; font-family:'Fraunces',serif; font-size:22px; font-weight:700; margin:0; text-shadow:0 2px 8px rgba(0,0,0,.35); }
   .cat-card-sub{ color:rgba(255,255,255,.9); font-size:13px; margin:4px 0 0; text-shadow:0 1px 4px rgba(0,0,0,.3); }
+  .cat-card-orders-compact{
+    display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:16px; cursor:pointer;
+    background:linear-gradient(135deg, #1BA672 0%, #0C6E4A 100%);
+    box-shadow:0 6px 16px rgba(27,166,114,.25);
+  }
+  .cat-card-orders-compact-icon{
+    width:38px; height:38px; border-radius:12px; flex-shrink:0; font-size:19px;
+    background:rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center;
+  }
+  .cat-card-orders-compact-text{ flex:1; }
+  .cat-card-orders-compact-title{ color:#fff; font-family:'Poppins',sans-serif; font-size:14px; font-weight:700; margin:0; }
+  .cat-card-orders-compact-sub{ color:rgba(255,255,255,.85); font-size:11.5px; margin:2px 0 0; }
+
+  .cat-loc-card{
+    display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:18px; cursor:pointer;
+    background:linear-gradient(135deg, var(--marigold) 0%, var(--marigold-dark) 100%);
+    box-shadow:0 8px 20px rgba(242,183,5,.35);
+  }
+  .cat-loc-card-icon{
+    width:44px; height:44px; border-radius:13px; flex-shrink:0; font-size:21px;
+    background:rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center;
+  }
+  .cat-loc-card-text{ flex:1; min-width:0; }
+  .cat-loc-card-label{ color:rgba(43,36,16,.75); font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; margin:0; }
+  .cat-loc-card-value{ color:var(--ink); font-family:'Poppins',sans-serif; font-size:15.5px; font-weight:700; margin:2px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cat-header-eyebrow{ display:flex; align-items:center; justify-content:space-between; }
   .cat-badge-verified{
     display:inline-flex; align-items:center; gap:4px; padding:6px 10px;
@@ -494,6 +525,53 @@
   }
   .logout-btn:active{ transform:scale(0.94); }
 
+  /* Account menu: consolidates the VERIFIED stamp + logout behind one icon */
+  .account-wrap{ position:relative; }
+  .account-btn{
+    width:34px; height:34px; border-radius:50%; border:1.5px solid var(--field-border); background:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .account-btn:active{ transform:scale(0.94); }
+  .account-dropdown{
+    display:none; position:absolute; top:42px; right:0; z-index:60;
+    background:#fff; border:1px solid var(--field-border); border-radius:16px;
+    box-shadow:0 10px 28px rgba(43,36,16,.18); padding:14px; min-width:190px;
+  }
+  .account-dropdown.show{ display:block; }
+  .account-dropdown .stamp{ width:fit-content; margin-bottom:12px; }
+  .account-dropdown-logout{
+    width:100%; display:flex; align-items:center; gap:8px; padding:10px 10px;
+    border-radius:10px; border:1.5px solid var(--field-border); background:var(--field-bg);
+    color:var(--chili); font-weight:700; font-size:13px; font-family:'Inter',sans-serif; cursor:pointer;
+  }
+  .account-dropdown-logout:active{ transform:scale(0.98); }
+  .account-backdrop{
+    display:none; position:fixed; inset:0; z-index:55; background:transparent;
+  }
+  .account-backdrop.show{ display:block; }
+
+  /* In-app "push" notification banner for order-accepted alerts */
+  .order-notify-toast{
+    position:fixed; top:calc(env(safe-area-inset-top) + 12px); left:50%;
+    transform:translate(-50%, -140%); width:calc(100% - 32px); max-width:388px;
+    z-index:200; display:flex; align-items:flex-start; gap:10px;
+    background:#1F2A22; border-radius:16px; padding:13px 14px;
+    box-shadow:0 12px 28px rgba(0,0,0,.28);
+    transition:transform .35s cubic-bezier(.34,1.3,.4,1); cursor:pointer;
+  }
+  .order-notify-toast.show{ transform:translate(-50%, 0); }
+  .order-notify-toast-icon{
+    width:34px; height:34px; border-radius:10px; flex-shrink:0; font-size:17px;
+    background:var(--leaf); display:flex; align-items:center; justify-content:center;
+  }
+  .order-notify-toast-text{ flex:1; min-width:0; }
+  .order-notify-toast-title{ color:#fff; font-weight:700; font-family:'Poppins',sans-serif; font-size:13.5px; margin:0; }
+  .order-notify-toast-msg{ color:rgba(255,255,255,.75); font-size:12px; margin:2px 0 0; }
+  .order-notify-toast-close{
+    flex-shrink:0; width:22px; height:22px; border-radius:50%; border:none;
+    background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+
   /* Scratch card reward: shown as a full-screen popup modal (like the
      Google Pay reward popup) as soon as the customer reaches the payment
      sheet, if the shop has an unclaimed discount for them. */
@@ -540,12 +618,19 @@
   }
   .scratch-modal-sheet-desc{ color:rgba(255,255,255,.6); font-size:12px; margin:0; font-family:'Inter',sans-serif; }
 
-  .your-orders-btn{
-    display:inline-flex; align-items:center; gap:6px; margin-top:10px;
-    padding:7px 12px; border-radius:20px; border:1.5px solid var(--marigold);
-    background:rgba(242,183,5,.15); color:var(--chili); font-weight:700;
-    font-size:12px; font-family:'Inter',sans-serif; cursor:pointer;
+  .your-orders-card{
+    display:flex; align-items:center; gap:12px; margin:14px 24px 0;
+    padding:14px 16px; border-radius:16px; cursor:pointer;
+    background:linear-gradient(135deg, #1BA672 0%, #0C6E4A 100%);
+    box-shadow:0 6px 16px rgba(27,166,114,.25);
   }
+  .your-orders-card-icon{
+    width:38px; height:38px; border-radius:12px; flex-shrink:0; font-size:19px;
+    background:rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center;
+  }
+  .your-orders-card-text{ flex:1; }
+  .your-orders-card-title{ color:#fff; font-weight:700; font-family:'Poppins',sans-serif; font-size:14px; margin:0; }
+  .your-orders-card-sub{ color:rgba(255,255,255,.85); font-size:11.5px; margin:2px 0 0; }
 
   /* Your Orders screen */
   .orders-header{ padding:40px 24px 8px; display:flex; align-items:center; gap:14px; }
@@ -563,7 +648,7 @@
     padding:5px 10px; border-radius:16px; font-size:11px; font-weight:700;
     font-family:'Inter',sans-serif; white-space:nowrap; flex-shrink:0;
   }
-  .order-status-chip.live{ background:rgba(242,183,5,.18); color:var(--chili); }
+  .order-status-chip.live{ background:rgba(27,166,114,.15); color:var(--leaf); border:1px solid rgba(27,166,114,.35); }
   .order-status-chip.delivered{ background:rgba(27,166,114,.1); color:var(--leaf); }
   .order-status-chip.cancelled{ background:#F0EEEA; color:var(--muted-2); }
 
@@ -681,6 +766,18 @@
 </head>
 <body>
 <div id="app">
+
+  <!-- In-app "push" notification banner — shown when a placed order gets accepted -->
+  <div class="order-notify-toast" id="order-notify-toast">
+    <div class="order-notify-toast-icon">🔔</div>
+    <div class="order-notify-toast-text">
+      <p class="order-notify-toast-title" id="order-notify-title">Order accepted!</p>
+      <p class="order-notify-toast-msg" id="order-notify-msg"></p>
+    </div>
+    <button class="order-notify-toast-close" id="order-notify-close" title="Dismiss">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
 
   <!-- DELIVERY LOCATION CONFIRM (step 1: location & details) -->
   <div class="loc-overlay" id="loc-overlay">
@@ -909,7 +1006,7 @@
         <input class="otp-box" maxlength="1" inputmode="numeric" data-idx="3" />
       </div>
       <p class="error-text" id="otp-error" style="display:none;"></p>
-      <p class="hint-text">Demo code: 1234</p>
+      <p class="hint-text" id="otp-resend-hint">Didn't get the code? <button class="btn-link-inline" id="otp-resend-btn" disabled>Resend in 30s</button></p>
       <button class="btn-primary" id="otp-verify">Verify & continue</button>
     </div>
   </section>
@@ -927,6 +1024,22 @@
       <h1 class="title" id="cat-greeting-title">What are you looking for?</h1>
     </div>
     <div class="cat-wrap">
+      <div class="cat-loc-card" id="cat-loc-card">
+        <div class="cat-loc-card-icon">📍</div>
+        <div class="cat-loc-card-text">
+          <p class="cat-loc-card-label">Deliver to</p>
+          <p class="cat-loc-card-value" id="cat-loc-card-value">Select your location</p>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="cat-card-orders-compact" id="cat-card-orders">
+        <div class="cat-card-orders-compact-icon">📦</div>
+        <div class="cat-card-orders-compact-text">
+          <p class="cat-card-orders-compact-title">Your Orders</p>
+          <p class="cat-card-orders-compact-sub">Track live orders & view order history</p>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
       <div class="cat-card" id="cat-card-food" style="background-image:url('https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=800&q=80');">
         <div class="cat-card-icon">🍔</div>
         <div class="cat-card-arrow">
@@ -984,26 +1097,39 @@
           <p style="color:var(--ink); font-size:14px; margin:0; font-weight:600;" id="home-location">Select your location</p>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--marigold)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <button class="your-orders-btn" id="your-orders-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Your Orders
-        </button>
       </div>
       <div class="top-row-right">
-        <div class="stamp">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1BA672" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-          VERIFIED
-        </div>
         <button class="home-track-btn hidden" id="home-track-btn" title="Track your order">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
         </button>
         <button class="install-icon-btn hidden" id="install-icon-btn" title="Install app">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>
         </button>
-        <button class="logout-btn" id="logout-btn" title="Logout">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
+        <div class="account-wrap">
+          <button class="account-btn" id="account-btn" title="Account">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
+          <div class="account-dropdown" id="account-dropdown">
+            <div class="stamp">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1BA672" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              VERIFIED
+            </div>
+            <button class="account-dropdown-logout" id="logout-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+    <div class="account-backdrop" id="account-backdrop"></div>
+    <div class="your-orders-card" id="your-orders-btn">
+      <div class="your-orders-card-icon">📦</div>
+      <div class="your-orders-card-text">
+        <p class="your-orders-card-title">Your Orders</p>
+        <p class="your-orders-card-sub">Track live orders & view order history</p>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
     <h1 class="greeting" id="home-greeting">Hungry, friend?</h1>
 
@@ -1306,7 +1432,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, push, set, get, update, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, push, set, get, update, remove, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCrM5wKwsnGtIc7HSTk_5R1d3dXEcYyd7o",
@@ -1400,7 +1526,7 @@
   // this same path and pops up an alert the moment a new order lands here.
   // onValue is also used by the order-tracking screen to live-watch an
   // order's status as the restaurant partner app updates it.
-  window.fb = { db, ref, push, set, get, update, onValue };
+  window.fb = { db, ref, push, set, get, update, remove, onValue };
 
   // Operator-set flat amount (₹) added on top of every restaurant's own item
   // price before it's shown to customers. Set/edited from the Operator Panel
@@ -1531,7 +1657,7 @@ function attemptNormalResumeIfNeeded() {
   } catch (e) { resumed = true; }
   if (!resumed && !pendingScreenResume) goToCategoryScreen();
 }
-const DEMO_OTP = "1234";
+const OTP_TTL_MS = 5 * 60 * 1000; // a code is valid for 5 minutes after it's generated
 
 // ---------- SHOP DEEP LINK ----------
 // A shop's own "share link" (e.g. .../?shop=<restId>, generated in the
@@ -1682,6 +1808,7 @@ try {
   if (savedUser && savedUser.number) {
     state.user = savedUser;
     attachScratchListener(savedUser.number);
+    attachOrderStatusWatcher(savedUser.number);
   }
 } catch (e) {}
 
@@ -1733,6 +1860,7 @@ function openCategory(cat) {
 function goToCategoryScreen() {
   const firstName = (state.user?.name || "friend").split(' ')[0];
   document.getElementById('cat-greeting-eyebrow').textContent = "HI, " + firstName.toUpperCase();
+  updateCatLocationLabel();
   showScreen('category');
   persistScreen('category');
 }
@@ -1741,6 +1869,8 @@ document.getElementById('cat-card-groceries').addEventListener('click', () => op
 document.getElementById('cat-card-online-shop').addEventListener('click', () => openCategory('online_shop'));
 document.getElementById('home-cat-back-btn').addEventListener('click', goToCategoryScreen);
 document.getElementById('cat-card-taxi').addEventListener('click', () => goToTaxiBooking());
+document.getElementById('cat-card-orders').addEventListener('click', () => openOrdersScreen());
+document.getElementById('cat-loc-card').addEventListener('click', () => openBrowseLocationPicker());
 
 // ---------- TAXI (Uber-style ride booking) ----------
 const RIDE_TYPES = [
@@ -2139,6 +2269,7 @@ loginSubmitBtn.addEventListener('click', async () => {
     state.user = { name: record.name, address: record.address, location: record.location, number: record.number };
     saveUserSession(state.user);
     attachScratchListener(state.user.number);
+    attachOrderStatusWatcher(state.user.number);
     loginErrorEl.style.display = "none";
     if (!tryOpenPendingShopLink()) goToCategoryScreen();
   } catch (e) {
@@ -2210,7 +2341,7 @@ regSendOtpBtn.addEventListener('click', async () => {
       return;
     }
     state.otpFlowFrom = "register";
-    startOtpFlow(regNumber.value);
+    await requestOtp(regNumber.value);
   } catch (e) {
     regErrorEl.textContent = "Couldn't check that number — check your connection and try again.";
     regErrorEl.style.display = "block";
@@ -2220,13 +2351,46 @@ regSendOtpBtn.addEventListener('click', async () => {
 });
 
 // ---------- OTP ----------
+// A code is generated here and written to `otp_requests/{number}` in
+// Firebase. The restaurant partner app's designated "OTP sender" device
+// picks up new entries there and sends the actual SMS from its own SIM —
+// this app never talks to an SMS provider directly.
 const otpInputsWrap = document.getElementById('otp-inputs');
 const otpBoxes = Array.from(otpInputsWrap.querySelectorAll('.otp-box'));
 const otpErrorEl = document.getElementById('otp-error');
 const otpNumberDisplay = document.getElementById('otp-number-display');
 const otpBackBtn = document.getElementById('otp-back');
 const otpVerifyBtn = document.getElementById('otp-verify');
+const otpResendBtn = document.getElementById('otp-resend-btn');
 let currentOtpNumber = "";
+let otpResendTimer = null;
+
+function generateOtpCode() {
+  return String(Math.floor(1000 + Math.random() * 9000)); // 4 digits, matches the 4 input boxes
+}
+
+async function requestOtp(number) {
+  const code = generateOtpCode();
+  const { db, ref, set } = window.fb;
+  await set(ref(db, 'otp_requests/' + number), {
+    code,
+    createdAt: Date.now(),
+    sent: false, // flipped to true by the shop device once it sends the SMS
+  });
+  // Tell the free Cloudflare Worker to silently relay this code to
+  // whichever shop's device the Operator Panel has designated as the OTP
+  // sender — that device's native FCM receiver sends the actual SMS from
+  // its own SIM. Fire-and-forget: if this fails (e.g. no OTP sender
+  // configured yet), the code is still saved above and the person can hit
+  // "Resend code" once it's set up — verification itself always reads
+  // straight from Firebase, not from whether this push went out.
+  fetch('https://broad-paper-6445.raise3715.workers.dev', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'otp', number, code }),
+  }).catch(() => {});
+  startOtpFlow(number);
+}
 
 function startOtpFlow(number) {
   currentOtpNumber = number;
@@ -2235,7 +2399,35 @@ function startOtpFlow(number) {
   otpErrorEl.style.display = "none";
   showScreen('otp');
   otpBoxes[0].focus();
+  startOtpResendCooldown();
 }
+
+function startOtpResendCooldown() {
+  let secondsLeft = 30;
+  otpResendBtn.disabled = true;
+  otpResendBtn.textContent = "Resend in " + secondsLeft + "s";
+  clearInterval(otpResendTimer);
+  otpResendTimer = setInterval(() => {
+    secondsLeft -= 1;
+    if (secondsLeft <= 0) {
+      clearInterval(otpResendTimer);
+      otpResendBtn.disabled = false;
+      otpResendBtn.textContent = "Resend code";
+    } else {
+      otpResendBtn.textContent = "Resend in " + secondsLeft + "s";
+    }
+  }, 1000);
+}
+
+otpResendBtn.addEventListener('click', async () => {
+  otpResendBtn.disabled = true;
+  try {
+    await requestOtp(currentOtpNumber);
+  } catch (e) {
+    showOtpError("Couldn't resend the code — check your connection and try again.");
+    otpResendBtn.disabled = false;
+  }
+});
 
 otpBoxes.forEach((box, idx) => {
   box.addEventListener('input', () => {
@@ -2248,6 +2440,7 @@ otpBoxes.forEach((box, idx) => {
 });
 
 otpBackBtn.addEventListener('click', () => {
+  clearInterval(otpResendTimer);
   showScreen(state.otpFlowFrom === "register" ? "register" : "login");
 });
 
@@ -2257,32 +2450,48 @@ otpVerifyBtn.addEventListener('click', async () => {
     showOtpError("Enter all 4 digits");
     return;
   }
-  if (code !== DEMO_OTP) {
-    showOtpError("Incorrect code — demo code is " + DEMO_OTP);
-    return;
-  }
-  if (state.otpFlowFrom === "register") {
-    const newUser = {
-      name: regName.value.trim(),
-      address: regAddress.value.trim(),
-      location: regLocation.value.trim(),
-      number: regNumber.value,
-      password: regPassword.value,
-    };
-    otpVerifyBtn.disabled = true;
-    try {
-      const { db, ref, set } = window.fb;
+  otpVerifyBtn.disabled = true;
+  try {
+    const { db, ref, get, set, remove } = window.fb;
+    const snap = await get(ref(db, 'otp_requests/' + currentOtpNumber));
+    const record = snap.val();
+    if (!record) {
+      showOtpError("No code found for this number — tap resend.");
+      otpVerifyBtn.disabled = false;
+      return;
+    }
+    if (Date.now() - record.createdAt > OTP_TTL_MS) {
+      showOtpError("This code has expired — tap resend.");
+      otpVerifyBtn.disabled = false;
+      return;
+    }
+    if (code !== record.code) {
+      showOtpError("Incorrect code — please try again.");
+      otpVerifyBtn.disabled = false;
+      return;
+    }
+    if (state.otpFlowFrom === "register") {
+      const newUser = {
+        name: regName.value.trim(),
+        address: regAddress.value.trim(),
+        location: regLocation.value.trim(),
+        number: regNumber.value,
+        password: regPassword.value,
+      };
       await set(ref(db, 'customers/' + newUser.number), newUser);
       state.user = { name: newUser.name, address: newUser.address, location: newUser.location, number: newUser.number };
       saveUserSession(state.user);
       attachScratchListener(state.user.number);
-    } catch (e) {
-      showOtpError("Couldn't create your account — check your connection and try again.");
-      otpVerifyBtn.disabled = false;
-      return;
+      attachOrderStatusWatcher(state.user.number);
     }
+    await remove(ref(db, 'otp_requests/' + currentOtpNumber));
+    clearInterval(otpResendTimer);
+  } catch (e) {
+    showOtpError("Couldn't verify — check your connection and try again.");
     otpVerifyBtn.disabled = false;
+    return;
   }
+  otpVerifyBtn.disabled = false;
   otpErrorEl.style.display = "none";
   if (!tryOpenPendingShopLink()) goToCategoryScreen();
 });
@@ -2306,6 +2515,77 @@ state.discountReveal = null; // { restId, amount } once the customer scratches t
 // Kept as harmless no-ops so existing call sites (login/resume flows) don't
 // need to change — there's no longer a per-customer Firebase listener needed.
 function attachScratchListener() {}
+
+// ---------- Order-accepted notification ("Your order has been accepted!") ----------
+// Watches every order under this customer's number and pops the in-app
+// banner the first time an order flips into the "preparing" (accepted)
+// stage. Runs for the whole session regardless of which screen is open,
+// and remembers which orders it already alerted for (in localStorage) so
+// a reload never re-fires the same notification.
+const NOTIFIED_ORDERS_KEY = 'asfood_notified_orders';
+function getNotifiedOrders() {
+  try { return JSON.parse(localStorage.getItem(NOTIFIED_ORDERS_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveNotifiedOrders(seen) {
+  try { localStorage.setItem(NOTIFIED_ORDERS_KEY, JSON.stringify(seen)); } catch (e) {}
+}
+
+const orderNotifyToast = document.getElementById('order-notify-toast');
+const orderNotifyTitle = document.getElementById('order-notify-title');
+const orderNotifyMsg = document.getElementById('order-notify-msg');
+const orderNotifyClose = document.getElementById('order-notify-close');
+let orderNotifyHideTimer = null;
+let orderNotifyPendingOrder = null;
+
+function hideOrderNotifyToast() {
+  orderNotifyToast.classList.remove('show');
+  clearTimeout(orderNotifyHideTimer);
+}
+function showOrderNotifyToast(restName, orderNumber, orderRef) {
+  orderNotifyTitle.textContent = "Order accepted!";
+  orderNotifyMsg.textContent = restName + " is now preparing your order " + orderNumber + ".";
+  orderNotifyPendingOrder = orderRef;
+  orderNotifyToast.classList.add('show');
+  clearTimeout(orderNotifyHideTimer);
+  orderNotifyHideTimer = setTimeout(hideOrderNotifyToast, 6000);
+}
+orderNotifyToast.addEventListener('click', () => {
+  hideOrderNotifyToast();
+  if (orderNotifyPendingOrder) openTrackOrder(orderNotifyPendingOrder, 'home');
+});
+orderNotifyClose.addEventListener('click', (e) => { e.stopPropagation(); hideOrderNotifyToast(); });
+
+let orderNotifyUnsub = null;
+function attachOrderStatusWatcher(number) {
+  if (orderNotifyUnsub || !number) return;
+  const { db, ref, onValue } = window.fb;
+  orderNotifyUnsub = onValue(ref(db, 'restaurants'), snap => {
+    const seen = getNotifiedOrders();
+    let changed = false;
+    snap.forEach(restSnap => {
+      const restVal = restSnap.val() || {};
+      const ordersVal = restVal.orders;
+      if (!ordersVal) return;
+      Object.keys(ordersVal).forEach(orderKey => {
+        const o = ordersVal[orderKey];
+        if (!o || o.customerPhone !== number) return;
+        if (normalizeStatus(o.status) !== 'preparing' || seen[orderKey]) return;
+        seen[orderKey] = true;
+        changed = true;
+        showOrderNotifyToast(restVal.restaurantName || 'Restaurant', o.orderNumber, {
+          restId: restSnap.key, orderKey, orderNumber: o.orderNumber,
+          restName: restVal.restaurantName || 'Restaurant', businessType: restVal.businessType || 'hotel',
+        });
+      });
+    });
+    if (changed) saveNotifiedOrders(seen);
+  });
+}
+function detachOrderStatusWatcher() {
+  if (orderNotifyUnsub) { orderNotifyUnsub(); orderNotifyUnsub = null; }
+  hideOrderNotifyToast();
+}
+
 function detachScratchListener() { state.discountReveal = null; }
 
 // Discount amount that applies to the current order at this shop (restId)
@@ -2528,6 +2808,11 @@ homeTrackBtn.addEventListener('click', () => openTrackOrder(state.lastOrder, 'ho
 
 function updateHomeLocationLabel() {
   homeLocation.textContent = state.customerPos ? "Delivering to selected location" : "Select your location";
+  updateCatLocationLabel();
+}
+function updateCatLocationLabel() {
+  const el = document.getElementById('cat-loc-card-value');
+  if (el) el.textContent = state.customerPos ? "Delivering to selected location" : "Select your location";
 }
 
 function renderHome() {
@@ -3960,6 +4245,7 @@ payConfirmBtn.addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         restId: r.id,
+        orderId: orderRef.key,
         orderNumber: orderNumber,
         itemsSummary: orderItems.map(it => `${it.qty}x ${it.name}`).join(', '),
         customerName: state.user?.name || "Guest",
@@ -4277,6 +4563,7 @@ function logoutUser() {
   state.category = null;
   state.pendingCheckout = null;
   detachScratchListener();
+  detachOrderStatusWatcher();
   try { localStorage.removeItem('asfood_customer_user'); } catch (e) {}
   try { localStorage.removeItem('asfood_screen'); } catch (e) {}
   try { localStorage.removeItem('asfood_last_order'); } catch (e) {}
@@ -4287,6 +4574,23 @@ function logoutUser() {
   showScreen('login');
 }
 document.getElementById('logout-btn').addEventListener('click', logoutUser);
+
+// ---------- Account menu dropdown (VERIFIED badge + Logout live here) ----------
+const accountBtn = document.getElementById('account-btn');
+const accountDropdown = document.getElementById('account-dropdown');
+const accountBackdrop = document.getElementById('account-backdrop');
+
+function closeAccountDropdown() {
+  accountDropdown.classList.remove('show');
+  accountBackdrop.classList.remove('show');
+}
+function toggleAccountDropdown() {
+  accountDropdown.classList.toggle('show');
+  accountBackdrop.classList.toggle('show');
+}
+accountBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleAccountDropdown(); });
+accountBackdrop.addEventListener('click', closeAccountDropdown);
+document.getElementById('logout-btn').addEventListener('click', closeAccountDropdown);
 
 // ---------- Auto-detect location every time the app is opened — always
 // asks the browser for a fresh GPS position and re-renders the shop list
