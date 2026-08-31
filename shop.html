@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NESH — Order</title>
+<style>
+  :root {
+    --cream: #FBF6EC;
+    --ink: #24301F;
+    --leaf: #3C5A34;
+    --leaf-dark: #2A4024;
+    --turmeric: #E3A23C;
+    --turmeric-dark: #C7862A;
+    --line: #E4DCC8;
+    --muted: #7C7462;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding-bottom: 96px;
+  }
+  header {
+    background: var(--leaf);
+    color: var(--cream);
+    padding: 28px 20px 22px;
+    border-bottom: 4px solid var(--turmeric);
+  }
+  header h1 {
+    font-family: Georgia, "Noto Serif Malayalam", serif;
+    font-size: 26px;
+    margin: 0 0 4px;
+    letter-spacing: 0.2px;
+  }
+  header p {
+    margin: 0;
+    color: #D9E4D3;
+    font-size: 14px;
+  }
+  #state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--muted);
+  }
+  #items {
+    padding: 14px 16px 0;
+  }
+  .item {
+    display: flex;
+    gap: 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .item img {
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--line);
+  }
+  .item-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .item-name {
+    font-weight: 600;
+    font-size: 15.5px;
+    margin: 0 0 2px;
+  }
+  .item-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 0 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .item-price {
+    font-weight: 700;
+    color: var(--leaf-dark);
+    font-size: 14.5px;
+  }
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .stepper button {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--cream);
+    font-size: 18px;
+    line-height: 1;
+    color: var(--leaf-dark);
+    cursor: pointer;
+  }
+  .stepper button.add {
+    background: var(--turmeric);
+    border-color: var(--turmeric-dark);
+    color: #fff;
+    font-weight: 700;
+  }
+  .stepper .qty {
+    min-width: 18px;
+    text-align: center;
+    font-weight: 700;
+  }
+  #cartbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--leaf-dark);
+    color: #fff;
+    padding: 14px 18px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 -6px 18px rgba(0,0,0,0.18);
+  }
+  #cartbar.show { display: flex; }
+  #cartbar .total {
+    font-size: 15px;
+  }
+  #cartbar .total b {
+    font-size: 18px;
+    display: block;
+  }
+  #confirmBtn {
+    background: var(--turmeric);
+    color: #fff;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="shopName">NESH</h1>
+  <p id="shopSub">Menu loading…</p>
+</header>
+
+<div id="state"></div>
+<div id="items"></div>
+
+<div id="cartbar">
+  <div class="total">Total<b id="cartTotal">₹0</b></div>
+  <button id="confirmBtn">Confirm order →</button>
+</div>
+
+<script>
+  // --- Config ---
+  const DB_URL = 'https://texi-and-food-default-rtdb.firebaseio.com';
+  const BOT_WHATSAPP_NUMBER = '919656504107'; // bot's own WhatsApp number, no + or spaces
+
+  const params = new URLSearchParams(location.search);
+  const shopKey = params.get('shop');
+
+  const stateEl = document.getElementById('state');
+  const itemsEl = document.getElementById('items');
+  const cartbarEl = document.getElementById('cartbar');
+  const cartTotalEl = document.getElementById('cartTotal');
+  const shopNameEl = document.getElementById('shopName');
+  const shopSubEl = document.getElementById('shopSub');
+  const confirmBtn = document.getElementById('confirmBtn');
+
+  const cart = {}; // itemId -> qty
+  let itemsData = []; // [{id, name, desc, price, photo}]
+
+  if (!shopKey) {
+    stateEl.textContent = 'Shop link ശരിയല്ല — shop ID കാണുന്നില്ല.';
+  } else {
+    load();
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(`${DB_URL}/restaurants/${encodeURIComponent(shopKey)}.json`);
+      const shop = await res.json();
+      if (!shop) {
+        stateEl.textContent = 'ഈ shop കണ്ടെത്താനായില്ല.';
+        return;
+      }
+      shopNameEl.textContent = shop.restaurantName || shop.name || 'NESH';
+      shopSubEl.textContent = 'ഒരു item-ന് + അമർത്തി cart-ൽ ചേർക്കുക';
+
+      const menu = shop.menu || {};
+      itemsData = Object.entries(menu)
+        .filter(([, it]) => it && it.unavailable !== true)
+        .map(([id, it]) => ({ id, ...it }));
+
+      if (!itemsData.length) {
+        stateEl.textContent = 'ഇപ്പോൾ items ഒന്നും ലഭ്യമല്ല.';
+        return;
+      }
+      render();
+    } catch (e) {
+      stateEl.textContent = 'Load ചെയ്യുന്നതിൽ പിഴവ്. വീണ്ടും ശ്രമിക്കുക.';
+      console.error(e);
+    }
+  }
+
+  function render() {
+    itemsEl.innerHTML = '';
+    itemsData.forEach((it) => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.innerHTML = `
+        <img src="${it.photo || ''}" alt="" onerror="this.style.visibility='hidden'">
+        <div class="item-body">
+          <p class="item-name">${escapeHtml(it.name || '')}</p>
+          ${it.desc ? `<p class="item-desc">${escapeHtml(it.desc)}</p>` : ''}
+          <p class="item-price">₹${it.price}</p>
+        </div>
+        <div class="stepper" data-id="${it.id}">
+          <button class="minus">−</button>
+          <span class="qty">0</span>
+          <button class="add">+</button>
+        </div>
+      `;
+      itemsEl.appendChild(row);
+
+      const stepper = row.querySelector('.stepper');
+      const qtyEl = stepper.querySelector('.qty');
+      stepper.querySelector('.add').addEventListener('click', () => {
+        cart[it.id] = (cart[it.id] || 0) + 1;
+        qtyEl.textContent = cart[it.id];
+        updateCartbar();
+      });
+      stepper.querySelector('.minus').addEventListener('click', () => {
+        if (!cart[it.id]) return;
+        cart[it.id] -= 1;
+        if (cart[it.id] <= 0) delete cart[it.id];
+        qtyEl.textContent = cart[it.id] || 0;
+        updateCartbar();
+      });
+    });
+  }
+
+  function updateCartbar() {
+    let total = 0;
+    let count = 0;
+    for (const [id, qty] of Object.entries(cart)) {
+      const it = itemsData.find((x) => x.id === id);
+      if (!it) continue;
+      total += it.price * qty;
+      count += qty;
+    }
+    cartTotalEl.textContent = `₹${total}`;
+    cartbarEl.classList.toggle('show', count > 0);
+  }
+
+  confirmBtn.addEventListener('click', () => {
+    const parts = Object.entries(cart)
+      .filter(([, qty]) => qty > 0)
+      .map(([id, qty]) => `${id}x${qty}`);
+    if (!parts.length) return;
+    const orderText = `ORDER|${shopKey}|${parts.join(',')}`;
+    const url = `https://wa.me/${BOT_WHATSAPP_NUMBER}?text=${encodeURIComponent(orderText)}`;
+    location.href = url;
+  });
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+</script>
+
+</body>
+</html>
