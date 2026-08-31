@@ -1279,6 +1279,13 @@
         </div>
       </div>
 
+      <p class="loc-field-label" style="margin-top:14px;">Search for a place</p>
+      <div class="field" style="background:#fff; border:1px solid #E4DFD2; margin-bottom:0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="taxi-search" type="text" placeholder="Search area, street, landmark…" style="color:var(--ink);" autocomplete="off" />
+      </div>
+      <div class="loc-search-results" id="taxi-search-results"></div>
+
       <div class="taxi-map-wrap">
         <div class="taxi-map" id="taxi-map"></div>
         <p class="taxi-map-hint" id="taxi-map-hint">Tap the map (or drag the pin) to set your pickup point</p>
@@ -1679,7 +1686,7 @@ let state = {
   otpFlowFrom: "register",
   pendingLoginNumber: null, // number being verified via OTP for an existing account
   pendingRegNumber: null, // number being verified via OTP for a brand-new account
-  authReturnTo: null, // set to "checkout" when login/register was triggered from the checkout flow
+  authReturnTo: null, // set to "checkout" or "taxi" when login/register was triggered from that flow, so it resumes automatically after OTP verification
   selectedRestaurant: null,
   selectedItem: null, // itemId currently shown on the item-detail screen
   cart: {}, // itemId -> qty
@@ -1859,9 +1866,7 @@ document.getElementById('cat-loc-card').addEventListener('click', () => openBrow
 
 // ---------- TAXI (Uber-style ride booking) ----------
 const RIDE_TYPES = [
-  { key: 'bike', label: 'Bike', icon: '🏍️', base: 15, perKm: 6,  etaMin: 3 },
   { key: 'auto', label: 'Auto', icon: '🛺', base: 25, perKm: 10, etaMin: 4 },
-  { key: 'cab',  label: 'Cab',  icon: '🚗', base: 40, perKm: 14, etaMin: 6 },
 ];
 const TAXI_STEPS = [
   { key: 'searching', label: 'Finding a nearby driver' },
@@ -1882,10 +1887,26 @@ let taxiRouteAbort = null;
 let taxiTrackUnsub = null;
 let currentRideKey = null;
 
+// Persisted (survives reload/app-close) key of the customer's ride that is
+// still in progress, if any — used to block starting a second ride until
+// the first one is completed or cancelled.
+const ACTIVE_RIDE_KEY_LS = 'nesh_active_ride_key';
+function getStoredActiveRideKey() {
+  try { return localStorage.getItem(ACTIVE_RIDE_KEY_LS) || null; } catch (e) { return null; }
+}
+function setStoredActiveRideKey(key) {
+  try {
+    if (key) localStorage.setItem(ACTIVE_RIDE_KEY_LS, key);
+    else localStorage.removeItem(ACTIVE_RIDE_KEY_LS);
+  } catch (e) {}
+}
+
 const taxiPickupRow = document.getElementById('taxi-pickup-row');
 const taxiDropRow = document.getElementById('taxi-drop-row');
 const taxiPickupInput = document.getElementById('taxi-pickup-input');
 const taxiDropInput = document.getElementById('taxi-drop-input');
+const taxiSearchInput = document.getElementById('taxi-search');
+const taxiSearchResultsEl = document.getElementById('taxi-search-results');
 const taxiMapHint = document.getElementById('taxi-map-hint');
 const taxiDistanceText = document.getElementById('taxi-distance-text');
 const taxiRideOptionsEl = document.getElementById('taxi-ride-options');
@@ -1900,18 +1921,41 @@ const taxiCancelBtn = document.getElementById('taxi-cancel-ride-btn');
 let taxiTrackMap = null; // live-driver map on the ride tracking screen — created lazily, see renderTaxiTimeline
 let taxiTrackMapDriverId = null; // which driver we're currently watching, so we don't re-subscribe every snapshot
 
-function goToTaxiBooking() {
+function showTaxiBookingForm() {
   showScreen('taxi-book');
   persistScreen('taxi-book');
   taxiActivePin = taxiPickup ? 'drop' : 'pickup';
   updateTaxiPinRows();
   renderRideOptions();
   updateTaxiBookBtn();
+  taxiSearchInput.value = "";
+  hideTaxiSearchResults();
   setTimeout(() => {
     ensureTaxiMap();
     taxiMap.invalidateSize();
     if (!taxiPickup) useTaxiGps();
   }, 60);
+}
+
+// Entry point used everywhere the app wants to take the customer to taxi
+// booking (category card tap, resuming a saved screen, back button from
+// tracking). If they already have a ride in progress, send them back to
+// tracking it instead of letting them start a second one.
+async function goToTaxiBooking() {
+  const activeKey = getStoredActiveRideKey();
+  if (activeKey) {
+    try {
+      const { db, ref, get } = window.fb;
+      const snap = await get(ref(db, 'rides/' + activeKey));
+      const r = snap.val();
+      if (r && !['completed', 'cancelled'].includes(normalizeRideStatus(r.status))) {
+        openTaxiTrack(activeKey, r);
+        return;
+      }
+    } catch (e) {}
+    setStoredActiveRideKey(null);
+  }
+  showTaxiBookingForm();
 }
 
 function taxiMarkerIcon(color) {
@@ -1934,8 +1978,12 @@ function ensureTaxiMap() {
   });
 }
 
-function placeTaxiPin(which, lat, lng) {
-  const pos = { lat, lng, text: lat.toFixed(5) + ", " + lng.toFixed(5) };
+function placeTaxiPin(which, lat, lng, label) {
+  // `label` lets a caller (e.g. GPS auto-detect) show a friendly name like
+  // a nearby landmark instead of raw coordinates — the lat/lng used for
+  // dispatch and fare/distance calculation is always the exact value passed
+  // in, never affected by what text is shown.
+  const pos = { lat, lng, text: label || (lat.toFixed(5) + ", " + lng.toFixed(5)) };
   if (which === 'pickup') {
     taxiPickup = pos;
     taxiPickupInput.value = pos.text;
@@ -1966,18 +2014,101 @@ function updateTaxiPinRows() {
 taxiPickupRow.addEventListener('click', () => { taxiActivePin = 'pickup'; updateTaxiPinRows(); });
 taxiDropRow.addEventListener('click', () => { taxiActivePin = 'drop'; updateTaxiPinRows(); });
 
+// ---------- "Search for a place" (taxi pickup/drop) ----------
+// Sets whichever pin (pickup or drop) is currently active — same local
+// landmarks-first + Nominatim-fallback search used on the other location
+// pickers, wired here to move the taxi map's pin.
+function hideTaxiSearchResults() {
+  if (taxiSearchResultsEl) {
+    taxiSearchResultsEl.classList.remove('show');
+    taxiSearchResultsEl.innerHTML = "";
+  }
+}
+
+function selectTaxiSearchResult(place) {
+  const lat = parseFloat(place.lat), lng = parseFloat(place.lon);
+  taxiSearchInput.value = place.display_name;
+  hideTaxiSearchResults();
+  ensureTaxiMap();
+  taxiMap.setView([lat, lng], 16);
+  placeTaxiPin(taxiActivePin, lat, lng);
+  if (taxiActivePin === 'pickup' && !taxiDrop) taxiActivePin = 'drop';
+  updateTaxiPinRows();
+}
+
+function renderTaxiSearchResults(results) {
+  taxiSearchResultsEl.innerHTML = "";
+  if (results.length === 0) {
+    taxiSearchResultsEl.innerHTML = `<p class="loc-search-empty">No matches found — try a different search.</p>`;
+    taxiSearchResultsEl.classList.add('show');
+    return;
+  }
+  results.forEach(place => {
+    const item = document.createElement('div');
+    item.className = "loc-search-item";
+    const main = place.display_name.split(',')[0];
+    const rest = place.display_name.split(',').slice(1).join(',').trim();
+    item.innerHTML = `<div>${main}</div>` + (rest ? `<div class="loc-search-item-sub">${rest}</div>` : '');
+    item.addEventListener('click', () => selectTaxiSearchResult(place));
+    taxiSearchResultsEl.appendChild(item);
+  });
+  taxiSearchResultsEl.classList.add('show');
+}
+
+let taxiSearchDebounce = null;
+let taxiSearchAbort = null;
+taxiSearchInput.addEventListener('input', () => {
+  const query = taxiSearchInput.value.trim();
+  clearTimeout(taxiSearchDebounce);
+  if (query.length < 3) {
+    hideTaxiSearchResults();
+    return;
+  }
+  taxiSearchResultsEl.innerHTML = `<p class="loc-search-loading">Searching…</p>`;
+  taxiSearchResultsEl.classList.add('show');
+  taxiSearchDebounce = setTimeout(async () => {
+    await loadLocalLandmarks();
+    const localMatches = searchLocalLandmarks(query);
+    let remoteResults = [];
+    try {
+      if (taxiSearchAbort) taxiSearchAbort.abort();
+      taxiSearchAbort = new AbortController();
+      const biasLat = (taxiPickup && taxiPickup.lat) ?? DEFAULT_MAP_CENTER.lat;
+      const biasLng = (taxiPickup && taxiPickup.lng) ?? DEFAULT_MAP_CENTER.lng;
+      const box = 0.35; // ~35km box around the pin
+      const viewbox = [biasLng - box, biasLat + box, biasLng + box, biasLat - box].join(',');
+      const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=in&viewbox=" +
+        viewbox + "&bounded=1&q=" + encodeURIComponent(query);
+      const res = await fetch(url, { signal: taxiSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      remoteResults = Array.isArray(data) ? data : [];
+    } catch (e) {
+      if (e.name !== 'AbortError' && localMatches.length === 0) {
+        taxiSearchResultsEl.innerHTML = `<p class="loc-search-empty">Search failed — check your connection.</p>`;
+        taxiSearchResultsEl.classList.add('show');
+        return;
+      }
+    }
+    renderTaxiSearchResults([...localMatches, ...remoteResults]);
+  }, 450);
+});
+
 function useTaxiGps() {
   if (!navigator.geolocation) return;
   const btn = document.getElementById('taxi-pickup-gps-btn');
   const prevLabel = btn.textContent;
   btn.textContent = '…';
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
+    async (pos) => {
       btn.textContent = prevLabel;
       const { latitude, longitude } = pos.coords;
       ensureTaxiMap();
       taxiMap.setView([latitude, longitude], 15);
-      placeTaxiPin('pickup', latitude, longitude);
+      // Show a nearby landmark name instead of raw coordinates — the exact
+      // GPS fix (latitude/longitude) is still what gets used for dispatch
+      // and distance, only the displayed label changes.
+      const label = await nearbyLandmarkLabel(latitude, longitude);
+      placeTaxiPin('pickup', latitude, longitude, label);
       taxiActivePin = 'drop';
       updateTaxiPinRows();
     },
@@ -1986,6 +2117,20 @@ function useTaxiGps() {
   );
 }
 document.getElementById('taxi-pickup-gps-btn').addEventListener('click', useTaxiGps);
+
+// Best-effort friendly label for a raw GPS fix: nearest named local landmark
+// within 700m (offline, instant) → nearest locality name within 3km →
+// live Nominatim reverse-geocode → falls back to plain coordinates.
+async function nearbyLandmarkLabel(lat, lng) {
+  await loadLocalLandmarks();
+  const near = findLocalNearbyLandmarks(lat, lng, 700).find(p => p.named);
+  if (near) return 'Near ' + near.name;
+  const locality = findNearestLocality(lat, lng, 3000);
+  if (locality) return 'Near ' + locality.name;
+  const areaName = await fetchPlaceAreaFromNominatim(lat, lng);
+  if (areaName) return 'Near ' + areaName;
+  return lat.toFixed(5) + ", " + lng.toFixed(5);
+}
 
 // Straight-line distance (nudged up ~30% as a road-distance stand-in) is used
 // instantly so fares never sit blank; OSRM's real driving-route distance
@@ -2066,6 +2211,24 @@ document.getElementById('taxi-book-back-btn').addEventListener('click', () => {
 taxiBookBtn.addEventListener('click', async () => {
   const km = currentTaxiKm();
   if (km == null) return;
+  // Guests can freely pick pickup/drop/ride type — login/register is only
+  // asked for right here, at the moment of booking, same pattern as food
+  // checkout. Their chosen pickup/drop/vehicle stay intact so booking
+  // resumes automatically the instant they finish registering/logging in.
+  if (!state.user) {
+    state.authReturnTo = "taxi";
+    loginNumberInput.value = "";
+    loginErrorEl.style.display = "none";
+    loginSubmitBtn.disabled = true;
+    showScreen('login');
+    return;
+  }
+  await submitTaxiBooking();
+});
+
+async function submitTaxiBooking() {
+  const km = currentTaxiKm();
+  if (km == null) return;
   const rt = RIDE_TYPES.find(r => r.key === taxiSelectedType);
   const fare = Math.round(rt.base + rt.perKm * km);
   taxiBookBtn.disabled = true;
@@ -2086,6 +2249,7 @@ taxiBookBtn.addEventListener('click', async () => {
   };
   try {
     await set(rideRef, ride);
+    setStoredActiveRideKey(rideRef.key);
 
     // Fire-and-forget: ask the dispatch worker to alert the nearest online
     // driver first (Uber-style) — pickup lat/lng is what lets it rank
@@ -2113,7 +2277,7 @@ taxiBookBtn.addEventListener('click', async () => {
     updateTaxiBookBtn();
     alert("Couldn't book your ride — check your connection and try again.");
   }
-});
+}
 
 // The driver-side app may write any of a few common spellings for each
 // stage — normalize onto one of our known steps (or 'cancelled') the same
@@ -2131,6 +2295,10 @@ function normalizeRideStatus(raw) {
 
 function renderTaxiTimeline(ride) {
   const status = normalizeRideStatus(ride.status);
+  if (status === 'completed' || status === 'cancelled') {
+    // Ride is over — free up booking so the customer can request a new one.
+    setStoredActiveRideKey(null);
+  }
   if (status === 'cancelled') {
     taxiTrackStatusText.textContent = 'Ride cancelled';
     taxiTrackEtaText.textContent = 'This ride was cancelled.';
@@ -2206,8 +2374,9 @@ function openTaxiTrack(rideKey, initialRide) {
 function leaveTaxiTrack() {
   if (taxiTrackUnsub) { taxiTrackUnsub(); taxiTrackUnsub = null; }
   if (taxiTrackMap) { taxiTrackMap.hide(); taxiTrackMapDriverId = null; }
-  showScreen('taxi-book');
-  persistScreen('taxi-book');
+  // Re-checks whether this ride is still active — if so it sends the
+  // customer straight back to tracking instead of a fresh booking form.
+  goToTaxiBooking();
 }
 document.getElementById('taxi-track-back-btn').addEventListener('click', leaveTaxiTrack);
 
@@ -2265,7 +2434,10 @@ loginSubmitBtn.addEventListener('click', async () => {
 });
 
 loginBackBtn.addEventListener('click', () => {
-  // Back out of the login step to wherever browsing was happening.
+  // Back out of the login step to wherever browsing was happening. Clear
+  // the pending resume so a later, unrelated login doesn't auto-book a
+  // stale taxi ride or auto-open checkout.
+  state.authReturnTo = null;
   if (!tryOpenPendingShopLink()) goToCategoryScreen();
 });
 
@@ -2445,11 +2617,16 @@ otpVerifyBtn.addEventListener('click', async () => {
   }
   otpVerifyBtn.disabled = false;
   otpErrorEl.style.display = "none";
-  // If the customer reached login/register from the checkout flow, resume
-  // straight into checkout instead of dropping them on the category screen.
+  // If the customer reached login/register from the checkout or taxi-booking
+  // flow, resume straight into it instead of dropping them on the category
+  // screen — their cart / pickup+drop+vehicle choice is still intact.
   if (state.authReturnTo === "checkout") {
     state.authReturnTo = null;
     openLocationConfirm();
+  } else if (state.authReturnTo === "taxi") {
+    state.authReturnTo = null;
+    showTaxiBookingForm();
+    await submitTaxiBooking();
   } else if (!tryOpenPendingShopLink()) {
     goToCategoryScreen();
   }
