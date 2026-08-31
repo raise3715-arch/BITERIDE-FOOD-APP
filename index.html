@@ -923,24 +923,24 @@
   </div>
 
   <!-- LOGIN -->
-  <section class="screen active" id="screen-login">
+  <section class="screen" id="screen-login">
+    <div class="px" style="padding-top:32px;">
+      <button class="btn-back" id="login-back">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
     <div class="header">
       <p class="eyebrow">NESH</p>
-      <h1 class="title">Welcome back</h1>
+      <h1 class="title">Login or Sign up</h1>
     </div>
     <div class="px stack">
-      <p class="subtitle">Login with your mobile number and password.</p>
+      <p class="subtitle">Enter your mobile number to continue with your order.</p>
       <div class="field">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        <input id="login-number" type="tel" maxlength="10" placeholder="Mobile number (username)" inputmode="numeric" />
-      </div>
-      <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <input id="login-password" type="password" placeholder="Password" />
+        <input id="login-number" type="tel" maxlength="10" placeholder="Mobile number" inputmode="numeric" />
       </div>
       <p class="error-text" id="login-error" style="display:none;"></p>
-      <button class="btn-primary" id="login-submit" disabled>Login</button>
-      <button class="btn-link" onclick="showScreen('register')">New here? Create an account</button>
+      <button class="btn-primary" id="login-submit" disabled>Continue</button>
     </div>
   </section>
 
@@ -953,31 +953,13 @@
     </div>
     <div class="header">
       <p class="eyebrow">NEW ORDER TICKET</p>
-      <h1 class="title">Create account</h1>
+      <h1 class="title">What's your name?</h1>
     </div>
     <div class="px stack">
+      <p class="subtitle">Mobile: <span style="color:var(--ink); font-weight:700;" id="reg-number-display">+91 —</span></p>
       <div class="field">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <input id="reg-name" type="text" placeholder="Full name" />
-      </div>
-      <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <input id="reg-address" type="text" placeholder="Delivery address" />
-      </div>
-      <div class="row-flex">
-        <div class="field flex-1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <input id="reg-location" type="text" placeholder="Live location (area, city)" />
-        </div>
-        <button class="gps-btn" id="reg-gps-btn">Use GPS</button>
-      </div>
-      <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        <input id="reg-number" type="tel" maxlength="10" placeholder="Mobile number (will be your username)" inputmode="numeric" />
-      </div>
-      <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <input id="reg-password" type="password" placeholder="Create password" />
       </div>
       <p class="error-text" id="reg-error" style="display:none;"></p>
       <div style="padding-top:8px;">
@@ -1012,7 +994,7 @@
   </section>
 
   <!-- HOME -->
-  <section class="screen" id="screen-category">
+  <section class="screen active" id="screen-category">
     <div class="header" style="padding-bottom:8px;">
       <div class="cat-header-eyebrow">
         <p class="eyebrow" id="cat-greeting-eyebrow">HELLO</p>
@@ -1672,7 +1654,6 @@ try {
 let shopLinkHandled = false;
 function tryOpenPendingShopLink() {
   if (!pendingShopLinkId || shopLinkHandled) return false;
-  if (!state.user) return false; // wait for login first
   const rest = RESTAURANTS.find(r => r.id === pendingShopLinkId);
   if (!rest) {
     // Not found yet could just mean the live `restaurants` list from
@@ -1696,11 +1677,15 @@ function tryOpenPendingShopLink() {
 let state = {
   user: null,
   otpFlowFrom: "register",
+  pendingLoginNumber: null, // number being verified via OTP for an existing account
+  pendingRegNumber: null, // number being verified via OTP for a brand-new account
+  authReturnTo: null, // set to "checkout" when login/register was triggered from the checkout flow
   selectedRestaurant: null,
   selectedItem: null, // itemId currently shown on the item-detail screen
   cart: {}, // itemId -> qty
   lastOrder: null, // { restId, orderKey, orderNumber, restName } for the "Track your Order" screen
   customerPos: null, // { lat, lng } — set via "Select your location", used to filter restaurants by delivery zone
+  locationDetectFailed: false, // true once auto-detect has failed/been denied so the UI can nudge the customer to pick manually
   category: null, // 'hotel' (Food) or 'groceries' — chosen on the category screen, filters the restaurant list
   pendingCheckout: null, // { text, lat, lng, place, landmark, contact } — saved once the user taps
                           // "Proceed" on the location step, so the payment step (and a resumed
@@ -2235,48 +2220,53 @@ taxiCancelBtn.addEventListener('click', async () => {
 
 // ---------- LOGIN ----------
 const loginNumberInput = document.getElementById('login-number');
-const loginPasswordInput = document.getElementById('login-password');
 const loginSubmitBtn = document.getElementById('login-submit');
 const loginErrorEl = document.getElementById('login-error');
+const loginBackBtn = document.getElementById('login-back');
 
 function validateLogin() {
   loginErrorEl.style.display = "none";
-  const valid = loginNumberInput.value.length === 10 && loginPasswordInput.value.length > 0;
-  loginSubmitBtn.disabled = !valid;
+  loginSubmitBtn.disabled = loginNumberInput.value.length !== 10;
 }
 loginNumberInput.addEventListener('input', () => {
   loginNumberInput.value = digitsOnly(loginNumberInput.value);
   validateLogin();
 });
-loginPasswordInput.addEventListener('input', validateLogin);
 
+// Single mobile-number step: if an account already exists for this number
+// we go straight to OTP (login); if not, we collect just the name and then
+// OTP (register). Either way this whole screen is only ever shown once —
+// after a successful login/register the session is saved and reused on
+// every future visit/checkout until the customer explicitly logs out.
 loginSubmitBtn.addEventListener('click', async () => {
   const number = loginNumberInput.value;
-  const password = loginPasswordInput.value;
   loginSubmitBtn.disabled = true;
   try {
     const { db, ref, get } = window.fb;
     const snap = await get(ref(db, 'customers/' + number));
-    if (!snap.exists()) {
-      showLoginError("No account found for this mobile number");
-      return;
+    if (snap.exists()) {
+      state.otpFlowFrom = "login";
+      state.pendingLoginNumber = number;
+      loginErrorEl.style.display = "none";
+      await requestOtp(number);
+    } else {
+      state.pendingRegNumber = number;
+      document.getElementById('reg-number-display').textContent = "+91 " + number;
+      regName.value = "";
+      regErrorEl.style.display = "none";
+      validateRegister();
+      showScreen('register');
     }
-    const record = snap.val();
-    if (record.password !== password) {
-      showLoginError("Incorrect password");
-      return;
-    }
-    state.user = { name: record.name, address: record.address, location: record.location, number: record.number };
-    saveUserSession(state.user);
-    attachScratchListener(state.user.number);
-    attachOrderStatusWatcher(state.user.number);
-    loginErrorEl.style.display = "none";
-    if (!tryOpenPendingShopLink()) goToCategoryScreen();
   } catch (e) {
-    showLoginError("DEBUG: " + (e && e.message ? e.message : String(e)));
+    showLoginError("Couldn't check that number — check your connection and try again.");
   } finally {
     loginSubmitBtn.disabled = false;
   }
+});
+
+loginBackBtn.addEventListener('click', () => {
+  // Back out of the login step to wherever browsing was happening.
+  if (!tryOpenPendingShopLink()) goToCategoryScreen();
 });
 
 function showLoginError(msg) {
@@ -2284,66 +2274,24 @@ function showLoginError(msg) {
   loginErrorEl.style.display = "block";
 }
 
-// ---------- REGISTER ----------
+// ---------- REGISTER (name only — phone already captured in the login step) ----------
 const regName = document.getElementById('reg-name');
-const regAddress = document.getElementById('reg-address');
-const regLocation = document.getElementById('reg-location');
-const regNumber = document.getElementById('reg-number');
-const regPassword = document.getElementById('reg-password');
 const regErrorEl = document.getElementById('reg-error');
 const regSendOtpBtn = document.getElementById('reg-send-otp');
 
 function validateRegister() {
   regErrorEl.style.display = "none";
-  const valid = regName.value.trim() && regAddress.value.trim() && regLocation.value.trim() && regNumber.value.length >= 10 && regPassword.value.length > 0;
-  regSendOtpBtn.disabled = !valid;
+  regSendOtpBtn.disabled = !regName.value.trim();
 }
-[regName, regAddress, regLocation, regPassword].forEach(el => el.addEventListener('input', validateRegister));
+regName.addEventListener('input', validateRegister);
 
-// ---------- Real GPS capture (registration) ----------
-const regGpsBtn = document.getElementById('reg-gps-btn');
-regGpsBtn.addEventListener('click', () => {
-  if (!navigator.geolocation) {
-    regLocation.value = "Location unavailable on this device";
-    regLocation.dispatchEvent(new Event('input'));
-    return;
-  }
-  regGpsBtn.disabled = true;
-  regGpsBtn.textContent = "Locating…";
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      regLocation.value = pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5);
-      regLocation.dispatchEvent(new Event('input'));
-      regGpsBtn.disabled = false;
-      regGpsBtn.textContent = "Use GPS";
-    },
-    () => {
-      regLocation.value = "Location permission denied";
-      regLocation.dispatchEvent(new Event('input'));
-      regGpsBtn.disabled = false;
-      regGpsBtn.textContent = "Use GPS";
-    },
-    { enableHighAccuracy: true, timeout: 8000 }
-  );
-});
-regNumber.addEventListener('input', () => {
-  regNumber.value = digitsOnly(regNumber.value);
-  validateRegister();
-});
 regSendOtpBtn.addEventListener('click', async () => {
   regSendOtpBtn.disabled = true;
   try {
-    const { db, ref, get } = window.fb;
-    const snap = await get(ref(db, 'customers/' + regNumber.value));
-    if (snap.exists()) {
-      regErrorEl.textContent = "An account already exists for this mobile number";
-      regErrorEl.style.display = "block";
-      return;
-    }
     state.otpFlowFrom = "register";
-    await requestOtp(regNumber.value);
+    await requestOtp(state.pendingRegNumber);
   } catch (e) {
-    regErrorEl.textContent = "Couldn't check that number — check your connection and try again.";
+    regErrorEl.textContent = "Couldn't send code — check your connection and try again.";
     regErrorEl.style.display = "block";
   } finally {
     regSendOtpBtn.disabled = false;
@@ -2473,13 +2421,17 @@ otpVerifyBtn.addEventListener('click', async () => {
     if (state.otpFlowFrom === "register") {
       const newUser = {
         name: regName.value.trim(),
-        address: regAddress.value.trim(),
-        location: regLocation.value.trim(),
-        number: regNumber.value,
-        password: regPassword.value,
+        number: state.pendingRegNumber,
       };
       await set(ref(db, 'customers/' + newUser.number), newUser);
-      state.user = { name: newUser.name, address: newUser.address, location: newUser.location, number: newUser.number };
+      state.user = { name: newUser.name, number: newUser.number };
+      saveUserSession(state.user);
+      attachScratchListener(state.user.number);
+      attachOrderStatusWatcher(state.user.number);
+    } else if (state.otpFlowFrom === "login") {
+      const loginSnap = await get(ref(db, 'customers/' + state.pendingLoginNumber));
+      const record = loginSnap.val() || {};
+      state.user = { name: record.name, number: state.pendingLoginNumber };
       saveUserSession(state.user);
       attachScratchListener(state.user.number);
       attachOrderStatusWatcher(state.user.number);
@@ -2493,7 +2445,14 @@ otpVerifyBtn.addEventListener('click', async () => {
   }
   otpVerifyBtn.disabled = false;
   otpErrorEl.style.display = "none";
-  if (!tryOpenPendingShopLink()) goToCategoryScreen();
+  // If the customer reached login/register from the checkout flow, resume
+  // straight into checkout instead of dropping them on the category screen.
+  if (state.authReturnTo === "checkout") {
+    state.authReturnTo = null;
+    openLocationConfirm();
+  } else if (!tryOpenPendingShopLink()) {
+    goToCategoryScreen();
+  }
 });
 
 function showOtpError(msg) {
@@ -2807,7 +2766,9 @@ function updateHomeTrackBtn() {
 homeTrackBtn.addEventListener('click', () => openTrackOrder(state.lastOrder, 'home'));
 
 function updateHomeLocationLabel() {
-  homeLocation.textContent = state.customerPos ? "Delivering to selected location" : "Select your location";
+  homeLocation.textContent = state.customerPos
+    ? "Delivering to selected location"
+    : (state.locationDetectFailed ? "Tap to set your location" : "Select your location");
   updateCatLocationLabel();
 }
 function updateCatLocationLabel() {
@@ -4104,6 +4065,16 @@ orderSummaryProceedBtn.addEventListener('click', () => {
   if (count === 0) { closeOrderSummary(); return; }
   closeOrderSummary();
   state.pendingCheckout = null;
+  // Guests get to browse freely — login/register is only asked for right
+  // here, at checkout, and only once (the session is remembered after that).
+  if (!state.user) {
+    state.authReturnTo = "checkout";
+    loginNumberInput.value = "";
+    loginErrorEl.style.display = "none";
+    loginSubmitBtn.disabled = true;
+    showScreen('login');
+    return;
+  }
   openLocationConfirm();
 });
 
@@ -4568,10 +4539,9 @@ function logoutUser() {
   try { localStorage.removeItem('asfood_screen'); } catch (e) {}
   try { localStorage.removeItem('asfood_last_order'); } catch (e) {}
   loginNumberInput.value = "";
-  loginPasswordInput.value = "";
   loginErrorEl.style.display = "none";
   loginSubmitBtn.disabled = true;
-  showScreen('login');
+  goToCategoryScreen();
 }
 document.getElementById('logout-btn').addEventListener('click', logoutUser);
 
@@ -4596,16 +4566,42 @@ document.getElementById('logout-btn').addEventListener('click', closeAccountDrop
 // asks the browser for a fresh GPS position and re-renders the shop list
 // filtered to that location, so the customer never has to pick manually.
 // If permission is denied/unavailable, whatever location was saved from
-// last time (if any) is kept, so the list doesn't just disappear. ----------
+// last time (if any) is kept, so the list doesn't just disappear. If
+// there's no saved location either, the "Select your location" label is
+// updated to make it obvious the customer needs to tap it and pick one
+// manually instead of silently doing nothing. ----------
 function autoDetectLocation() {
-  if (!navigator.geolocation) return;
+  if (!navigator.geolocation) {
+    state.locationDetectFailed = true;
+    return;
+  }
+  // getCurrentPosition silently fails on any page that isn't served over
+  // HTTPS (or localhost) — browsers block the Geolocation API entirely on
+  // insecure origins, with no permission prompt and no error callback in
+  // some browsers. Skip straight to the manual fallback in that case so
+  // the customer isn't left staring at a location row that never updates.
+  const isSecure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+  if (!isSecure) {
+    state.locationDetectFailed = true;
+    return;
+  }
   navigator.geolocation.getCurrentPosition(
     pos => {
       state.customerPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      state.locationDetectFailed = false;
       try { localStorage.setItem('asfood_customer_pos', JSON.stringify(state.customerPos)); } catch (e) {}
       renderHome();
     },
-    () => { /* permission denied / timeout — keep last saved location, if any */ },
+    (err) => {
+      // Permission denied / timeout / position unavailable — keep whatever
+      // location was saved from last time (if any); otherwise the label
+      // is updated (via updateHomeLocationLabel) to point the customer at
+      // the manual picker instead of just sitting there unexplained.
+      if (!state.customerPos) {
+        state.locationDetectFailed = true;
+        updateHomeLocationLabel();
+      }
+    },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
   );
 }
@@ -4621,17 +4617,16 @@ try {
   if (savedOrder && savedOrder.orderKey) state.lastOrder = savedOrder;
 } catch (e) {}
 
-if (state.user) {
-  // A fresh shop link takes priority over resuming wherever the customer
-  // was last, and over the default home/category screen — that's the whole
-  // point of tapping a shared link, it should open straight to that shop
-  // and nothing else. If RESTAURANTS hasn't loaded yet, tryOpenPendingShopLink
-  // leaves pendingShopLinkId set, and attemptNormalResumeIfNeeded() below
-  // (and again from onRestaurantsUpdated once real data lands) will keep
-  // deferring to it instead of showing home/category first.
-  if (pendingShopLinkId) resumed = tryOpenPendingShopLink();
-  attemptNormalResumeIfNeeded();
-}
+// A fresh shop link takes priority over resuming wherever the customer
+// was last, and over the default home/category screen — that's the whole
+// point of tapping a shared link, it should open straight to that shop
+// and nothing else. If RESTAURANTS hasn't loaded yet, tryOpenPendingShopLink
+// leaves pendingShopLinkId set, and attemptNormalResumeIfNeeded() below
+// (and again from onRestaurantsUpdated once real data lands) will keep
+// deferring to it instead of showing home/category first.
+// This now runs for guests too — login is only asked for at checkout.
+if (pendingShopLinkId) resumed = tryOpenPendingShopLink();
+attemptNormalResumeIfNeeded();
 
 // ---------- PWA: register service worker ----------
 if ('serviceWorker' in navigator) {
