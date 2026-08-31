@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>NESH — Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --bg-outer:#FFFCF2;
+    --ink:#2B2410;
+    --marigold:#F2B705;
+    --marigold-dark:#D69E00;
+    --chili:#C97F00;
+    --leaf:#1BA672;
+    --leaf-dark:#0C6E4A;
+    --muted:#B4A87F;
+    --muted-2:#6B5E3D;
+    --field-bg:#FFF8DF;
+    --field-border:#F2E2A6;
+    --card-shadow:0 2px 14px rgba(43,36,16,.08);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg-outer);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    justify-content:center;
+    min-height:100vh;
+    color:var(--ink);
+  }
+  #app{
+    width:100%;
+    max-width:420px;
+    min-height:100vh;
+    background:var(--bg);
+    position:relative;
+    padding-bottom:96px;
+  }
+
+  /* ---------- loading / error states ---------- */
+  .state-screen{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:12px; padding:32px; text-align:center;
+  }
+  .spinner{
+    width:34px; height:34px; border-radius:50%;
+    border:3px solid var(--field-border); border-top-color:var(--marigold-dark);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .state-title{ font-family:'Fraunces',serif; font-size:19px; font-weight:700; margin:0; }
+  .state-text{ color:var(--muted-2); font-size:14px; margin:0; line-height:1.5; }
+
+  /* ---------- header ---------- */
+  .shop-banner{
+    height:160px; background-size:cover; background-position:center;
+    background-color:var(--field-bg); position:relative;
+  }
+  .shop-banner::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(20,15,5,0) 55%, rgba(20,15,5,.55) 100%);
+  }
+  .shop-header{ padding:16px 20px 18px; border-bottom:1px solid var(--field-border); }
+  .shop-name{ font-family:'Fraunces',serif; font-size:24px; font-weight:700; margin:0; }
+  .shop-meta{ color:var(--muted-2); font-size:13px; margin:5px 0 0; }
+
+  /* ---------- menu ---------- */
+  .menu-list{ padding:14px 16px 4px; display:flex; flex-direction:column; gap:12px; }
+  .item-card{
+    display:flex; gap:12px; padding:14px; border-radius:16px;
+    background:#fff; border:1px solid var(--field-border); box-shadow:var(--card-shadow);
+    align-items:center;
+  }
+  .item-photo{
+    width:64px; height:64px; border-radius:12px; object-fit:cover; flex-shrink:0;
+    background:var(--field-bg);
+  }
+  .item-info{ flex:1; min-width:0; }
+  .item-name{ font-size:14.5px; font-weight:700; margin:0; }
+  .item-desc{ color:var(--muted-2); font-size:12px; margin:3px 0 0; line-height:1.4; }
+  .item-price{ color:var(--chili); font-weight:700; font-size:13.5px; margin:5px 0 0; }
+
+  .qty-stepper{
+    display:flex; align-items:center; gap:0; flex-shrink:0;
+    border:1.5px solid var(--field-border); border-radius:10px; overflow:hidden;
+  }
+  .qty-btn{
+    width:30px; height:30px; border:none; background:var(--field-bg); color:var(--ink);
+    font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .qty-btn:active{ background:var(--field-border); }
+  .qty-val{ width:26px; text-align:center; font-size:13.5px; font-weight:700; }
+  .add-btn{
+    padding:8px 16px; border:1.5px solid var(--leaf); color:var(--leaf); background:#fff;
+    border-radius:10px; font-weight:700; font-size:13px; cursor:pointer; flex-shrink:0;
+  }
+  .add-btn:active{ background:rgba(27,166,114,.08); }
+
+  .empty-menu{ padding:40px 24px; text-align:center; color:var(--muted-2); font-size:14px; }
+
+  /* ---------- sticky cart bar ---------- */
+  .cart-bar{
+    position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:center;
+    pointer-events:none;
+  }
+  .cart-bar-inner{
+    width:100%; max-width:420px; pointer-events:auto;
+    background:#fff; border-top:1px solid var(--field-border);
+    box-shadow:0 -6px 20px rgba(43,36,16,.1);
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:12px;
+    transform:translateY(110%); transition:transform .22s ease;
+  }
+  .cart-bar-inner.show{ transform:translateY(0); }
+  .cart-bar-info{ flex:1; min-width:0; }
+  .cart-bar-count{ font-size:11.5px; color:var(--muted-2); margin:0 0 2px; }
+  .cart-bar-total{ font-family:'Fraunces',serif; font-size:18px; font-weight:700; margin:0; }
+  .whatsapp-btn{
+    display:flex; align-items:center; gap:8px; padding:13px 18px; border:none; border-radius:12px;
+    background:var(--leaf); color:#fff; font-weight:700; font-size:14px; cursor:pointer;
+    font-family:'Inter',sans-serif; box-shadow:0 6px 16px rgba(27,166,114,.35); white-space:nowrap;
+  }
+  .whatsapp-btn:active{ transform:scale(0.98); }
+  .whatsapp-btn svg{ flex-shrink:0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="state-screen" class="state-screen">
+    <div class="spinner"></div>
+    <p class="state-text">Loading shop…</p>
+  </div>
+
+  <div id="shop-view" style="display:none;">
+    <div id="shop-banner" class="shop-banner"></div>
+    <div class="shop-header">
+      <p id="shop-name" class="shop-name"></p>
+      <p class="shop-meta">Add items, then send your order on WhatsApp</p>
+    </div>
+    <div id="menu-list" class="menu-list"></div>
+  </div>
+</div>
+
+<div class="cart-bar">
+  <div id="cart-bar-inner" class="cart-bar-inner">
+    <div class="cart-bar-info">
+      <p id="cart-bar-count" class="cart-bar-count">0 items</p>
+      <p id="cart-bar-total" class="cart-bar-total">₹0</p>
+    </div>
+    <button id="whatsapp-btn" class="whatsapp-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.48 1.34 5L2 22l5.2-1.36c1.46.8 3.1 1.22 4.84 1.22 5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm5.84 14.24c-.25.7-1.45 1.33-2 1.42-.53.08-1.15.12-1.85-.12-.43-.14-.98-.33-1.68-.64-2.96-1.28-4.9-4.25-5.05-4.45-.15-.2-1.2-1.6-1.2-3.05 0-1.45.76-2.16 1.03-2.46.27-.3.6-.37.8-.37h.57c.18 0 .43-.07.67.51.25.6.85 2.08.92 2.23.07.15.12.33.02.53-.1.2-.15.33-.3.5-.15.18-.3.4-.44.54-.15.15-.3.3-.13.6.17.3.75 1.24 1.62 2 1.12.99 2.05 1.3 2.35 1.45.3.15.47.13.65-.08.18-.2.75-.87.95-1.17.2-.3.4-.25.65-.15.27.1 1.7.8 2 .95.3.15.5.22.57.35.08.13.08.75-.17 1.45z"/></svg>
+      Order on WhatsApp
+    </button>
+  </div>
+</div>
+
+<script>
+  // ---------- Config ----------
+  const FIREBASE_DB = "https://texi-and-food-default-rtdb.firebaseio.com";
+  const WHATSAPP_NUMBER = "919656504127"; // NESH order bot, with country code, no + or spaces
+  const FALLBACK_IMAGE = "https://nesh-group.github.io/NESH-APP/icon-512.png";
+
+  const params = new URLSearchParams(window.location.search);
+  const shopId = params.get("id") || params.get("shop");
+
+  const stateScreen = document.getElementById("state-screen");
+  const shopView = document.getElementById("shop-view");
+  const shopBanner = document.getElementById("shop-banner");
+  const shopNameEl = document.getElementById("shop-name");
+  const menuListEl = document.getElementById("menu-list");
+  const cartBarInner = document.getElementById("cart-bar-inner");
+  const cartBarCount = document.getElementById("cart-bar-count");
+  const cartBarTotal = document.getElementById("cart-bar-total");
+  const whatsappBtn = document.getElementById("whatsapp-btn");
+
+  function showState(title, text) {
+    stateScreen.innerHTML = `
+      <p class="state-title">${title}</p>
+      <p class="state-text">${text}</p>
+    `;
+    stateScreen.style.display = "flex";
+    shopView.style.display = "none";
+  }
+
+  const cart = {}; // itemId -> qty
+  let shopData = null;
+  let itemList = [];
+
+  function renderCartBar() {
+    const qtys = Object.values(cart);
+    const count = qtys.reduce((s, q) => s + q, 0);
+    if (!count) {
+      cartBarInner.classList.remove("show");
+      return;
+    }
+    let total = 0;
+    for (const [id, qty] of Object.entries(cart)) {
+      const item = itemList.find((it) => it.id === id);
+      if (item) total += item.price * qty;
+    }
+    cartBarCount.textContent = `${count} item${count > 1 ? "s" : ""}`;
+    cartBarTotal.textContent = `₹${total}`;
+    cartBarInner.classList.add("show");
+  }
+
+  function setQty(itemId, qty) {
+    if (qty <= 0) {
+      delete cart[itemId];
+    } else {
+      cart[itemId] = qty;
+    }
+    renderMenu();
+    renderCartBar();
+  }
+
+  function renderMenu() {
+    if (!itemList.length) {
+      menuListEl.innerHTML = `<div class="empty-menu">No items available right now. Please check back later.</div>`;
+      return;
+    }
+    menuListEl.innerHTML = "";
+    itemList.forEach((item) => {
+      const qty = cart[item.id] || 0;
+      const card = document.createElement("div");
+      card.className = "item-card";
+      card.innerHTML = `
+        ${item.photo ? `<img class="item-photo" src="${item.photo}" alt="">` : ""}
+        <div class="item-info">
+          <p class="item-name">${item.name}</p>
+          ${item.desc ? `<p class="item-desc">${item.desc}</p>` : ""}
+          <p class="item-price">₹${item.price}</p>
+        </div>
+        <div class="qty-controls"></div>
+      `;
+      const controls = card.querySelector(".qty-controls");
+      if (qty > 0) {
+        controls.innerHTML = `
+          <div class="qty-stepper">
+            <button class="qty-btn" data-action="dec">−</button>
+            <span class="qty-val">${qty}</span>
+            <button class="qty-btn" data-action="inc">+</button>
+          </div>
+        `;
+        controls.querySelector('[data-action="dec"]').onclick = () => setQty(item.id, qty - 1);
+        controls.querySelector('[data-action="inc"]').onclick = () => setQty(item.id, qty + 1);
+      } else {
+        controls.innerHTML = `<button class="add-btn">Add</button>`;
+        controls.querySelector(".add-btn").onclick = () => setQty(item.id, 1);
+      }
+      menuListEl.appendChild(card);
+    });
+  }
+
+  whatsappBtn.addEventListener("click", () => {
+    const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
+    if (!entries.length) return;
+    const cartStr = entries.map(([id, qty]) => `${id}x${qty}`).join(",");
+    const orderText = `ORDER|${shopId}|${cartStr}`;
+    const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(orderText)}`;
+    window.location.href = waLink;
+  });
+
+  async function init() {
+    if (!shopId) {
+      showState("Shop not found", "This link is missing a shop. Please use the link the shop shared with you.");
+      return;
+    }
+    try {
+      const res = await fetch(`${FIREBASE_DB}/restaurants/${encodeURIComponent(shopId)}.json`);
+      shopData = await res.json();
+    } catch (e) {
+      showState("Couldn't load shop", "Check your connection and try opening the link again.");
+      return;
+    }
+    if (!shopData || shopData.status === "suspended") {
+      showState("Shop unavailable", "This shop isn't taking orders right now.");
+      return;
+    }
+
+    const name = shopData.restaurantName || shopData.name || "Shop";
+    shopNameEl.textContent = name;
+    shopBanner.style.backgroundImage = `url("${shopData.photo || FALLBACK_IMAGE}")`;
+
+    itemList = Object.entries(shopData.menu || {})
+      .filter(([, it]) => it && it.unavailable !== true)
+      .map(([id, it]) => ({ id, ...it }));
+
+    stateScreen.style.display = "none";
+    shopView.style.display = "block";
+    renderMenu();
+    renderCartBar();
+  }
+
+  init();
+</script>
+</body>
+</html>
