@@ -1874,9 +1874,7 @@ document.getElementById('cat-loc-card').addEventListener('click', () => openBrow
 
 // ---------- TAXI (Uber-style ride booking) ----------
 const RIDE_TYPES = [
-  { key: 'bike', label: 'Bike', icon: '🏍️', base: 15, perKm: 6,  etaMin: 3 },
   { key: 'auto', label: 'Auto', icon: '🛺', base: 25, perKm: 10, etaMin: 4 },
-  { key: 'cab',  label: 'Cab',  icon: '🚗', base: 40, perKm: 14, etaMin: 6 },
 ];
 const TAXI_STEPS = [
   { key: 'searching', label: 'Finding a nearby driver' },
@@ -1949,8 +1947,49 @@ function ensureTaxiMap() {
   });
 }
 
-function placeTaxiPin(which, lat, lng) {
-  const pos = { lat, lng, text: lat.toFixed(5) + ", " + lng.toFixed(5) };
+// Finds the closest place we already know by name (curated list) within a
+// reasonable distance, so nearby taps resolve instantly without a network
+// call. Returns null if nothing is close enough to be a useful landmark.
+function findNearestKnownPlace(lat, lng, maxKm = 1.5) {
+  let best = null, bestDist = Infinity;
+  for (const p of ALL_PLACES) {
+    const d = haversineMeters(lat, lng, p.lat, p.lng) / 1000;
+    if (d < bestDist) { bestDist = d; best = p; }
+  }
+  if (best && bestDist <= maxKm) return { name: best.name, distanceKm: bestDist };
+  return null;
+}
+
+// Reverse geocodes a lat/lng into a short, human-readable place/landmark
+// name via OpenStreetMap Nominatim (free, no API key). Falls back to
+// coordinates only if lookup fails or is offline. Pickup labels get a
+// "Near X" prefix since the pin is rarely exactly on the landmark; drop
+// labels stay as the plain place name.
+async function reverseGeocodeLabel(lat, lng, which) {
+  const nearby = findNearestKnownPlace(lat, lng);
+  if (nearby) {
+    if (which === 'pickup') {
+      return nearby.distanceKm < 0.05 ? nearby.name : `Near ${nearby.name}`;
+    }
+    return nearby.name;
+  }
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await res.json();
+    const a = data && data.address;
+    let label = null;
+    if (a) label = a.suburb || a.village || a.town || a.hamlet || a.neighbourhood || a.road || a.county;
+    if (!label && data && data.display_name) label = data.display_name.split(',').slice(0, 2).join(',').trim();
+    if (label) return which === 'pickup' ? `Near ${label}` : label;
+  } catch (e) {
+    // offline or request failed — coordinates fallback below covers it
+  }
+  return lat.toFixed(5) + ", " + lng.toFixed(5);
+}
+
+function placeTaxiPin(which, lat, lng, knownLabel) {
+  const pos = { lat, lng, text: knownLabel || (lat.toFixed(5) + ", " + lng.toFixed(5)) };
   if (which === 'pickup') {
     taxiPickup = pos;
     taxiPickupInput.value = pos.text;
@@ -1969,6 +2008,21 @@ function placeTaxiPin(which, lat, lng) {
   ensureTaxiRoadDistance();
   renderRideOptions();
   updateTaxiBookBtn();
+
+  // If no name was supplied up front (map tap, drag, or GPS), resolve one in
+  // the background — the accurate lat/lng is already saved and used for
+  // routing/fare, this only upgrades what's shown in the input field.
+  if (!knownLabel) {
+    const requestLat = lat, requestLng = lng, requestWhich = which;
+    reverseGeocodeLabel(lat, lng, requestWhich).then(label => {
+      const current = requestWhich === 'pickup' ? taxiPickup : taxiDrop;
+      // Only apply if the pin hasn't moved again since this lookup started.
+      if (current && current.lat === requestLat && current.lng === requestLng) {
+        current.text = label;
+        (requestWhich === 'pickup' ? taxiPickupInput : taxiDropInput).value = label;
+      }
+    });
+  }
 }
 
 function updateTaxiPinRows() {
@@ -2075,7 +2129,7 @@ function showManualPlacesList(type) {
       item.addEventListener('mouseover', () => { item.style.background = '#f9f9f9'; });
       item.addEventListener('mouseout', () => { item.style.background = 'transparent'; });
       item.addEventListener('click', () => {
-        placeTaxiPin(type, place.lat, place.lng);
+        placeTaxiPin(type, place.lat, place.lng, place.name);
         if (type === 'pickup' && !taxiDrop) taxiActivePin = 'drop';
         updateTaxiPinRows();
         modal.remove();
@@ -2167,7 +2221,6 @@ function renderRideOptions() {
         <p class="ride-option-name">${rt.label}</p>
         <p class="ride-option-eta">${rt.etaMin} min away</p>
       </div>
-      <div class="ride-option-fare">₹${fare}</div>
     `;
     el.addEventListener('click', () => { taxiSelectedType = rt.key; renderRideOptions(); updateTaxiBookBtn(); });
     taxiRideOptionsEl.appendChild(el);
@@ -2182,9 +2235,8 @@ function updateTaxiBookBtn() {
     return;
   }
   const rt = RIDE_TYPES.find(r => r.key === taxiSelectedType);
-  const fare = Math.round(rt.base + rt.perKm * km);
   taxiBookBtn.disabled = false;
-  taxiBookBtn.textContent = `Book ${rt.label} · ₹${fare}`;
+  taxiBookBtn.textContent = `Book ${rt.label}`;
 }
 
 document.getElementById('taxi-book-back-btn').addEventListener('click', () => {
@@ -2272,8 +2324,8 @@ function renderTaxiTimeline(ride) {
   const currentIdx = TAXI_STEPS.findIndex(s => s.key === status);
   taxiTrackStatusText.textContent = TAXI_STEPS[currentIdx].label;
   taxiTrackEtaText.textContent = status === 'completed'
-    ? `Trip complete — ₹${ride.fare} · ${ride.distanceKm} km`
-    : `${ride.vehicleLabel || ''} · ₹${ride.fare} · ${ride.distanceKm} km`;
+    ? `Trip complete — ${ride.distanceKm} km`
+    : `${ride.vehicleLabel || ''} · ${ride.distanceKm} km`;
 
   if (ride.driverName) {
     taxiDriverCard.classList.remove('hidden');
