@@ -1048,7 +1048,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#241F1B" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
         <div class="cat-card-text">
-          <p class="cat-card-title">Online Shopping</p>
+          <p class="cat-card-title">Other Shop</p>
           <p class="cat-card-sub">Shop products, delivered to you</p>
         </div>
       </div>
@@ -1556,7 +1556,7 @@
         list.push({
           id: child.key,
           name: v.restaurantName || 'Restaurant',
-          cuisine: v.address || (businessType === 'groceries' ? 'Local store' : businessType === 'online_shop' ? 'Online shop' : 'Local restaurant'),
+          cuisine: v.address || (businessType === 'groceries' ? 'Local store' : businessType === 'online_shop' ? 'Other shop' : 'Local restaurant'),
           rating: 4.5,
           ratingCount: 40 + (i * 37) % 400,
           time: "30-40 min",
@@ -1600,12 +1600,39 @@
     window.PLATFORM_EXTRA_AMOUNT = PLATFORM_EXTRA_AMOUNT;
     if (window.onPlatformFeeUpdated) window.onPlatformFeeUpdated();
   });
+
+  // Live-listens to the operator-set order for the home-screen category
+  // cards (Food / Groceries / Other Shop / Taxi). Exposed on window so the
+  // plain <script> below (which owns the actual DOM) can reorder them.
+  onValue(ref(db, 'app_config/categoryOrder'), (snapshot) => {
+    const order = snapshot.val();
+    if (window.applyCategoryOrder) window.applyCategoryOrder(order);
+  });
 </script>
 
 <script>
 // ---------- Live data (populated from Firebase, see module script above) ----------
 let RESTAURANTS = [];
 let restaurantsLoadedOnce = false; // true once the FIRST real snapshot has arrived from Firebase
+
+// Reorders the four home-screen category cards (Food, Groceries, Other
+// Shop, Taxi) inside .cat-wrap according to the operator-set order coming
+// from app_config/categoryOrder. Falls back to the original markup order
+// if nothing's been set (or the saved value looks malformed), so the home
+// screen never ends up with a missing/duplicated card.
+const CATEGORY_CARD_IDS = { hotel: 'cat-card-food', groceries: 'cat-card-groceries', online_shop: 'cat-card-online-shop', taxi: 'cat-card-taxi' };
+const CATEGORY_DEFAULT_ORDER = ['hotel', 'groceries', 'online_shop', 'taxi'];
+window.applyCategoryOrder = function (order) {
+  const valid = Array.isArray(order) && order.length === CATEGORY_DEFAULT_ORDER.length && CATEGORY_DEFAULT_ORDER.every(k => order.includes(k));
+  const finalOrder = valid ? order : CATEGORY_DEFAULT_ORDER;
+  const wrap = document.querySelector('.cat-wrap');
+  if (!wrap) return;
+  finalOrder.forEach(key => {
+    const el = document.getElementById(CATEGORY_CARD_IDS[key]);
+    if (el) wrap.appendChild(el); // appendChild on an existing node moves it — this reorders in place
+  });
+};
+
 window.onRestaurantsUpdated = () => {
   RESTAURANTS = window.RESTAURANTS || [];
   restaurantsLoadedOnce = true;
@@ -4340,7 +4367,12 @@ payConfirmBtn.addEventListener('click', async () => {
     return;
   }
 
-  const orderNumber = "KOT-" + Math.floor(1000 + Math.random() * 9000);
+  // "KOT" (Kitchen Order Ticket) is hotel/restaurant kitchen terminology —
+  // it only makes sense for food orders. Groceries and online-shop orders
+  // aren't cooked, so they get a plain "ORD-" order number instead.
+  const orderNumber = (r.businessType === 'hotel' || !r.businessType)
+    ? "KOT-" + Math.floor(1000 + Math.random() * 9000)
+    : "ORD-" + Math.floor(1000 + Math.random() * 9000);
   const orderItems = r.items
     .filter(it => state.cart[it.id])
     .map(it => ({ name: it.name, price: it.price, qty: state.cart[it.id] }));
