@@ -2016,8 +2016,8 @@ function showManualPlacesList(type) {
     <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;" id="places-modal">
       <div style="background: white; border-radius: 16px; max-width: 400px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
         <div style="padding: 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: white;">
-          <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700;">Select ${type === 'pickup' ? 'Pickup' : 'Delivery'} Location</h3>
-          <input type="text" id="places-search" placeholder="Search places..." 
+          <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700;">Select ${type === 'pickup' ? 'Pickup' : 'Drop'} Location</h3>
+          <input type="text" id="places-search" placeholder="Search places in Kerala..." 
             style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit;">
         </div>
         <div id="places-list" style="padding: 0;"></div>
@@ -2028,9 +2028,38 @@ function showManualPlacesList(type) {
   const modal = document.getElementById('places-modal');
   const search = document.getElementById('places-search');
   const list = document.getElementById('places-list');
-  
-  function renderList(query = '') {
-    const places = searchManualPlaces(query);
+
+  // Kerala bounding box, used to bias/restrict the live OSM search so
+  // results stay relevant to the service area instead of matching places
+  // with the same name anywhere in the world.
+  const KERALA_VIEWBOX = '74.8,12.85,77.5,8.2'; // left,top,right,bottom
+
+  let liveSearchAbort = null;
+  let liveSearchTimer = null;
+
+  async function fetchLivePlaces(query) {
+    if (!query || query.trim().length < 3) return [];
+    if (liveSearchAbort) liveSearchAbort.abort();
+    liveSearchAbort = new AbortController();
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&viewbox=${KERALA_VIEWBOX}&bounded=1&limit=8&addressdetails=1`;
+      const res = await fetch(url, { signal: liveSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      return (data || [])
+        .filter(d => (d.address && (d.address.state || '').toLowerCase().includes('kerala')) || true)
+        .map(d => ({
+          id: 'osm/' + d.place_id,
+          name: d.display_name.split(',').slice(0, 2).join(',').trim(),
+          lat: parseFloat(d.lat),
+          lng: parseFloat(d.lon),
+          live: true
+        }));
+    } catch (e) {
+      return []; // aborted or offline — local list results still show
+    }
+  }
+
+  function renderItems(places) {
     list.innerHTML = '';
     if (places.length === 0) {
       list.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No places found</div>';
@@ -2040,7 +2069,7 @@ function showManualPlacesList(type) {
       const item = document.createElement('div');
       item.style.cssText = 'padding: 12px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s;';
       item.innerHTML = `
-        <div style="font-weight: 600; color: #2B2410; margin-bottom: 4px;">${place.name}</div>
+        <div style="font-weight: 600; color: #2B2410; margin-bottom: 4px;">${place.name}${place.live ? ' <span style="font-size:10px; font-weight:600; color:#C97F00; border:1px solid #C97F00; border-radius:4px; padding:1px 5px; margin-left:4px;">MAP</span>' : ''}</div>
         <div style="font-size: 12px; color: #999;">${place.lat.toFixed(4)}, ${place.lng.toFixed(4)}</div>
       `;
       item.addEventListener('mouseover', () => { item.style.background = '#f9f9f9'; });
@@ -2054,9 +2083,33 @@ function showManualPlacesList(type) {
       list.appendChild(item);
     });
   }
-  
+
+  async function renderList(query = '') {
+    // Local curated list (instant, always shown first)
+    const localPlaces = searchManualPlaces(query);
+    renderItems(localPlaces);
+
+    if (!query || query.trim().length < 3) return; // avoid noisy calls for very short queries
+
+    list.insertAdjacentHTML('beforeend', '<div id="places-loading" style="padding: 12px 20px; text-align: center; color: #bbb; font-size: 12px;">Searching more places…</div>');
+
+    const livePlaces = await fetchLivePlaces(query);
+    const loadingEl = document.getElementById('places-loading');
+    if (loadingEl) loadingEl.remove();
+
+    // De-dupe: drop live results that are basically the same as a local one
+    const localKeys = new Set(localPlaces.map(p => p.name.toLowerCase()));
+    const extra = livePlaces.filter(p => !localKeys.has(p.name.toLowerCase()));
+
+    if (extra.length > 0) renderItems([...localPlaces, ...extra]);
+  }
+
   renderList();
-  search.addEventListener('input', (e) => renderList(e.target.value));
+  search.addEventListener('input', (e) => {
+    clearTimeout(liveSearchTimer);
+    const val = e.target.value;
+    liveSearchTimer = setTimeout(() => renderList(val), 350); // debounce live lookups
+  });
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.remove();
   });
