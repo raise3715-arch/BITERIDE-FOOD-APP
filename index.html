@@ -2002,6 +2002,22 @@ function placeTaxiPin(which, lat, lng, label) {
   ensureTaxiRoadDistance();
   renderRideOptions();
   updateTaxiBookBtn();
+
+  // If no label was supplied up front (map tap or drag), resolve a friendly
+  // landmark name in the background — same as old version's behavior. The
+  // exact lat/lng is already saved and used for routing/fare; this only
+  // upgrades what's shown in the input field once the lookup returns.
+  if (!label) {
+    const requestLat = lat, requestLng = lng, requestWhich = which;
+    nearbyLandmarkLabel(lat, lng).then(resolvedLabel => {
+      const current = requestWhich === 'pickup' ? taxiPickup : taxiDrop;
+      // Only apply if the pin hasn't moved again since this lookup started.
+      if (current && current.lat === requestLat && current.lng === requestLng) {
+        current.text = resolvedLabel;
+        (requestWhich === 'pickup' ? taxiPickupInput : taxiDropInput).value = resolvedLabel;
+      }
+    });
+  }
 }
 
 function updateTaxiPinRows() {
@@ -2079,7 +2095,7 @@ taxiSearchInput.addEventListener('input', () => {
       const viewbox = [biasLng - box, biasLat + box, biasLng + box, biasLat - box].join(',');
       const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=in&viewbox=" +
         viewbox + "&bounded=1&q=" + encodeURIComponent(query);
-      const res = await fetch(url, { signal: taxiSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
+      const res = await fetch(url, { signal: taxiSearchAbort.signal, headers: { 'Accept-Language': 'ml' } });
       const data = await res.json();
       remoteResults = Array.isArray(data) ? data : [];
     } catch (e) {
@@ -3627,7 +3643,7 @@ async function fetchPlaceAreaFromNominatim(lat, lng) {
     if (placeAreaAbort) placeAreaAbort.abort();
     placeAreaAbort = new AbortController();
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
-    const res = await fetch(url, { signal: placeAreaAbort.signal, headers: { 'Accept-Language': 'en' } });
+    const res = await fetch(url, { signal: placeAreaAbort.signal, headers: { 'Accept-Language': 'ml' } });
     const data = await res.json();
     const a = data.address || {};
     return a.village || a.suburb || a.town || a.hamlet || a.neighbourhood || a.county || null;
@@ -3879,7 +3895,7 @@ locSearchInput.addEventListener('input', () => {
       const viewbox = [biasLng - box, biasLat + box, biasLng + box, biasLat - box].join(',');
       const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=in&viewbox=" +
         viewbox + "&bounded=1&q=" + encodeURIComponent(query);
-      const res = await fetch(url, { signal: locSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
+      const res = await fetch(url, { signal: locSearchAbort.signal, headers: { 'Accept-Language': 'ml' } });
       const data = await res.json();
       remoteResults = Array.isArray(data) ? data : [];
     } catch (e) {
@@ -4163,7 +4179,7 @@ browseLocSearchInput.addEventListener('input', () => {
       if (browseSearchAbort) browseSearchAbort.abort();
       browseSearchAbort = new AbortController();
       const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=in&q=" + encodeURIComponent(query);
-      const res = await fetch(url, { signal: browseSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
+      const res = await fetch(url, { signal: browseSearchAbort.signal, headers: { 'Accept-Language': 'ml' } });
       const data = await res.json();
       remoteResults = Array.isArray(data) ? data : [];
     } catch (e) {
