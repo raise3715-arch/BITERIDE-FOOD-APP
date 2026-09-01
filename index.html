@@ -2073,6 +2073,10 @@ function showManualPlacesList(type) {
           <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700;">Select ${type === 'pickup' ? 'Pickup' : 'Drop'} Location</h3>
           <input type="text" id="places-search" placeholder="Search places in Kerala..." 
             style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit;">
+          ${type === 'pickup' ? `
+          <button id="use-current-loc-btn" style="width: 100%; margin-top: 10px; padding: 12px; border: none; border-radius: 8px; background: #FFF6E0; color: #C97F00; font-weight: 700; font-size: 14px; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+            📍 Use current location
+          </button>` : ''}
         </div>
         <div id="places-list" style="padding: 0;"></div>
       </div>
@@ -2082,6 +2086,27 @@ function showManualPlacesList(type) {
   const modal = document.getElementById('places-modal');
   const search = document.getElementById('places-search');
   const list = document.getElementById('places-list');
+  const currentLocBtn = document.getElementById('use-current-loc-btn');
+
+  if (currentLocBtn) currentLocBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) return;
+    const prevLabel = currentLocBtn.innerHTML;
+    currentLocBtn.innerHTML = 'Locating…';
+    currentLocBtn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        ensureTaxiMap();
+        taxiMap.setView([latitude, longitude], 15);
+        placeTaxiPin(type, latitude, longitude);
+        if (type === 'pickup' && !taxiDrop) taxiActivePin = 'drop';
+        updateTaxiPinRows();
+        modal.remove();
+      },
+      () => { currentLocBtn.innerHTML = prevLabel; currentLocBtn.disabled = false; },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
 
   // Kerala bounding box, used to bias/restrict the live OSM search so
   // results stay relevant to the service area instead of matching places
