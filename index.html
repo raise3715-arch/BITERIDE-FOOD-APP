@@ -923,24 +923,24 @@
   </div>
 
   <!-- LOGIN -->
-  <section class="screen active" id="screen-login">
+  <section class="screen" id="screen-login">
+    <div class="px" style="padding-top:32px;">
+      <button class="btn-back" id="login-back">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
     <div class="header">
       <p class="eyebrow">NESH</p>
-      <h1 class="title">Welcome back</h1>
+      <h1 class="title">Login or Sign up</h1>
     </div>
     <div class="px stack">
-      <p class="subtitle">Login with your mobile number and password.</p>
+      <p class="subtitle">Enter your mobile number to continue with your order.</p>
       <div class="field">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        <input id="login-number" type="tel" maxlength="10" placeholder="Mobile number (username)" inputmode="numeric" />
-      </div>
-      <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <input id="login-password" type="password" placeholder="Password" />
+        <input id="login-number" type="tel" maxlength="10" placeholder="Mobile number" inputmode="numeric" />
       </div>
       <p class="error-text" id="login-error" style="display:none;"></p>
-      <button class="btn-primary" id="login-submit" disabled>Login</button>
-      <button class="btn-link" onclick="showScreen('register')">New here? Create an account</button>
+      <button class="btn-primary" id="login-submit" disabled>Continue</button>
     </div>
   </section>
 
@@ -953,31 +953,13 @@
     </div>
     <div class="header">
       <p class="eyebrow">NEW ORDER TICKET</p>
-      <h1 class="title">Create account</h1>
+      <h1 class="title">What's your name?</h1>
     </div>
     <div class="px stack">
+      <p class="subtitle">Mobile: <span style="color:var(--ink); font-weight:700;" id="reg-number-display">+91 —</span></p>
       <div class="field">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <input id="reg-name" type="text" placeholder="Full name" />
-      </div>
-      <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <input id="reg-address" type="text" placeholder="Delivery address" />
-      </div>
-      <div class="row-flex">
-        <div class="field flex-1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <input id="reg-location" type="text" placeholder="Live location (area, city)" />
-        </div>
-        <button class="gps-btn" id="reg-gps-btn">Use GPS</button>
-      </div>
-      <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        <input id="reg-number" type="tel" maxlength="10" placeholder="Mobile number (will be your username)" inputmode="numeric" />
-      </div>
-      <div class="field">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <input id="reg-password" type="password" placeholder="Create password" />
       </div>
       <p class="error-text" id="reg-error" style="display:none;"></p>
       <div style="padding-top:8px;">
@@ -1012,7 +994,7 @@
   </section>
 
   <!-- HOME -->
-  <section class="screen" id="screen-category">
+  <section class="screen active" id="screen-category">
     <div class="header" style="padding-bottom:8px;">
       <div class="cat-header-eyebrow">
         <p class="eyebrow" id="cat-greeting-eyebrow">HELLO</p>
@@ -1296,6 +1278,13 @@
           <input id="taxi-drop-input" type="text" placeholder="Where do you want to go?" readonly />
         </div>
       </div>
+
+      <p class="loc-field-label" style="margin-top:14px;">Search for a place</p>
+      <div class="field" style="background:#fff; border:1px solid #E4DFD2; margin-bottom:0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="taxi-search" type="text" placeholder="Search area, street, landmark…" style="color:var(--ink);" autocomplete="off" />
+      </div>
+      <div class="loc-search-results" id="taxi-search-results"></div>
 
       <div class="taxi-map-wrap">
         <div class="taxi-map" id="taxi-map"></div>
@@ -1672,7 +1661,6 @@ try {
 let shopLinkHandled = false;
 function tryOpenPendingShopLink() {
   if (!pendingShopLinkId || shopLinkHandled) return false;
-  if (!state.user) return false; // wait for login first
   const rest = RESTAURANTS.find(r => r.id === pendingShopLinkId);
   if (!rest) {
     // Not found yet could just mean the live `restaurants` list from
@@ -1696,11 +1684,15 @@ function tryOpenPendingShopLink() {
 let state = {
   user: null,
   otpFlowFrom: "register",
+  pendingLoginNumber: null, // number being verified via OTP for an existing account
+  pendingRegNumber: null, // number being verified via OTP for a brand-new account
+  authReturnTo: null, // set to "checkout" or "taxi" when login/register was triggered from that flow, so it resumes automatically after OTP verification
   selectedRestaurant: null,
   selectedItem: null, // itemId currently shown on the item-detail screen
   cart: {}, // itemId -> qty
   lastOrder: null, // { restId, orderKey, orderNumber, restName } for the "Track your Order" screen
   customerPos: null, // { lat, lng } — set via "Select your location", used to filter restaurants by delivery zone
+  locationDetectFailed: false, // true once auto-detect has failed/been denied so the UI can nudge the customer to pick manually
   category: null, // 'hotel' (Food) or 'groceries' — chosen on the category screen, filters the restaurant list
   pendingCheckout: null, // { text, lat, lng, place, landmark, contact } — saved once the user taps
                           // "Proceed" on the location step, so the payment step (and a resumed
@@ -1895,10 +1887,26 @@ let taxiRouteAbort = null;
 let taxiTrackUnsub = null;
 let currentRideKey = null;
 
+// Persisted (survives reload/app-close) key of the customer's ride that is
+// still in progress, if any — used to block starting a second ride until
+// the first one is completed or cancelled.
+const ACTIVE_RIDE_KEY_LS = 'nesh_active_ride_key';
+function getStoredActiveRideKey() {
+  try { return localStorage.getItem(ACTIVE_RIDE_KEY_LS) || null; } catch (e) { return null; }
+}
+function setStoredActiveRideKey(key) {
+  try {
+    if (key) localStorage.setItem(ACTIVE_RIDE_KEY_LS, key);
+    else localStorage.removeItem(ACTIVE_RIDE_KEY_LS);
+  } catch (e) {}
+}
+
 const taxiPickupRow = document.getElementById('taxi-pickup-row');
 const taxiDropRow = document.getElementById('taxi-drop-row');
 const taxiPickupInput = document.getElementById('taxi-pickup-input');
 const taxiDropInput = document.getElementById('taxi-drop-input');
+const taxiSearchInput = document.getElementById('taxi-search');
+const taxiSearchResultsEl = document.getElementById('taxi-search-results');
 const taxiMapHint = document.getElementById('taxi-map-hint');
 const taxiDistanceText = document.getElementById('taxi-distance-text');
 const taxiRideOptionsEl = document.getElementById('taxi-ride-options');
@@ -1913,18 +1921,41 @@ const taxiCancelBtn = document.getElementById('taxi-cancel-ride-btn');
 let taxiTrackMap = null; // live-driver map on the ride tracking screen — created lazily, see renderTaxiTimeline
 let taxiTrackMapDriverId = null; // which driver we're currently watching, so we don't re-subscribe every snapshot
 
-function goToTaxiBooking() {
+function showTaxiBookingForm() {
   showScreen('taxi-book');
   persistScreen('taxi-book');
   taxiActivePin = taxiPickup ? 'drop' : 'pickup';
   updateTaxiPinRows();
   renderRideOptions();
   updateTaxiBookBtn();
+  taxiSearchInput.value = "";
+  hideTaxiSearchResults();
   setTimeout(() => {
     ensureTaxiMap();
     taxiMap.invalidateSize();
     if (!taxiPickup) useTaxiGps();
   }, 60);
+}
+
+// Entry point used everywhere the app wants to take the customer to taxi
+// booking (category card tap, resuming a saved screen, back button from
+// tracking). If they already have a ride in progress, send them back to
+// tracking it instead of letting them start a second one.
+async function goToTaxiBooking() {
+  const activeKey = getStoredActiveRideKey();
+  if (activeKey) {
+    try {
+      const { db, ref, get } = window.fb;
+      const snap = await get(ref(db, 'rides/' + activeKey));
+      const r = snap.val();
+      if (r && !['completed', 'cancelled'].includes(normalizeRideStatus(r.status))) {
+        openTaxiTrack(activeKey, r);
+        return;
+      }
+    } catch (e) {}
+    setStoredActiveRideKey(null);
+  }
+  showTaxiBookingForm();
 }
 
 function taxiMarkerIcon(color) {
@@ -1947,49 +1978,12 @@ function ensureTaxiMap() {
   });
 }
 
-// Finds the closest place we already know by name (curated list) within a
-// reasonable distance, so nearby taps resolve instantly without a network
-// call. Returns null if nothing is close enough to be a useful landmark.
-function findNearestKnownPlace(lat, lng, maxKm = 1.5) {
-  let best = null, bestDist = Infinity;
-  for (const p of ALL_PLACES) {
-    const d = haversineMeters(lat, lng, p.lat, p.lng) / 1000;
-    if (d < bestDist) { bestDist = d; best = p; }
-  }
-  if (best && bestDist <= maxKm) return { name: best.name, distanceKm: bestDist };
-  return null;
-}
-
-// Reverse geocodes a lat/lng into a short, human-readable place/landmark
-// name via OpenStreetMap Nominatim (free, no API key). Falls back to
-// coordinates only if lookup fails or is offline. Pickup labels get a
-// "Near X" prefix since the pin is rarely exactly on the landmark; drop
-// labels stay as the plain place name.
-async function reverseGeocodeLabel(lat, lng, which) {
-  const nearby = findNearestKnownPlace(lat, lng);
-  if (nearby) {
-    if (which === 'pickup') {
-      return nearby.distanceKm < 0.05 ? nearby.name : `Near ${nearby.name}`;
-    }
-    return nearby.name;
-  }
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    const data = await res.json();
-    const a = data && data.address;
-    let label = null;
-    if (a) label = a.suburb || a.village || a.town || a.hamlet || a.neighbourhood || a.road || a.county;
-    if (!label && data && data.display_name) label = data.display_name.split(',').slice(0, 2).join(',').trim();
-    if (label) return which === 'pickup' ? `Near ${label}` : label;
-  } catch (e) {
-    // offline or request failed — coordinates fallback below covers it
-  }
-  return lat.toFixed(5) + ", " + lng.toFixed(5);
-}
-
-function placeTaxiPin(which, lat, lng, knownLabel) {
-  const pos = { lat, lng, text: knownLabel || (lat.toFixed(5) + ", " + lng.toFixed(5)) };
+function placeTaxiPin(which, lat, lng, label) {
+  // `label` lets a caller (e.g. GPS auto-detect) show a friendly name like
+  // a nearby landmark instead of raw coordinates — the lat/lng used for
+  // dispatch and fare/distance calculation is always the exact value passed
+  // in, never affected by what text is shown.
+  const pos = { lat, lng, text: label || (lat.toFixed(5) + ", " + lng.toFixed(5)) };
   if (which === 'pickup') {
     taxiPickup = pos;
     taxiPickupInput.value = pos.text;
@@ -2008,21 +2002,6 @@ function placeTaxiPin(which, lat, lng, knownLabel) {
   ensureTaxiRoadDistance();
   renderRideOptions();
   updateTaxiBookBtn();
-
-  // If no name was supplied up front (map tap, drag, or GPS), resolve one in
-  // the background — the accurate lat/lng is already saved and used for
-  // routing/fare, this only upgrades what's shown in the input field.
-  if (!knownLabel) {
-    const requestLat = lat, requestLng = lng, requestWhich = which;
-    reverseGeocodeLabel(lat, lng, requestWhich).then(label => {
-      const current = requestWhich === 'pickup' ? taxiPickup : taxiDrop;
-      // Only apply if the pin hasn't moved again since this lookup started.
-      if (current && current.lat === requestLat && current.lng === requestLng) {
-        current.text = label;
-        (requestWhich === 'pickup' ? taxiPickupInput : taxiDropInput).value = label;
-      }
-    });
-  }
 }
 
 function updateTaxiPinRows() {
@@ -2035,18 +2014,101 @@ function updateTaxiPinRows() {
 taxiPickupRow.addEventListener('click', () => { taxiActivePin = 'pickup'; updateTaxiPinRows(); });
 taxiDropRow.addEventListener('click', () => { taxiActivePin = 'drop'; updateTaxiPinRows(); });
 
+// ---------- "Search for a place" (taxi pickup/drop) ----------
+// Sets whichever pin (pickup or drop) is currently active — same local
+// landmarks-first + Nominatim-fallback search used on the other location
+// pickers, wired here to move the taxi map's pin.
+function hideTaxiSearchResults() {
+  if (taxiSearchResultsEl) {
+    taxiSearchResultsEl.classList.remove('show');
+    taxiSearchResultsEl.innerHTML = "";
+  }
+}
+
+function selectTaxiSearchResult(place) {
+  const lat = parseFloat(place.lat), lng = parseFloat(place.lon);
+  taxiSearchInput.value = place.display_name;
+  hideTaxiSearchResults();
+  ensureTaxiMap();
+  taxiMap.setView([lat, lng], 16);
+  placeTaxiPin(taxiActivePin, lat, lng);
+  if (taxiActivePin === 'pickup' && !taxiDrop) taxiActivePin = 'drop';
+  updateTaxiPinRows();
+}
+
+function renderTaxiSearchResults(results) {
+  taxiSearchResultsEl.innerHTML = "";
+  if (results.length === 0) {
+    taxiSearchResultsEl.innerHTML = `<p class="loc-search-empty">No matches found — try a different search.</p>`;
+    taxiSearchResultsEl.classList.add('show');
+    return;
+  }
+  results.forEach(place => {
+    const item = document.createElement('div');
+    item.className = "loc-search-item";
+    const main = place.display_name.split(',')[0];
+    const rest = place.display_name.split(',').slice(1).join(',').trim();
+    item.innerHTML = `<div>${main}</div>` + (rest ? `<div class="loc-search-item-sub">${rest}</div>` : '');
+    item.addEventListener('click', () => selectTaxiSearchResult(place));
+    taxiSearchResultsEl.appendChild(item);
+  });
+  taxiSearchResultsEl.classList.add('show');
+}
+
+let taxiSearchDebounce = null;
+let taxiSearchAbort = null;
+taxiSearchInput.addEventListener('input', () => {
+  const query = taxiSearchInput.value.trim();
+  clearTimeout(taxiSearchDebounce);
+  if (query.length < 3) {
+    hideTaxiSearchResults();
+    return;
+  }
+  taxiSearchResultsEl.innerHTML = `<p class="loc-search-loading">Searching…</p>`;
+  taxiSearchResultsEl.classList.add('show');
+  taxiSearchDebounce = setTimeout(async () => {
+    await loadLocalLandmarks();
+    const localMatches = searchLocalLandmarks(query);
+    let remoteResults = [];
+    try {
+      if (taxiSearchAbort) taxiSearchAbort.abort();
+      taxiSearchAbort = new AbortController();
+      const biasLat = (taxiPickup && taxiPickup.lat) ?? DEFAULT_MAP_CENTER.lat;
+      const biasLng = (taxiPickup && taxiPickup.lng) ?? DEFAULT_MAP_CENTER.lng;
+      const box = 0.35; // ~35km box around the pin
+      const viewbox = [biasLng - box, biasLat + box, biasLng + box, biasLat - box].join(',');
+      const url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&countrycodes=in&viewbox=" +
+        viewbox + "&bounded=1&q=" + encodeURIComponent(query);
+      const res = await fetch(url, { signal: taxiSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      remoteResults = Array.isArray(data) ? data : [];
+    } catch (e) {
+      if (e.name !== 'AbortError' && localMatches.length === 0) {
+        taxiSearchResultsEl.innerHTML = `<p class="loc-search-empty">Search failed — check your connection.</p>`;
+        taxiSearchResultsEl.classList.add('show');
+        return;
+      }
+    }
+    renderTaxiSearchResults([...localMatches, ...remoteResults]);
+  }, 450);
+});
+
 function useTaxiGps() {
   if (!navigator.geolocation) return;
   const btn = document.getElementById('taxi-pickup-gps-btn');
   const prevLabel = btn.textContent;
   btn.textContent = '…';
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
+    async (pos) => {
       btn.textContent = prevLabel;
       const { latitude, longitude } = pos.coords;
       ensureTaxiMap();
       taxiMap.setView([latitude, longitude], 15);
-      placeTaxiPin('pickup', latitude, longitude);
+      // Show a nearby landmark name instead of raw coordinates — the exact
+      // GPS fix (latitude/longitude) is still what gets used for dispatch
+      // and distance, only the displayed label changes.
+      const label = await nearbyLandmarkLabel(latitude, longitude);
+      placeTaxiPin('pickup', latitude, longitude, label);
       taxiActivePin = 'drop';
       updateTaxiPinRows();
     },
@@ -2056,144 +2118,19 @@ function useTaxiGps() {
 }
 document.getElementById('taxi-pickup-gps-btn').addEventListener('click', useTaxiGps);
 
-// ========== MANUAL PLACES SELECTION FOR TAXI ==========
-// Make taxi drop input clickable to show manual places
-taxiDropInput.addEventListener('click', () => {
-  showManualPlacesList('drop');
-});
-taxiPickupInput.addEventListener('click', () => {
-  showManualPlacesList('pickup');
-});
-
-function showManualPlacesList(type) {
-  const html = `
-    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;" id="places-modal">
-      <div style="background: white; border-radius: 16px; max-width: 400px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-        <div style="padding: 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: white;">
-          <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700;">Select ${type === 'pickup' ? 'Pickup' : 'Drop'} Location</h3>
-          <input type="text" id="places-search" placeholder="Search places in Kerala..." 
-            style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit;">
-          ${type === 'pickup' ? `
-          <button id="use-current-loc-btn" style="width: 100%; margin-top: 10px; padding: 12px; border: none; border-radius: 8px; background: #FFF6E0; color: #C97F00; font-weight: 700; font-size: 14px; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
-            📍 Use current location
-          </button>` : ''}
-        </div>
-        <div id="places-list" style="padding: 0;"></div>
-      </div>
-    </div>
-  `;
-  document.body.insertAdjacentHTML('beforeend', html);
-  const modal = document.getElementById('places-modal');
-  const search = document.getElementById('places-search');
-  const list = document.getElementById('places-list');
-  const currentLocBtn = document.getElementById('use-current-loc-btn');
-
-  if (currentLocBtn) currentLocBtn.addEventListener('click', () => {
-    if (!navigator.geolocation) return;
-    const prevLabel = currentLocBtn.innerHTML;
-    currentLocBtn.innerHTML = 'Locating…';
-    currentLocBtn.disabled = true;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        ensureTaxiMap();
-        taxiMap.setView([latitude, longitude], 15);
-        placeTaxiPin(type, latitude, longitude);
-        if (type === 'pickup' && !taxiDrop) taxiActivePin = 'drop';
-        updateTaxiPinRows();
-        modal.remove();
-      },
-      () => { currentLocBtn.innerHTML = prevLabel; currentLocBtn.disabled = false; },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  });
-
-  // Kerala bounding box, used to bias/restrict the live OSM search so
-  // results stay relevant to the service area instead of matching places
-  // with the same name anywhere in the world.
-  const KERALA_VIEWBOX = '74.8,12.85,77.5,8.2'; // left,top,right,bottom
-
-  let liveSearchAbort = null;
-  let liveSearchTimer = null;
-
-  async function fetchLivePlaces(query) {
-    if (!query || query.trim().length < 3) return [];
-    if (liveSearchAbort) liveSearchAbort.abort();
-    liveSearchAbort = new AbortController();
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&viewbox=${KERALA_VIEWBOX}&bounded=1&limit=8&addressdetails=1`;
-      const res = await fetch(url, { signal: liveSearchAbort.signal, headers: { 'Accept-Language': 'en' } });
-      const data = await res.json();
-      return (data || [])
-        .filter(d => (d.address && (d.address.state || '').toLowerCase().includes('kerala')) || true)
-        .map(d => ({
-          id: 'osm/' + d.place_id,
-          name: d.display_name.split(',').slice(0, 2).join(',').trim(),
-          lat: parseFloat(d.lat),
-          lng: parseFloat(d.lon),
-          live: true
-        }));
-    } catch (e) {
-      return []; // aborted or offline — local list results still show
-    }
-  }
-
-  function renderItems(places) {
-    list.innerHTML = '';
-    if (places.length === 0) {
-      list.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No places found</div>';
-      return;
-    }
-    places.forEach(place => {
-      const item = document.createElement('div');
-      item.style.cssText = 'padding: 12px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s;';
-      item.innerHTML = `
-        <div style="font-weight: 600; color: #2B2410; margin-bottom: 4px;">${place.name}${place.live ? ' <span style="font-size:10px; font-weight:600; color:#C97F00; border:1px solid #C97F00; border-radius:4px; padding:1px 5px; margin-left:4px;">MAP</span>' : ''}</div>
-        <div style="font-size: 12px; color: #999;">${place.lat.toFixed(4)}, ${place.lng.toFixed(4)}</div>
-      `;
-      item.addEventListener('mouseover', () => { item.style.background = '#f9f9f9'; });
-      item.addEventListener('mouseout', () => { item.style.background = 'transparent'; });
-      item.addEventListener('click', () => {
-        placeTaxiPin(type, place.lat, place.lng, place.name);
-        if (type === 'pickup' && !taxiDrop) taxiActivePin = 'drop';
-        updateTaxiPinRows();
-        modal.remove();
-      });
-      list.appendChild(item);
-    });
-  }
-
-  async function renderList(query = '') {
-    // Local curated list (instant, always shown first)
-    const localPlaces = searchManualPlaces(query);
-    renderItems(localPlaces);
-
-    if (!query || query.trim().length < 3) return; // avoid noisy calls for very short queries
-
-    list.insertAdjacentHTML('beforeend', '<div id="places-loading" style="padding: 12px 20px; text-align: center; color: #bbb; font-size: 12px;">Searching more places…</div>');
-
-    const livePlaces = await fetchLivePlaces(query);
-    const loadingEl = document.getElementById('places-loading');
-    if (loadingEl) loadingEl.remove();
-
-    // De-dupe: drop live results that are basically the same as a local one
-    const localKeys = new Set(localPlaces.map(p => p.name.toLowerCase()));
-    const extra = livePlaces.filter(p => !localKeys.has(p.name.toLowerCase()));
-
-    if (extra.length > 0) renderItems([...localPlaces, ...extra]);
-  }
-
-  renderList();
-  search.addEventListener('input', (e) => {
-    clearTimeout(liveSearchTimer);
-    const val = e.target.value;
-    liveSearchTimer = setTimeout(() => renderList(val), 350); // debounce live lookups
-  });
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
+// Best-effort friendly label for a raw GPS fix: nearest named local landmark
+// within 700m (offline, instant) → nearest locality name within 3km →
+// live Nominatim reverse-geocode → falls back to plain coordinates.
+async function nearbyLandmarkLabel(lat, lng) {
+  await loadLocalLandmarks();
+  const near = findLocalNearbyLandmarks(lat, lng, 700).find(p => p.named);
+  if (near) return 'Near ' + near.name;
+  const locality = findNearestLocality(lat, lng, 3000);
+  if (locality) return 'Near ' + locality.name;
+  const areaName = await fetchPlaceAreaFromNominatim(lat, lng);
+  if (areaName) return 'Near ' + areaName;
+  return lat.toFixed(5) + ", " + lng.toFixed(5);
 }
-// ========== END MANUAL PLACES SELECTION ==========
 
 // Straight-line distance (nudged up ~30% as a road-distance stand-in) is used
 // instantly so fares never sit blank; OSRM's real driving-route distance
@@ -2246,6 +2183,7 @@ function renderRideOptions() {
         <p class="ride-option-name">${rt.label}</p>
         <p class="ride-option-eta">${rt.etaMin} min away</p>
       </div>
+      <div class="ride-option-fare">₹${fare}</div>
     `;
     el.addEventListener('click', () => { taxiSelectedType = rt.key; renderRideOptions(); updateTaxiBookBtn(); });
     taxiRideOptionsEl.appendChild(el);
@@ -2260,8 +2198,9 @@ function updateTaxiBookBtn() {
     return;
   }
   const rt = RIDE_TYPES.find(r => r.key === taxiSelectedType);
+  const fare = Math.round(rt.base + rt.perKm * km);
   taxiBookBtn.disabled = false;
-  taxiBookBtn.textContent = `Book ${rt.label}`;
+  taxiBookBtn.textContent = `Book ${rt.label} · ₹${fare}`;
 }
 
 document.getElementById('taxi-book-back-btn').addEventListener('click', () => {
@@ -2270,6 +2209,24 @@ document.getElementById('taxi-book-back-btn').addEventListener('click', () => {
 });
 
 taxiBookBtn.addEventListener('click', async () => {
+  const km = currentTaxiKm();
+  if (km == null) return;
+  // Guests can freely pick pickup/drop/ride type — login/register is only
+  // asked for right here, at the moment of booking, same pattern as food
+  // checkout. Their chosen pickup/drop/vehicle stay intact so booking
+  // resumes automatically the instant they finish registering/logging in.
+  if (!state.user) {
+    state.authReturnTo = "taxi";
+    loginNumberInput.value = "";
+    loginErrorEl.style.display = "none";
+    loginSubmitBtn.disabled = true;
+    showScreen('login');
+    return;
+  }
+  await submitTaxiBooking();
+});
+
+async function submitTaxiBooking() {
   const km = currentTaxiKm();
   if (km == null) return;
   const rt = RIDE_TYPES.find(r => r.key === taxiSelectedType);
@@ -2292,6 +2249,7 @@ taxiBookBtn.addEventListener('click', async () => {
   };
   try {
     await set(rideRef, ride);
+    setStoredActiveRideKey(rideRef.key);
 
     // Fire-and-forget: ask the dispatch worker to alert the nearest online
     // driver first (Uber-style) — pickup lat/lng is what lets it rank
@@ -2319,7 +2277,7 @@ taxiBookBtn.addEventListener('click', async () => {
     updateTaxiBookBtn();
     alert("Couldn't book your ride — check your connection and try again.");
   }
-});
+}
 
 // The driver-side app may write any of a few common spellings for each
 // stage — normalize onto one of our known steps (or 'cancelled') the same
@@ -2337,6 +2295,10 @@ function normalizeRideStatus(raw) {
 
 function renderTaxiTimeline(ride) {
   const status = normalizeRideStatus(ride.status);
+  if (status === 'completed' || status === 'cancelled') {
+    // Ride is over — free up booking so the customer can request a new one.
+    setStoredActiveRideKey(null);
+  }
   if (status === 'cancelled') {
     taxiTrackStatusText.textContent = 'Ride cancelled';
     taxiTrackEtaText.textContent = 'This ride was cancelled.';
@@ -2349,8 +2311,8 @@ function renderTaxiTimeline(ride) {
   const currentIdx = TAXI_STEPS.findIndex(s => s.key === status);
   taxiTrackStatusText.textContent = TAXI_STEPS[currentIdx].label;
   taxiTrackEtaText.textContent = status === 'completed'
-    ? `Trip complete — ${ride.distanceKm} km`
-    : `${ride.vehicleLabel || ''} · ${ride.distanceKm} km`;
+    ? `Trip complete — ₹${ride.fare} · ${ride.distanceKm} km`
+    : `${ride.vehicleLabel || ''} · ₹${ride.fare} · ${ride.distanceKm} km`;
 
   if (ride.driverName) {
     taxiDriverCard.classList.remove('hidden');
@@ -2412,8 +2374,9 @@ function openTaxiTrack(rideKey, initialRide) {
 function leaveTaxiTrack() {
   if (taxiTrackUnsub) { taxiTrackUnsub(); taxiTrackUnsub = null; }
   if (taxiTrackMap) { taxiTrackMap.hide(); taxiTrackMapDriverId = null; }
-  showScreen('taxi-book');
-  persistScreen('taxi-book');
+  // Re-checks whether this ride is still active — if so it sends the
+  // customer straight back to tracking instead of a fresh booking form.
+  goToTaxiBooking();
 }
 document.getElementById('taxi-track-back-btn').addEventListener('click', leaveTaxiTrack);
 
@@ -2426,48 +2389,56 @@ taxiCancelBtn.addEventListener('click', async () => {
 
 // ---------- LOGIN ----------
 const loginNumberInput = document.getElementById('login-number');
-const loginPasswordInput = document.getElementById('login-password');
 const loginSubmitBtn = document.getElementById('login-submit');
 const loginErrorEl = document.getElementById('login-error');
+const loginBackBtn = document.getElementById('login-back');
 
 function validateLogin() {
   loginErrorEl.style.display = "none";
-  const valid = loginNumberInput.value.length === 10 && loginPasswordInput.value.length > 0;
-  loginSubmitBtn.disabled = !valid;
+  loginSubmitBtn.disabled = loginNumberInput.value.length !== 10;
 }
 loginNumberInput.addEventListener('input', () => {
   loginNumberInput.value = digitsOnly(loginNumberInput.value);
   validateLogin();
 });
-loginPasswordInput.addEventListener('input', validateLogin);
 
+// Single mobile-number step: if an account already exists for this number
+// we go straight to OTP (login); if not, we collect just the name and then
+// OTP (register). Either way this whole screen is only ever shown once —
+// after a successful login/register the session is saved and reused on
+// every future visit/checkout until the customer explicitly logs out.
 loginSubmitBtn.addEventListener('click', async () => {
   const number = loginNumberInput.value;
-  const password = loginPasswordInput.value;
   loginSubmitBtn.disabled = true;
   try {
     const { db, ref, get } = window.fb;
     const snap = await get(ref(db, 'customers/' + number));
-    if (!snap.exists()) {
-      showLoginError("No account found for this mobile number");
-      return;
+    if (snap.exists()) {
+      state.otpFlowFrom = "login";
+      state.pendingLoginNumber = number;
+      loginErrorEl.style.display = "none";
+      await requestOtp(number);
+    } else {
+      state.pendingRegNumber = number;
+      document.getElementById('reg-number-display').textContent = "+91 " + number;
+      regName.value = "";
+      regErrorEl.style.display = "none";
+      validateRegister();
+      showScreen('register');
     }
-    const record = snap.val();
-    if (record.password !== password) {
-      showLoginError("Incorrect password");
-      return;
-    }
-    state.user = { name: record.name, address: record.address, location: record.location, number: record.number };
-    saveUserSession(state.user);
-    attachScratchListener(state.user.number);
-    attachOrderStatusWatcher(state.user.number);
-    loginErrorEl.style.display = "none";
-    if (!tryOpenPendingShopLink()) goToCategoryScreen();
   } catch (e) {
-    showLoginError("DEBUG: " + (e && e.message ? e.message : String(e)));
+    showLoginError("Couldn't check that number — check your connection and try again.");
   } finally {
     loginSubmitBtn.disabled = false;
   }
+});
+
+loginBackBtn.addEventListener('click', () => {
+  // Back out of the login step to wherever browsing was happening. Clear
+  // the pending resume so a later, unrelated login doesn't auto-book a
+  // stale taxi ride or auto-open checkout.
+  state.authReturnTo = null;
+  if (!tryOpenPendingShopLink()) goToCategoryScreen();
 });
 
 function showLoginError(msg) {
@@ -2475,66 +2446,24 @@ function showLoginError(msg) {
   loginErrorEl.style.display = "block";
 }
 
-// ---------- REGISTER ----------
+// ---------- REGISTER (name only — phone already captured in the login step) ----------
 const regName = document.getElementById('reg-name');
-const regAddress = document.getElementById('reg-address');
-const regLocation = document.getElementById('reg-location');
-const regNumber = document.getElementById('reg-number');
-const regPassword = document.getElementById('reg-password');
 const regErrorEl = document.getElementById('reg-error');
 const regSendOtpBtn = document.getElementById('reg-send-otp');
 
 function validateRegister() {
   regErrorEl.style.display = "none";
-  const valid = regName.value.trim() && regAddress.value.trim() && regLocation.value.trim() && regNumber.value.length >= 10 && regPassword.value.length > 0;
-  regSendOtpBtn.disabled = !valid;
+  regSendOtpBtn.disabled = !regName.value.trim();
 }
-[regName, regAddress, regLocation, regPassword].forEach(el => el.addEventListener('input', validateRegister));
+regName.addEventListener('input', validateRegister);
 
-// ---------- Real GPS capture (registration) ----------
-const regGpsBtn = document.getElementById('reg-gps-btn');
-regGpsBtn.addEventListener('click', () => {
-  if (!navigator.geolocation) {
-    regLocation.value = "Location unavailable on this device";
-    regLocation.dispatchEvent(new Event('input'));
-    return;
-  }
-  regGpsBtn.disabled = true;
-  regGpsBtn.textContent = "Locating…";
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      regLocation.value = pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5);
-      regLocation.dispatchEvent(new Event('input'));
-      regGpsBtn.disabled = false;
-      regGpsBtn.textContent = "Use GPS";
-    },
-    () => {
-      regLocation.value = "Location permission denied";
-      regLocation.dispatchEvent(new Event('input'));
-      regGpsBtn.disabled = false;
-      regGpsBtn.textContent = "Use GPS";
-    },
-    { enableHighAccuracy: true, timeout: 8000 }
-  );
-});
-regNumber.addEventListener('input', () => {
-  regNumber.value = digitsOnly(regNumber.value);
-  validateRegister();
-});
 regSendOtpBtn.addEventListener('click', async () => {
   regSendOtpBtn.disabled = true;
   try {
-    const { db, ref, get } = window.fb;
-    const snap = await get(ref(db, 'customers/' + regNumber.value));
-    if (snap.exists()) {
-      regErrorEl.textContent = "An account already exists for this mobile number";
-      regErrorEl.style.display = "block";
-      return;
-    }
     state.otpFlowFrom = "register";
-    await requestOtp(regNumber.value);
+    await requestOtp(state.pendingRegNumber);
   } catch (e) {
-    regErrorEl.textContent = "Couldn't check that number — check your connection and try again.";
+    regErrorEl.textContent = "Couldn't send code — check your connection and try again.";
     regErrorEl.style.display = "block";
   } finally {
     regSendOtpBtn.disabled = false;
@@ -2664,13 +2593,17 @@ otpVerifyBtn.addEventListener('click', async () => {
     if (state.otpFlowFrom === "register") {
       const newUser = {
         name: regName.value.trim(),
-        address: regAddress.value.trim(),
-        location: regLocation.value.trim(),
-        number: regNumber.value,
-        password: regPassword.value,
+        number: state.pendingRegNumber,
       };
       await set(ref(db, 'customers/' + newUser.number), newUser);
-      state.user = { name: newUser.name, address: newUser.address, location: newUser.location, number: newUser.number };
+      state.user = { name: newUser.name, number: newUser.number };
+      saveUserSession(state.user);
+      attachScratchListener(state.user.number);
+      attachOrderStatusWatcher(state.user.number);
+    } else if (state.otpFlowFrom === "login") {
+      const loginSnap = await get(ref(db, 'customers/' + state.pendingLoginNumber));
+      const record = loginSnap.val() || {};
+      state.user = { name: record.name, number: state.pendingLoginNumber };
       saveUserSession(state.user);
       attachScratchListener(state.user.number);
       attachOrderStatusWatcher(state.user.number);
@@ -2684,7 +2617,19 @@ otpVerifyBtn.addEventListener('click', async () => {
   }
   otpVerifyBtn.disabled = false;
   otpErrorEl.style.display = "none";
-  if (!tryOpenPendingShopLink()) goToCategoryScreen();
+  // If the customer reached login/register from the checkout or taxi-booking
+  // flow, resume straight into it instead of dropping them on the category
+  // screen — their cart / pickup+drop+vehicle choice is still intact.
+  if (state.authReturnTo === "checkout") {
+    state.authReturnTo = null;
+    openLocationConfirm();
+  } else if (state.authReturnTo === "taxi") {
+    state.authReturnTo = null;
+    showTaxiBookingForm();
+    await submitTaxiBooking();
+  } else if (!tryOpenPendingShopLink()) {
+    goToCategoryScreen();
+  }
 });
 
 function showOtpError(msg) {
@@ -2998,7 +2943,9 @@ function updateHomeTrackBtn() {
 homeTrackBtn.addEventListener('click', () => openTrackOrder(state.lastOrder, 'home'));
 
 function updateHomeLocationLabel() {
-  homeLocation.textContent = state.customerPos ? "Delivering to selected location" : "Select your location";
+  homeLocation.textContent = state.customerPos
+    ? "Delivering to selected location"
+    : (state.locationDetectFailed ? "Tap to set your location" : "Select your location");
   updateCatLocationLabel();
 }
 function updateCatLocationLabel() {
@@ -3457,256 +3404,6 @@ window.onPlatformFeeUpdated = () => {
 // then overwritten if they tap "Use my current location" or drag/tap the
 // pin on the map inside the sheet.
 let pendingLocation = { text: "", lat: null, lng: null };
-
-// ========== ALL SEARCHABLE PLACES (manual + OSM named places) ==========
-const ALL_PLACES = [
-  { id: 'node/manual-place-11', name: 'Aroor', lat: 11.214174, lng: 75.930356 },
-  { id: 'node/manual-place-10', name: 'Kodiyammal', lat: 11.228233, lng: 75.923019 },
-  { id: 'node/manual-place-9', name: 'Virippadam', lat: 11.238025, lng: 75.921833 },
-  { id: 'node/manual-place-8', name: 'Oorkkadavu', lat: 11.243124, lng: 75.922717 },
-  { id: 'node/manual-place-7', name: 'Akode', lat: 11.235939, lng: 75.913014 },
-  { id: 'node/manual-place-6', name: 'Mundumuzhi', lat: 11.24519, lng: 75.937754 },
-  { id: 'node/manual-place-5', name: 'Korapadam', lat: 11.244485, lng: 75.927525 },
-  { id: 'node/manual-place-4', name: 'Vazhayur', lat: 11.226866, lng: 75.911417 },
-  { id: 'node/manual-place-3', name: 'Punchappadam', lat: 11.227421, lng: 75.903547 },
-  { id: 'node/manual-place-2', name: 'Vazhayur', lat: 11.218509, lng: 75.910279 },
-  { id: 'node/manual-place-1', name: 'Vazhayur', lat: 11.21748, lng: 75.899833 },
-  { id: 'node/manual-channayil-bridge', name: 'Chennayil', lat: 11.23411, lng: 75.90885 },
-  { id: 'way/743371125', name: 'River view Public School', lat: 11.2253746, lng: 75.8895025 },
-  { id: 'way/743371126', name: 'River view Public School', lat: 11.2252323, lng: 75.8896218 },
-  { id: 'way/743371128', name: 'Al-Fitrah Islamic Pre School', lat: 11.2249833, lng: 75.888028 },
-  { id: 'way/765231096', name: 'Vedavyasa Arts and Science college', lat: 11.215735, lng: 75.8890865 },
-  { id: 'way/765231097', name: 'Vedavyasa College of Architecture', lat: 11.2162018, lng: 75.8889751 },
-  { id: 'way/765231099', name: 'Vedavyasa College of Technology  Boys  Hostel', lat: 11.2165596, lng: 75.8897363 },
-  { id: 'way/790261285', name: 'Primary Health Center 24X7 Cheruppa', lat: 11.2632794, lng: 75.9249096 },
-  { id: 'way/801853959', name: 'brick factory', lat: 11.2450145, lng: 75.8880707 },
-  { id: 'way/801865192', name: 'Kalpettikal Kuttichathan Bhagavathi Kavu', lat: 11.2599952, lng: 75.8897708 },
-  { id: 'way/801865194', name: 'Perumanpura Vishnu Kshethram', lat: 11.260872, lng: 75.8907259 },
-  { id: 'way/801865195', name: 'Sree Puthukkidi Mundyan Bhagavathy Temple', lat: 11.2612028, lng: 75.889156 },
-  { id: 'way/802552771', name: 'Mini market', lat: 11.2443395, lng: 75.8881782 },
-  { id: 'way/802552772', name: 'barber shop', lat: 11.244371, lng: 75.8880424 },
-  { id: 'way/802567306', name: 'Primary Health Center, Perumanna', lat: 11.2430238, lng: 75.8883067 },
-  { id: 'way/802567310', name: 'Kairali Store Kottayithazham', lat: 11.244528, lng: 75.8884007 },
-  { id: 'way/802611092', name: 'Perumanna Sree Shiva Vishnu Kshetram', lat: 11.2400785, lng: 75.8907806 },
-  { id: 'way/802611098', name: 'A M L P SVellayicode', lat: 11.2314927, lng: 75.8873602 },
-  { id: 'way/802611099', name: 'Vellayicode Homio Dispensary', lat: 11.2318189, lng: 75.8871255 },
-  { id: 'way/802681513', name: 'Mahlara Arts and Science Degree College For Women, Mavoor, Calicut, Kerala', lat: 11.2577369, lng: 75.9427783 },
-  { id: 'way/805291528', name: 'Vazhakkad Tiles', lat: 11.2468012, lng: 75.9415301 },
-  { id: 'way/847939036', name: 'Sunni Masjid Oorkadav', lat: 11.2422357, lng: 75.9248458 },
-  { id: 'way/847939037', name: 'Minha Mobiles', lat: 11.2415663, lng: 75.9245861 },
-  { id: 'way/847939038', name: 'Maskan White Oorkadav', lat: 11.2401063, lng: 75.9241048 },
-  { id: 'way/847939040', name: 'Lulu Supermarket', lat: 11.2391016, lng: 75.9230644 },
-  { id: 'way/847939041', name: 'Virippadam Sunni Masjid', lat: 11.2389322, lng: 75.9230137 },
-  { id: 'way/847939045', name: 'Masjidul Huda', lat: 11.2335774, lng: 75.9079912 },
-  { id: 'way/847939046', name: 'Apple Supermarket And Coolbar', lat: 11.2339264, lng: 75.9083804 },
-  { id: 'way/847939050', name: 'Akkode Mahal Juma Masjid', lat: 11.2350881, lng: 75.9154105 },
-  { id: 'way/847939054', name: 'Virippadam Aided Upper Primary School', lat: 11.2386637, lng: 75.923728 },
-  { id: 'way/847939055', name: 'Masjid Swahaba', lat: 11.2389234, lng: 75.9242408 },
-  { id: 'way/847939056', name: 'Juma Masjid Oorkadav', lat: 11.2444042, lng: 75.9263885 },
-  { id: 'way/847939062', name: 'Mundumuzhi Juma Masjid', lat: 11.2454767, lng: 75.9355405 },
-  { id: 'way/847939063', name: 'Sahayi', lat: 11.2449493, lng: 75.9374314 },
-  { id: 'way/847939064', name: 'Thenginchuvattil Bhakshanashala', lat: 11.245145, lng: 75.9377295 },
-  { id: 'way/847939065', name: 'Thenal Super Market', lat: 11.2452554, lng: 75.9377928 },
-  { id: 'way/847939074', name: 'Kalpally Masjid', lat: 11.2463669, lng: 75.9414575 },
-  { id: 'way/847963767', name: 'Akkode Vishnu Temple', lat: 11.2255843, lng: 75.9185106 },
-  { id: 'way/847963768', name: 'Mundakassery Temple', lat: 11.2232306, lng: 75.9190981 },
-  { id: 'way/847963769', name: 'Pattayil Masjid', lat: 11.222629, lng: 75.9192956 },
-  { id: 'way/848532280', name: 'Olpamkadav Masjid', lat: 11.2472057, lng: 75.9462941 },
-  { id: 'way/862516979', name: 'Panchayath Office, Peruvayal', lat: 11.2646071, lng: 75.8927518 },
-  { id: 'way/882003354', name: 'Primary Health Centre, Aroor', lat: 11.213924, lng: 75.925719 },
-  { id: 'way/895172598', name: 'Kakkove Anganwadi', lat: 11.2151802, lng: 75.8948192 },
-  { id: 'way/895459921', name: 'Government Mappila Upper Primery School', lat: 11.224485, lng: 75.8873433 },
-  { id: 'way/895766896', name: 'TK House', lat: 11.222486, lng: 75.9412286 },
-  { id: 'way/896551231', name: 'A L P S Kayalam', lat: 11.247336, lng: 75.9046307 },
-  { id: 'way/896551721', name: 'Sunni Masjid', lat: 11.24643, lng: 75.9027743 },
-  { id: 'way/896556386', name: 'Kayalam Muhammadiyya Juma-Masjid', lat: 11.2483214, lng: 75.9082566 },
-  { id: 'way/955826456', name: 'Vazhayoor Government Homoeo Dispensary', lat: 11.2176197, lng: 75.9130267 },
-  { id: 'way/957768852', name: 'High school', lat: 11.2167157, lng: 75.9402084 },
-  { id: 'way/957768853', name: 'high school', lat: 11.2166875, lng: 75.9404634 },
-  { id: 'way/957768854', name: 'High secondary school', lat: 11.2164922, lng: 75.9402931 },
-  { id: 'way/958074293', name: 'Government Mappila Lower Primary School, Thadathilparamba', lat: 11.2099086, lng: 75.9419434 },
-  { id: 'way/958659792', name: 'Governmemt Ayurveda Dispensary', lat: 11.2130198, lng: 75.9436882 },
-  { id: 'way/959823120', name: 'Etteonnil Anganavadi, Aroor', lat: 11.2084968, lng: 75.9234096 },
-  { id: 'way/959823768', name: 'Anganavadi, Aroor', lat: 11.2144743, lng: 75.928993 },
-  { id: 'way/959824410', name: 'Anganavadi, Chakkumthody', lat: 11.216999, lng: 75.9379153 },
-  { id: 'way/959827862', name: 'Korandiparamba Anganavadi, PuthiyodathParamba', lat: 11.214628, lng: 75.9462002 },
-  { id: 'way/959828243', name: 'Anganavadi, Poothumvettikal', lat: 11.2091369, lng: 75.9423445 },
-  { id: 'way/963121194', name: 'Amala Dina Sevana Sabha', lat: 11.2585245, lng: 75.9010487 },
-  { id: 'way/972830356', name: 'Anganavadi', lat: 11.2641892, lng: 75.9069411 },
-  { id: 'way/972834208', name: 'Wedland Convention Centre', lat: 11.2618834, lng: 75.9076569 },
-  { id: 'way/972835476', name: 'Ration Shop', lat: 11.2623564, lng: 75.9045201 },
-  { id: 'way/972893492', name: 'Anganavadi', lat: 11.2601115, lng: 75.9026124 },
-  { id: 'way/972895027', name: 'Boodaanam Colony Samskarika Nilayam', lat: 11.2442625, lng: 75.9155145 },
-  { id: 'way/972902628', name: 'Anganavadi', lat: 11.2416017, lng: 75.9167564 },
-  { id: 'way/972903598', name: 'Sree Vaidyarathnam Ayurveda Hospital', lat: 11.247586, lng: 75.9174432 },
-  { id: 'way/972916291', name: 'Anganavadi', lat: 11.2449592, lng: 75.9108209 },
-  { id: 'way/972918217', name: 'Pookoya Thangal Hospice And Palliative Care Unit', lat: 11.2410499, lng: 75.9095307 },
-  { id: 'way/972920219', name: 'Samskaraposhini Vayanashala', lat: 11.2493807, lng: 75.9080346 },
-  { id: 'way/972921370', name: 'Anganavadi', lat: 11.2470394, lng: 75.9072702 },
-  { id: 'way/972922234', name: 'Anganavadi', lat: 11.2540074, lng: 75.9019139 },
-  { id: 'way/972922909', name: 'Kaladichola Samskarika Nilayam', lat: 11.2537276, lng: 75.9017157 },
-  { id: 'way/972923784', name: 'Puthilaparambu Hall', lat: 11.2505887, lng: 75.9054267 },
-  { id: 'way/972924523', name: 'Ration Shop', lat: 11.2493082, lng: 75.9083905 },
-  { id: 'way/972925163', name: 'Anganavadi', lat: 11.2586624, lng: 75.8963454 },
-  { id: 'way/976950285', name: 'Aided Lower Primary School, Poovattuparamba', lat: 11.264475, lng: 75.8886807 },
-  { id: 'way/993023638', name: 'Anganwadi', lat: 11.242734, lng: 75.887189 },
-  { id: 'way/993023639', name: 'Anganwadi', lat: 11.250921, lng: 75.889937 },
-  { id: 'way/993023641', name: 'The White School International', lat: 11.2476066, lng: 75.8940511 },
-  { id: 'way/993023642', name: 'Ration Shop', lat: 11.2439335, lng: 75.8922424 },
-  { id: 'way/993023643', name: 'Anganwadi', lat: 11.2470514, lng: 75.8921184 },
-  { id: 'way/1007914309', name: 'vvit, karad', lat: 11.2162018, lng: 75.8889751 },
-  { id: 'way/1068139596', name: 'Government Ayurveda Dispensary Olavattur', lat: 11.2119607, lng: 75.9439475 },
-  { id: 'way/1072540999', name: 'Government Ayurveda Dispensary Peruvayal', lat: 11.2607823, lng: 75.9031206 },
-  { id: 'way/1169520728', name: 'IYYATHINGAL AMLP SCHOOL', lat: 11.2294652, lng: 75.9012709 },
-  { id: 'way/1390864892', name: 'madrassa building and ration shoap', lat: 11.216511, lng: 75.9394552 },
-  { id: 'way/1391767884', name: 'sunni masjid aroor', lat: 11.2145524, lng: 75.9302489 },
-  { id: 'way/1391768874', name: 'sunni madrassa aroor', lat: 11.214703, lng: 75.9304499 },
-  { id: 'way/1391770475', name: 'Aroor sunni juma masjid', lat: 11.2146211, lng: 75.9238831 },
-  { id: 'node/1882643700', name: 'Bharat Petroleum', lat: 11.264207, lng: 75.8892415 },
-  { id: 'node/4320649989', name: 'MIAM Upper Primary School Cheruvatoor', lat: 11.242729, lng: 75.9439524 },
-  { id: 'node/4576709189', name: 'Cheruvattoor', lat: 11.2433832, lng: 75.9439817 },
-  { id: 'node/6965694916', name: 'MCH Unit, Cheruppa', lat: 11.2633338, lng: 75.9249727 },
-  { id: 'node/7414122234', name: 'State Bank of India', lat: 11.2640922, lng: 75.889577 },
-  { id: 'node/7414122235', name: 'Patanjali Shop', lat: 11.2642204, lng: 75.8899879 },
-  { id: 'node/7414122236', name: 'Thuba Bakery', lat: 11.2644945, lng: 75.8905532 },
-  { id: 'node/7414122237', name: 'Cresent Bakery', lat: 11.2644975, lng: 75.890507 },
-  { id: 'node/7414122243', name: 'Post Office Poovattuparamba', lat: 11.2640987, lng: 75.8927223 },
-  { id: 'node/7414122245', name: 'Dr.Venugopal', lat: 11.2628271, lng: 75.8927408 },
-  { id: 'node/7414122246', name: 'Suvarna bakery and Restaurant', lat: 11.2631594, lng: 75.8965624 },
-  { id: 'node/7479082230', name: '24x7 Govt Primary Health centre Vazhayur', lat: 11.2232104, lng: 75.9015049 },
-  { id: 'node/7492418861', name: 'State Bank of India', lat: 11.2638248, lng: 75.8929275 },
-  { id: 'node/7500205809', name: 'Chikkus Bakery', lat: 11.2445357, lng: 75.8881854 },
-  { id: 'node/7500205832', name: 'Kinder Joy School', lat: 11.2448776, lng: 75.8883195 },
-  { id: 'node/7500209370', name: 'KMS Footwear', lat: 11.2457125, lng: 75.8884312 },
-  { id: 'node/7500209371', name: 'KKM Bakery', lat: 11.2448711, lng: 75.8884724 },
-  { id: 'node/7500209372', name: 'Milma Store', lat: 11.2450342, lng: 75.8885555 },
-  { id: 'node/7500209373', name: 'Masjidu Rahma', lat: 11.2451421, lng: 75.8885408 },
-  { id: 'node/7500209374', name: 'Masjidu Rahma & Ansarul Islam Sunni Madrasa', lat: 11.2453578, lng: 75.8885716 },
-  { id: 'node/7500215395', name: 'The New Classic Motors And Eni Lubricants Retailer', lat: 11.2467718, lng: 75.888518 },
-  { id: 'node/7500266479', name: 'Royal Food Products', lat: 11.2618138, lng: 75.88975 },
-  { id: 'node/7500287123', name: 'Keerthi Fireworks', lat: 11.2478439, lng: 75.8890003 },
-  { id: 'node/7500287147', name: 'V Star Industries', lat: 11.2504246, lng: 75.8887965 },
-  { id: 'node/7500297992', name: 'Home Made Cake', lat: 11.2568526, lng: 75.889164 },
-  { id: 'node/7500298009', name: 'Nirmalya Complex', lat: 11.2583152, lng: 75.8887616 },
-  { id: 'node/7500298014', name: 'Vanitha Vyasaya Kendra', lat: 11.2585993, lng: 75.8889789 },
-  { id: 'node/7500298015', name: 'Archana Industries - Polishing and Buffing Materials', lat: 11.2593359, lng: 75.8891291 },
-  { id: 'node/7500298024', name: 'Rajalakshmi Associates', lat: 11.2611324, lng: 75.8895337 },
-  { id: 'node/7500298033', name: 'Puthukkudi Sree Mundyan Paradevatha Temple', lat: 11.2611982, lng: 75.8893531 },
-  { id: 'node/7500298038', name: 'A R Store', lat: 11.2614731, lng: 75.8894537 },
-  { id: 'node/7500322401', name: 'AR pooja store & gogulam arts', lat: 11.2631659, lng: 75.8901631 },
-  { id: 'node/7500322402', name: 'Career PSC Coaching Centre', lat: 11.2632329, lng: 75.8902047 },
-  { id: 'node/7500322403', name: 'Mass Medicals', lat: 11.2633645, lng: 75.8902315 },
-  { id: 'node/7500322410', name: 'Bee Sweets Gallery', lat: 11.2637683, lng: 75.890493 },
-  { id: 'node/7500322423', name: 'Mavoor Regency', lat: 11.2634592, lng: 75.8909329 },
-  { id: 'node/7500322424', name: 'Vandhanam Store', lat: 11.2637091, lng: 75.8908524 },
-  { id: 'node/7500322425', name: 'Ponninam Jewellery', lat: 11.2637064, lng: 75.8909906 },
-  { id: 'node/7500322434', name: 'Milma Parlour', lat: 11.2639182, lng: 75.8905976 },
-  { id: 'node/7501650678', name: 'Poovattuparamba Auditorium', lat: 11.2638622, lng: 75.8892498 },
-  { id: 'node/7501650679', name: 'Vp Hall Poovattuparamba', lat: 11.2639187, lng: 75.8890915 },
-  { id: 'node/7501650681', name: 'NH Vegetables', lat: 11.2642541, lng: 75.8895475 },
-  { id: 'node/7501650684', name: 'Boots', lat: 11.2641831, lng: 75.8900397 },
-  { id: 'node/7501687286', name: 'PODI The Food Orchard', lat: 11.2642449, lng: 75.8901979 },
-  { id: 'node/7501687287', name: 'B.K Bakery & coolbar', lat: 11.264187, lng: 75.8903334 },
-  { id: 'node/7501687295', name: 'Kalathingal Vegetables', lat: 11.2644225, lng: 75.8903897 },
-  { id: 'node/7501687312', name: 'PKC Store', lat: 11.2644922, lng: 75.8906593 },
-  { id: 'node/7501687317', name: 'Crescent Bakery', lat: 11.2645053, lng: 75.8908671 },
-  { id: 'node/7507095069', name: 'bakery', lat: 11.2443165, lng: 75.8882959 },
-  { id: 'node/7507220668', name: 'P C Coolbar', lat: 11.2442702, lng: 75.8884423 },
-  { id: 'node/7507220669', name: 'Factory Outlet Perumanna', lat: 11.244428, lng: 75.8881177 },
-  { id: 'node/7507220670', name: 'A Plus Store', lat: 11.2441071, lng: 75.888343 },
-  { id: 'node/7507220671', name: 'Home Traders', lat: 11.2441807, lng: 75.8887159 },
-  { id: 'node/7507607998', name: 'Puthiyothsala Gurudeva Bagavathy Temple', lat: 11.2361151, lng: 75.8941449 },
-  { id: 'node/7507608071', name: 'Paruthesa', lat: 11.2306022, lng: 75.8875198 },
-  { id: 'node/7507608072', name: 'Vellayicode Mosque', lat: 11.2313625, lng: 75.8875144 },
-  { id: 'node/7507608073', name: 'Cherangottil Building', lat: 11.2313756, lng: 75.886801 },
-  { id: 'node/7507608074', name: 'Top Look Hair Cutting', lat: 11.2315203, lng: 75.8868948 },
-  { id: 'node/7507608075', name: 'Mukkorakkal Bhagavathi Temple', lat: 11.2316361, lng: 75.8867849 },
-  { id: 'node/7507608103', name: 'Aydhin Ready mades&Dresses', lat: 11.2321063, lng: 75.8875517 },
-  { id: 'node/7507767347', name: 'Manthottil Bagavathi Temple', lat: 11.2339505, lng: 75.8883027 },
-  { id: 'node/7508443060', name: 'Marhaba Hotel', lat: 11.2570774, lng: 75.9461243 },
-  { id: 'node/7508443061', name: 'Kalpally Juma Masjid', lat: 11.2553002, lng: 75.9418065 },
-  { id: 'node/7508443062', name: 'Shafi Ayurveda Nursing Home', lat: 11.2555419, lng: 75.9403116 },
-  { id: 'node/7508443076', name: 'Chittarikkavu Temple', lat: 11.2581465, lng: 75.9365968 },
-  { id: 'node/7508443077', name: 'Ration Shop', lat: 11.2589795, lng: 75.9376303 },
-  { id: 'node/7509425129', name: 'Cherupa Toddy Shop', lat: 11.2619437, lng: 75.9220208 },
-  { id: 'node/7509425130', name: 'Sreemangalam.. thandor', lat: 11.2620331, lng: 75.9216292 },
-  { id: 'node/7509425133', name: 'New Edavana Store', lat: 11.2625319, lng: 75.920477 },
-  { id: 'node/7509425134', name: 'Chips Bazzar', lat: 11.262616, lng: 75.9202624 },
-  { id: 'node/7509425171', name: 'Peruvayal Toddy Shop', lat: 11.2617342, lng: 75.9094158 },
-  { id: 'node/7509425172', name: 'Nikkoy Honda Peruvaya', lat: 11.2617342, lng: 75.9084818 },
-  { id: 'node/7509445091', name: 'Poopathi Vehicle Pollution Testing Center', lat: 11.2623387, lng: 75.9031766 },
-  { id: 'node/7509445139', name: 'Chitra Ayurvedic Clinic Peruvayal', lat: 11.2579785, lng: 75.9028964 },
-  { id: 'node/7518270806', name: 'Crescent Bakery', lat: 11.2644999, lng: 75.8905004 },
-  { id: 'node/7518270820', name: 'Bharat Petroleum', lat: 11.264243, lng: 75.8892205 },
-  { id: 'node/7518270834', name: 'Bharat Petroleum', lat: 11.2640579, lng: 75.8892759 },
-  { id: 'node/7518270845', name: 'vishnu temple', lat: 11.261334, lng: 75.8905769 },
-  { id: 'node/7518270883', name: 'State Bank of India', lat: 11.2638278, lng: 75.8928886 },
-  { id: 'node/7518272587', name: 'Post Office Poovatuparamb', lat: 11.2640602, lng: 75.8927174 },
-  { id: 'node/7518272636', name: 'Dr. Venugopal', lat: 11.2628298, lng: 75.8927447 },
-  { id: 'node/7769758173', name: 'Am Lower Primary School Vellayikkode', lat: 11.2314219, lng: 75.8871747 },
-  { id: 'node/7770030150', name: 'Aided Lower Primary School Poovattuparamba', lat: 11.2644692, lng: 75.8886658 },
-  { id: 'node/7770030153', name: 'Gayathri Vidhyanikethan', lat: 11.2609202, lng: 75.912516 },
-  { id: 'node/7770030155', name: 'Perfect English School Cheruppa', lat: 11.2622484, lng: 75.9259774 },
-  { id: 'node/7770030158', name: 'Mahlara Public School Parammel', lat: 11.2577433, lng: 75.9423629 },
-  { id: 'node/7811568563', name: 'AM Lower Primary School Ananthayoor', lat: 11.2326209, lng: 75.9341804 },
-  { id: 'node/7912503696', name: 'Akshaya', lat: 11.241189, lng: 75.9239837 },
-  { id: 'node/7912503753', name: 'Pendengal Sree Bhagavathi Temple Akkode', lat: 11.2374961, lng: 75.9216267 },
-  { id: 'node/7912503770', name: 'Spicy Corner', lat: 11.2345111, lng: 75.9139332 },
-  { id: 'node/7912503775', name: 'Yoonu\'s Two Wheeler Work Shop', lat: 11.2345218, lng: 75.9147864 },
-  { id: 'node/7912503788', name: 'Akkode Post Office', lat: 11.2343597, lng: 75.9152767 },
-  { id: 'node/7912503789', name: 'Kk Supermarket', lat: 11.2343779, lng: 75.9162616 },
-  { id: 'node/7912503948', name: 'Marwa Marbiles', lat: 11.246911, lng: 75.9446781 },
-  { id: 'node/7912708430', name: 'Grand Urban Mall', lat: 11.2325586, lng: 75.9154419 },
-  { id: 'node/7912708499', name: 'Kodiyammal Masjid', lat: 11.2299645, lng: 75.9246966 },
-  { id: 'node/8344466252', name: 'Akshaya', lat: 11.2626492, lng: 75.9242111 },
-  { id: 'node/8637127817', name: 'KUVAILMOOLA ANGANWADI', lat: 11.2067833, lng: 75.9022268 },
-  { id: 'node/8747141429', name: 'Akshaya', lat: 11.2152498, lng: 75.9421273 },
-  { id: 'node/8780454442', name: 'KK Supermarket', lat: 11.2419025, lng: 75.9245707 },
-  { id: 'node/8780489836', name: 'Chaliyar bakery', lat: 11.2419599, lng: 75.9245809 },
-  { id: 'node/8780503162', name: 'maruppacha', lat: 11.242139, lng: 75.9246342 },
-  { id: 'node/8780503956', name: 'Private homeopathy centre', lat: 11.2425745, lng: 75.9245633 },
-  { id: 'node/8848944792', name: 'Orange Bakery', lat: 11.2158915, lng: 75.9418455 },
-  { id: 'node/8850767398', name: 'Koyippadi Masjid', lat: 11.2198954, lng: 75.9423363 },
-  { id: 'node/8853285974', name: 'Puthiyedath Paramba Juma Masjid', lat: 11.2145929, lng: 75.9417461 },
-  { id: 'node/8853763647', name: 'Vinod Bakery', lat: 11.2620997, lng: 75.9058977 },
-  { id: 'node/8858827618', name: 'Farook sunni Masjid Ananthayoor', lat: 11.2290717, lng: 75.938121 },
-  { id: 'node/8860561642', name: 'Brothers Store Kalleri', lat: 11.2632954, lng: 75.8974051 },
-  { id: 'node/8860561643', name: 'St. Xaviers Roman Catholic Latin Church', lat: 11.2625203, lng: 75.9030946 },
-  { id: 'node/8860561648', name: 'Salah Coolbar and Bakery', lat: 11.2623033, lng: 75.9061223 },
-  { id: 'node/8860561649', name: 'Excellent Driving School', lat: 11.262351, lng: 75.9056895 },
-  { id: 'node/8860561650', name: 'Tailor shop', lat: 11.2623189, lng: 75.9057713 },
-  { id: 'node/8860561651', name: 'KK Tyres', lat: 11.2621335, lng: 75.9057259 },
-  { id: 'node/8868264106', name: 'Royal Hotel', lat: 11.2185433, lng: 75.9121556 },
-  { id: 'node/8870090142', name: 'Post Office Olavattur', lat: 11.2152973, lng: 75.9417651 },
-  { id: 'node/8870226343', name: 'Ration Shop, Puthiyodathparamba', lat: 11.216046, lng: 75.9417059 },
-  { id: 'node/8870238909', name: 'Ration Shop, Aroor', lat: 11.2100145, lng: 75.9328034 },
-  { id: 'node/8900293818', name: 'Choorappatta anganavadi', lat: 11.2364254, lng: 75.9258135 },
-  { id: 'node/8900300717', name: 'Virippadam Aided UP school', lat: 11.2387516, lng: 75.9237464 },
-  { id: 'node/8901275118', name: 'Government Ayurveda hospital Akkode', lat: 11.234264, lng: 75.9160776 },
-  { id: 'node/8901379318', name: 'Chittarikunnu Anganavadi', lat: 11.2440669, lng: 75.9317216 },
-  { id: 'node/8901380887', name: 'Ration Shop', lat: 11.2452094, lng: 75.9355981 },
-  { id: 'node/8901414917', name: 'Government Lower Primary School Mundumuzhi', lat: 11.2457497, lng: 75.9350871 },
-  { id: 'node/8901415117', name: 'Vetenery Hospital Vazhakkad', lat: 11.2441315, lng: 75.9317055 },
-  { id: 'node/8901540518', name: 'Cheruvattoor Anganavadi', lat: 11.2431214, lng: 75.9445401 },
-  { id: 'node/8902769317', name: 'Ananthayoor Anganavadi', lat: 11.2378122, lng: 75.9365526 },
-  { id: 'node/8902782917', name: 'Phoenix Library Ananthayoor', lat: 11.2378024, lng: 75.9371717 },
-  { id: 'node/8902803917', name: 'Health Sub Center Mundumuzhi', lat: 11.2456, lng: 75.9350991 },
-  { id: 'node/8912459417', name: 'GMUP School Akkode', lat: 11.2317333, lng: 75.9161997 },
-  { id: 'node/8996403304', name: 'Panchayath Community Centre', lat: 11.264563, lng: 75.8928302 },
-  { id: 'node/10847829984', name: 'Vazhayoor Paliative Care Clinic', lat: 11.2071408, lng: 75.8931815 },
-  { id: 'node/10847840818', name: 'Ration Shop', lat: 11.2144872, lng: 75.8952365 },
-  { id: 'node/10847851498', name: 'Kakkove Library', lat: 11.2137164, lng: 75.8941359 },
-  { id: 'node/10847851499', name: 'Vazhayur post office', lat: 11.2141738, lng: 75.8949514 },
-  { id: 'node/12005633769', name: 'Safi Institute of Advanced Studies', lat: 11.2263922, lng: 75.911471 },
-  { id: 'node/12886301268', name: 'Alangad Hassan Jumma Masjid', lat: 11.2068874, lng: 75.936345 },
-];
-// Function to search all places by name
-function searchManualPlaces(query) {
-  if (!query || query.trim().length === 0) return ALL_PLACES;
-  const q = query.toLowerCase();
-  return ALL_PLACES.filter(place => place.name.toLowerCase().includes(q));
-}
-// ========== END ALL PLACES ==========
 
 const DEFAULT_MAP_CENTER = { lat: 10.8505, lng: 76.2711 }; // Kerala, India fallback
 let locMap = null;
@@ -4545,6 +4242,16 @@ orderSummaryProceedBtn.addEventListener('click', () => {
   if (count === 0) { closeOrderSummary(); return; }
   closeOrderSummary();
   state.pendingCheckout = null;
+  // Guests get to browse freely — login/register is only asked for right
+  // here, at checkout, and only once (the session is remembered after that).
+  if (!state.user) {
+    state.authReturnTo = "checkout";
+    loginNumberInput.value = "";
+    loginErrorEl.style.display = "none";
+    loginSubmitBtn.disabled = true;
+    showScreen('login');
+    return;
+  }
   openLocationConfirm();
 });
 
@@ -5009,10 +4716,9 @@ function logoutUser() {
   try { localStorage.removeItem('asfood_screen'); } catch (e) {}
   try { localStorage.removeItem('asfood_last_order'); } catch (e) {}
   loginNumberInput.value = "";
-  loginPasswordInput.value = "";
   loginErrorEl.style.display = "none";
   loginSubmitBtn.disabled = true;
-  showScreen('login');
+  goToCategoryScreen();
 }
 document.getElementById('logout-btn').addEventListener('click', logoutUser);
 
@@ -5037,16 +4743,42 @@ document.getElementById('logout-btn').addEventListener('click', closeAccountDrop
 // asks the browser for a fresh GPS position and re-renders the shop list
 // filtered to that location, so the customer never has to pick manually.
 // If permission is denied/unavailable, whatever location was saved from
-// last time (if any) is kept, so the list doesn't just disappear. ----------
+// last time (if any) is kept, so the list doesn't just disappear. If
+// there's no saved location either, the "Select your location" label is
+// updated to make it obvious the customer needs to tap it and pick one
+// manually instead of silently doing nothing. ----------
 function autoDetectLocation() {
-  if (!navigator.geolocation) return;
+  if (!navigator.geolocation) {
+    state.locationDetectFailed = true;
+    return;
+  }
+  // getCurrentPosition silently fails on any page that isn't served over
+  // HTTPS (or localhost) — browsers block the Geolocation API entirely on
+  // insecure origins, with no permission prompt and no error callback in
+  // some browsers. Skip straight to the manual fallback in that case so
+  // the customer isn't left staring at a location row that never updates.
+  const isSecure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+  if (!isSecure) {
+    state.locationDetectFailed = true;
+    return;
+  }
   navigator.geolocation.getCurrentPosition(
     pos => {
       state.customerPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      state.locationDetectFailed = false;
       try { localStorage.setItem('asfood_customer_pos', JSON.stringify(state.customerPos)); } catch (e) {}
       renderHome();
     },
-    () => { /* permission denied / timeout — keep last saved location, if any */ },
+    (err) => {
+      // Permission denied / timeout / position unavailable — keep whatever
+      // location was saved from last time (if any); otherwise the label
+      // is updated (via updateHomeLocationLabel) to point the customer at
+      // the manual picker instead of just sitting there unexplained.
+      if (!state.customerPos) {
+        state.locationDetectFailed = true;
+        updateHomeLocationLabel();
+      }
+    },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
   );
 }
@@ -5062,17 +4794,16 @@ try {
   if (savedOrder && savedOrder.orderKey) state.lastOrder = savedOrder;
 } catch (e) {}
 
-if (state.user) {
-  // A fresh shop link takes priority over resuming wherever the customer
-  // was last, and over the default home/category screen — that's the whole
-  // point of tapping a shared link, it should open straight to that shop
-  // and nothing else. If RESTAURANTS hasn't loaded yet, tryOpenPendingShopLink
-  // leaves pendingShopLinkId set, and attemptNormalResumeIfNeeded() below
-  // (and again from onRestaurantsUpdated once real data lands) will keep
-  // deferring to it instead of showing home/category first.
-  if (pendingShopLinkId) resumed = tryOpenPendingShopLink();
-  attemptNormalResumeIfNeeded();
-}
+// A fresh shop link takes priority over resuming wherever the customer
+// was last, and over the default home/category screen — that's the whole
+// point of tapping a shared link, it should open straight to that shop
+// and nothing else. If RESTAURANTS hasn't loaded yet, tryOpenPendingShopLink
+// leaves pendingShopLinkId set, and attemptNormalResumeIfNeeded() below
+// (and again from onRestaurantsUpdated once real data lands) will keep
+// deferring to it instead of showing home/category first.
+// This now runs for guests too — login is only asked for at checkout.
+if (pendingShopLinkId) resumed = tryOpenPendingShopLink();
+attemptNormalResumeIfNeeded();
 
 // ---------- PWA: register service worker ----------
 if ('serviceWorker' in navigator) {
