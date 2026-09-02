@@ -7,6 +7,54 @@
     {
       "type": "Feature",
       "properties": {
+        "@id": "node/manual-place-25",
+        "place_name": "PUTHIYATH PARAMBA",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.94212770440208,
+          11.215571310311704
+        ]
+      },
+      "id": "node/manual-place-25"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-24",
+        "place_name": "AROOR",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.92866377925883,
+          11.216076210831764
+        ]
+      },
+      "id": "node/manual-place-24"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-23",
+        "name": "ATHIKODAMKUYI",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.92780547368373,
+          11.223246423644145
+        ]
+      },
+      "id": "node/manual-place-23"
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "@id": "node/manual-place-22",
         "name": "Cheruppa road",
         "@geometry": "center"
