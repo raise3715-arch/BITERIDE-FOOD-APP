@@ -7,6 +7,118 @@
     {
       "type": "Feature",
       "properties": {
+        "@id": "node/manual-place-22",
+        "name": "Cheruppa road",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.9238457677566,
+          11.246720493669905
+        ]
+      },
+      "id": "node/manual-place-22"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-21",
+        "place_name": "Cheruppa road",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.923810005188,
+          11.246646834030603
+        ]
+      },
+      "id": "node/manual-place-21"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-20",
+        "place_name": "Vazhyoor junction",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.91030796434234,
+          11.217968403435558
+        ]
+      },
+      "id": "node/manual-place-20"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-19",
+        "name": "AROOR palivalav",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.92329700875007,
+          11.213604480266993
+        ]
+      },
+      "id": "node/manual-place-19"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-18",
+        "name": "Near thonikallapara",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.95694064832061,
+          11.196890712774781
+        ]
+      },
+      "id": "node/manual-place-18"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-17",
+        "place_name": "Vettukad",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.96233368007235,
+          11.196153989713832
+        ]
+      },
+      "id": "node/manual-place-17"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-16",
+        "place_name": "Omannor",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.96875667615679,
+          11.211751095371316
+        ]
+      },
+      "id": "node/manual-place-16"
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "@id": "node/manual-place-15",
         "place_name": "Kayalam",
         "@geometry": "center"

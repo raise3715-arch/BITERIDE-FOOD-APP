@@ -2512,7 +2512,9 @@ function renderTaxiTimeline(ride) {
     taxiTrackMapDriverId = null;
   }
 
-  taxiCancelBtn.style.display = (status === 'searching' || status === 'accepted') ? 'block' : 'none';
+  // Once a driver has accepted, the customer can no longer cancel from
+  // their side — only while still searching for a driver.
+  taxiCancelBtn.style.display = (status === 'searching') ? 'block' : 'none';
 
   taxiTrackTimelineEl.innerHTML = '';
   TAXI_STEPS.forEach((step, idx) => {
@@ -2535,7 +2537,20 @@ function renderTaxiTimeline(ride) {
 function openTaxiTrack(rideKey, initialRide) {
   currentRideKey = rideKey;
   document.getElementById('taxi-track-ride-num').textContent = 'Ride ' + rideKey.slice(-6).toUpperCase();
-  renderTaxiTimeline(initialRide || { status: 'searching', fare: 0, distanceKm: 0 });
+  if (initialRide) {
+    renderTaxiTimeline(initialRide);
+  } else {
+    // No known status yet (e.g. resuming after the app was closed/reopened) —
+    // show a neutral loading state instead of defaulting to "Finding a nearby
+    // driver", which would falsely suggest the ride reverted to searching
+    // even when a driver already accepted it. The real status arrives the
+    // instant the onValue listener below fires.
+    taxiTrackStatusText.textContent = 'Loading your ride status…';
+    taxiTrackEtaText.textContent = '';
+    taxiTrackTimelineEl.innerHTML = '';
+    taxiDriverCard.classList.add('hidden');
+    taxiCancelBtn.style.display = 'none';
+  }
   showScreen('taxi-track');
   persistScreen('taxi-track', { rideKey });
 
@@ -2696,6 +2711,13 @@ document.getElementById('taxi-chat-input').addEventListener('keydown', (e) => {
 
 taxiCancelBtn.addEventListener('click', async () => {
   if (!currentRideKey) return;
+  // Server-side of truth check — a driver may have accepted the instant
+  // before this click landed, so re-verify status (not just the button's
+  // visibility) before allowing the cancel.
+  if (taxiTrackLastStatus !== 'searching') {
+    alert("A driver has already accepted this ride — it can no longer be cancelled from here.");
+    return;
+  }
   if (!confirm('Cancel this ride?')) return;
   const { db, ref, update } = window.fb;
   try { await update(ref(db, 'rides/' + currentRideKey), { status: 'cancelled' }); } catch (e) {}
