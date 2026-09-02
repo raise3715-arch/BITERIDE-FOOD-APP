@@ -1597,8 +1597,7 @@
   onValue(ref(db, 'app_config/extraAmount'), (snapshot) => {
     const data = snapshot.val();
     PLATFORM_EXTRA_AMOUNT = (data && Number(data.amount)) || 0;
-    window.PLATFORM_EXTRA_AMOUNT = PLATFORM_EXTRA_AMOUNT;
-    if (window.onPlatformFeeUpdated) window.onPlatformFeeUpdated();
+    window.PLATFORM_EXTRA_AMOUNT = PLATFORM_EXTRA_AMOUNT;    if (window.onPlatformFeeUpdated) window.onPlatformFeeUpdated();
   });
 
   // Live-listens to the operator-set order for the home-screen category
@@ -1607,6 +1606,24 @@
   onValue(ref(db, 'app_config/categoryOrder'), (snapshot) => {
     const order = snapshot.val();
     if (window.applyCategoryOrder) window.applyCategoryOrder(order);
+  });
+
+  // Live-listens to the operator-set taxi per-km rate and platform fee
+  // (Operator Panel → Taxi Fare). Exposed on window so the taxi booking
+  // code (plain <script> below) can read it — 0 on either field means
+  // "not set", handled there.
+  onValue(ref(db, 'app_config/taxiFare'), (snapshot) => {
+    const data = snapshot.val();
+    window.TAXI_FARE_OVERRIDE = {
+      perKm: (data && Number(data.perKm)) || 0,
+      platformFee: (data && Number(data.platformFee)) || 0,
+      // True once the operator has saved this section at least once (see
+      // opSaveTaxiFare in the operator panel). Lets perKm===0 mean
+      // "operator turned the fare off" instead of being indistinguishable
+      // from "operator has never touched this, use the app default".
+      configured: !!data,
+    };
+    if (window.onTaxiFareUpdated) window.onTaxiFareUpdated();
   });
 </script>
 
@@ -1639,7 +1656,20 @@ window.onRestaurantsUpdated = () => {
   renderRestaurantList();
   if (state.selectedRestaurant) {
     const updated = RESTAURANTS.find(r => r.id === state.selectedRestaurant.id);
-    if (updated) { state.selectedRestaurant = updated; renderMenu(); }
+    if (updated) {
+      state.selectedRestaurant = updated;
+      renderMenu();
+      // The menu list isn't the only place a price is shown — if the
+      // customer is sitting on the single-item page right now, refresh
+      // that too, and always refresh the cart total, so a shop's price
+      // edit shows up live wherever the customer happens to be looking
+      // instead of only after they navigate back to the menu.
+      const itemDetailScreenEl = document.getElementById('screen-item-detail');
+      if (state.selectedItem && itemDetailScreenEl && itemDetailScreenEl.classList.contains('active')) {
+        renderItemDetail();
+      }
+      if (state.cart && Object.keys(state.cart).length) updateCartBar();
+    }
   }
   tryOpenPendingShopLink();
   // If the customer was on their menu/checkout/km-calculation screen when
@@ -1895,6 +1925,29 @@ document.getElementById('cat-loc-card').addEventListener('click', () => openBrow
 const RIDE_TYPES = [
   { key: 'auto', label: 'Auto', icon: '🛺', base: 25, perKm: 10, etaMin: 4 },
 ];
+// Operator-set overrides (Operator Panel → Taxi Fare), live from
+// app_config/taxiFare (see the module script above).
+// - Operator has never saved this section (configured=false): use each
+//   ride type's own built-in base/perKm above, as before.
+// - Operator saved perKm > 0: use that rate.
+// - Operator saved perKm === 0: the fare is turned OFF — no rate is
+//   shown or charged anywhere in the booking flow, the ride is free,
+//   and it's just a driver-connect flow (see taxiFareIsOff()).
+function taxiFareIsOff() {
+  const override = window.TAXI_FARE_OVERRIDE;
+  return !!(override && override.configured && override.perKm === 0);
+}
+function effectivePerKm(rt) {
+  if (taxiFareIsOff()) return 0;
+  const override = window.TAXI_FARE_OVERRIDE;
+  return override && override.perKm > 0 ? override.perKm : rt.perKm;
+}
+function effectiveBaseFare(rt) {
+  return taxiFareIsOff() ? 0 : rt.base;
+}
+function currentTaxiPlatformFee() {
+  return (window.TAXI_FARE_OVERRIDE && Number(window.TAXI_FARE_OVERRIDE.platformFee)) || 0;
+}
 const TAXI_STEPS = [
   { key: 'searching', label: 'Finding a nearby driver' },
   { key: 'accepted',  label: 'Driver assigned' },
@@ -2217,16 +2270,17 @@ function renderRideOptions() {
   taxiRideOptionsEl.innerHTML = '';
   if (km == null) return;
   RIDE_TYPES.forEach(rt => {
-    const fare = Math.round(rt.base + rt.perKm * km);
+    const fare = Math.round(effectiveBaseFare(rt) + effectivePerKm(rt) * km);
     const el = document.createElement('div');
     el.className = 'ride-option' + (taxiSelectedType === rt.key ? ' selected' : '');
+    const fareHtml = taxiFareIsOff() ? '' : `<div class="ride-option-fare">₹${fare}</div>`;
     el.innerHTML = `
       <div class="ride-option-icon">${rt.icon}</div>
       <div class="ride-option-mid">
         <p class="ride-option-name">${rt.label}</p>
         <p class="ride-option-eta">${rt.etaMin} min away</p>
       </div>
-      <div class="ride-option-fare">₹${fare}</div>
+      ${fareHtml}
     `;
     el.addEventListener('click', () => { taxiSelectedType = rt.key; renderRideOptions(); updateTaxiBookBtn(); });
     taxiRideOptionsEl.appendChild(el);
@@ -2241,9 +2295,8 @@ function updateTaxiBookBtn() {
     return;
   }
   const rt = RIDE_TYPES.find(r => r.key === taxiSelectedType);
-  const fare = Math.round(rt.base + rt.perKm * km);
   taxiBookBtn.disabled = false;
-  taxiBookBtn.textContent = `Book ${rt.label} · ₹${fare}`;
+  taxiBookBtn.textContent = taxiFareIsOff() ? `Book ${rt.label}` : `Book ${rt.label} · ₹${Math.round(effectiveBaseFare(rt) + effectivePerKm(rt) * km)}`;
 }
 
 document.getElementById('taxi-book-back-btn').addEventListener('click', () => {
@@ -2273,7 +2326,7 @@ async function submitTaxiBooking() {
   const km = currentTaxiKm();
   if (km == null) return;
   const rt = RIDE_TYPES.find(r => r.key === taxiSelectedType);
-  const fare = Math.round(rt.base + rt.perKm * km);
+  const fare = Math.round(effectiveBaseFare(rt) + effectivePerKm(rt) * km);
   taxiBookBtn.disabled = true;
   taxiBookBtn.textContent = 'Booking…';
   const { db, ref, push, set } = window.fb;
@@ -2287,6 +2340,7 @@ async function submitTaxiBooking() {
     vehicleLabel: rt.label,
     distanceKm: Number(km.toFixed(2)),
     fare,
+    platformFee: currentTaxiPlatformFee(),
     status: 'searching',
     createdAt: Date.now(),
   };
@@ -2353,9 +2407,10 @@ function renderTaxiTimeline(ride) {
 
   const currentIdx = TAXI_STEPS.findIndex(s => s.key === status);
   taxiTrackStatusText.textContent = TAXI_STEPS[currentIdx].label;
+  const rideFareOff = !ride.fare;
   taxiTrackEtaText.textContent = status === 'completed'
-    ? `Trip complete — ₹${ride.fare} · ${ride.distanceKm} km`
-    : `${ride.vehicleLabel || ''} · ₹${ride.fare} · ${ride.distanceKm} km`;
+    ? (rideFareOff ? `Trip complete — ${ride.distanceKm} km` : `Trip complete — ₹${ride.fare} · ${ride.distanceKm} km`)
+    : (rideFareOff ? `${ride.vehicleLabel || ''} · ${ride.distanceKm} km` : `${ride.vehicleLabel || ''} · ₹${ride.fare} · ${ride.distanceKm} km`);
 
   if (ride.driverName) {
     taxiDriverCard.classList.remove('hidden');
@@ -3439,6 +3494,16 @@ window.onPlatformFeeUpdated = () => {
   if (paymentOverlay && paymentOverlay.classList.contains('show')) {
     updateLocSummary();
     if (selectedPaymentMethod === 'gpay') setPaymentMethod('gpay');
+  }
+};
+// Same idea for the taxi per-km rate/platform fee — keep the ride-options
+// list and the book button's live fare in sync the instant the operator
+// changes it, without the customer needing to re-enter their pickup/drop.
+window.onTaxiFareUpdated = () => {
+  const bookScreenEl = document.getElementById('screen-taxi-book');
+  if (bookScreenEl && bookScreenEl.classList.contains('active')) {
+    renderRideOptions();
+    updateTaxiBookBtn();
   }
 };
 
