@@ -1330,19 +1330,13 @@
       <div class="stack">
         <div class="taxi-pin-row active" id="taxi-pickup-row">
           <div class="taxi-pin-dot pickup"></div>
-          <input id="taxi-pickup-input" type="text" placeholder="Pickup location" readonly />
+          <input id="taxi-pickup-input" type="text" placeholder="Search pickup location" autocomplete="off" />
           <button class="taxi-gps-btn" id="taxi-pickup-gps-btn">📍 GPS</button>
         </div>
         <div class="taxi-pin-row" id="taxi-drop-row">
           <div class="taxi-pin-dot drop"></div>
-          <input id="taxi-drop-input" type="text" placeholder="Where do you want to go?" readonly />
+          <input id="taxi-drop-input" type="text" placeholder="Where do you want to go?" autocomplete="off" />
         </div>
-      </div>
-
-      <p class="loc-field-label" style="margin-top:14px;">Search for a place</p>
-      <div class="field" style="background:#fff; border:1px solid #E4DFD2; margin-bottom:0;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A66600" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="taxi-search" type="text" placeholder="Search area, street, landmark…" style="color:var(--ink);" autocomplete="off" />
       </div>
       <div class="loc-search-results" id="taxi-search-results"></div>
 
@@ -2099,7 +2093,6 @@ const taxiPickupRow = document.getElementById('taxi-pickup-row');
 const taxiDropRow = document.getElementById('taxi-drop-row');
 const taxiPickupInput = document.getElementById('taxi-pickup-input');
 const taxiDropInput = document.getElementById('taxi-drop-input');
-const taxiSearchInput = document.getElementById('taxi-search');
 const taxiSearchResultsEl = document.getElementById('taxi-search-results');
 const taxiMapHint = document.getElementById('taxi-map-hint');
 const taxiDistanceText = document.getElementById('taxi-distance-text');
@@ -2128,7 +2121,6 @@ function showTaxiBookingForm() {
   updateTaxiPinRows();
   renderRideOptions();
   updateTaxiBookBtn();
-  taxiSearchInput.value = "";
   hideTaxiSearchResults();
   setTimeout(() => {
     ensureTaxiMap();
@@ -2227,13 +2219,14 @@ function updateTaxiPinRows() {
     ? 'Tap the map (or drag the pin) to set your pickup point'
     : 'Tap the map (or drag the pin) to set your drop point';
 }
-taxiPickupRow.addEventListener('click', () => { taxiActivePin = 'pickup'; updateTaxiPinRows(); });
-taxiDropRow.addEventListener('click', () => { taxiActivePin = 'drop'; updateTaxiPinRows(); });
+taxiPickupRow.addEventListener('click', () => { taxiActivePin = 'pickup'; updateTaxiPinRows(); hideTaxiSearchResults(); });
+taxiDropRow.addEventListener('click', () => { taxiActivePin = 'drop'; updateTaxiPinRows(); hideTaxiSearchResults(); });
 
-// ---------- "Search for a place" (taxi pickup/drop) ----------
-// Sets whichever pin (pickup or drop) is currently active — same local
+// ---------- Search for a place, directly from the pickup/drop fields ----------
+// Typing into either field searches for that place — same local
 // landmarks-first + Nominatim-fallback search used on the other location
-// pickers, wired here to move the taxi map's pin.
+// pickers, wired here to move the taxi map's pin. Whichever field the
+// person is typing in becomes the active pin automatically.
 function hideTaxiSearchResults() {
   if (taxiSearchResultsEl) {
     taxiSearchResultsEl.classList.remove('show');
@@ -2243,12 +2236,11 @@ function hideTaxiSearchResults() {
 
 function selectTaxiSearchResult(place) {
   const lat = parseFloat(place.lat), lng = parseFloat(place.lon);
-  taxiSearchInput.value = place.display_name;
   hideTaxiSearchResults();
   ensureTaxiMap();
   taxiMap.setView([lat, lng], 16);
-  placeTaxiPin(taxiActivePin, lat, lng);
-  if (taxiActivePin === 'pickup' && !taxiDrop) taxiActivePin = 'drop';
+  placeTaxiPin(taxiActivePin, lat, lng, place.display_name);
+  if (taxiActivePin === 'pickup' && !taxiDrop) { taxiActivePin = 'drop'; taxiDropInput.focus(); }
   updateTaxiPinRows();
 }
 
@@ -2273,8 +2265,7 @@ function renderTaxiSearchResults(results) {
 
 let taxiSearchDebounce = null;
 let taxiSearchAbort = null;
-taxiSearchInput.addEventListener('input', () => {
-  const query = taxiSearchInput.value.trim();
+function runTaxiPlaceSearch(query) {
   clearTimeout(taxiSearchDebounce);
   if (query.length < 3) {
     hideTaxiSearchResults();
@@ -2307,6 +2298,17 @@ taxiSearchInput.addEventListener('input', () => {
     }
     renderTaxiSearchResults([...localMatches, ...remoteResults]);
   }, 450);
+}
+
+taxiPickupInput.addEventListener('input', () => {
+  taxiActivePin = 'pickup';
+  updateTaxiPinRows();
+  runTaxiPlaceSearch(taxiPickupInput.value.trim());
+});
+taxiDropInput.addEventListener('input', () => {
+  taxiActivePin = 'drop';
+  updateTaxiPinRows();
+  runTaxiPlaceSearch(taxiDropInput.value.trim());
 });
 
 function useTaxiGps() {
