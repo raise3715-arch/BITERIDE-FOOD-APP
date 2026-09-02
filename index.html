@@ -506,9 +506,40 @@
   .taxi-driver-card{ display:flex; align-items:center; gap:12px; margin-top:16px; padding:14px; border-radius:14px; background:#fff; border:1px solid var(--field-border); }
   .taxi-driver-card.hidden{ display:none; }
   .taxi-driver-avatar{ width:44px; height:44px; border-radius:50%; background:var(--marigold); display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Poppins',sans-serif; color:var(--ink); font-size:18px; flex-shrink:0; }
+  .taxi-driver-info{ flex:1; min-width:0; }
   .taxi-driver-name{ color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:14px; margin:0; }
   .taxi-driver-meta{ color:var(--muted-2); font-size:12px; margin:2px 0 0; }
+  .taxi-driver-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .taxi-action-btn{
+    width:40px; height:40px; border-radius:50%; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative;
+  }
+  .taxi-action-btn.call{ background:var(--leaf); }
+  .taxi-action-btn.chat{ background:var(--marigold); }
+  .taxi-action-btn:active{ transform:scale(0.94); }
+  .taxi-chat-badge{
+    position:absolute; top:-3px; right:-3px; min-width:16px; height:16px; padding:0 3px;
+    border-radius:8px; background:#C0392B; color:#fff; font-size:10px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif;
+    border:1.5px solid #fff;
+  }
+  .taxi-chat-badge.hidden{ display:none; }
   .order-row-reason{ color:#B23B3B; font-size:11px; margin:3px 0 0; font-family:'Inter',sans-serif; }
+
+  /* Trip chat — simple two-way message thread between customer & driver,
+     scoped to a single ride (rides/{rideKey}/chat). */
+  .chat-body{ display:flex; flex-direction:column; height:calc(100vh - 200px); }
+  .chat-messages{ flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:10px; }
+  .chat-empty{ color:var(--muted); font-size:13px; text-align:center; margin-top:40px; }
+  .chat-msg{ max-width:78%; padding:10px 13px; border-radius:16px; font-size:14px; line-height:1.4; word-wrap:break-word; }
+  .chat-msg.theirs{ align-self:flex-start; background:#fff; border:1px solid var(--field-border); color:var(--ink); border-bottom-left-radius:4px; }
+  .chat-msg.mine{ align-self:flex-end; background:var(--marigold); color:var(--ink); border-bottom-right-radius:4px; }
+  .chat-msg-time{ display:block; font-size:10px; opacity:.6; margin-top:3px; }
+  .chat-input-bar{ display:flex; gap:10px; align-items:center; padding:12px 20px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid var(--field-border); background:var(--bg); }
+  .chat-input-bar input{ flex:1; border:1.5px solid var(--field-border); background:var(--field-bg); border-radius:24px; padding:11px 16px; font-size:14px; outline:none; color:var(--ink); font-family:'Inter',sans-serif; }
+  .chat-send-btn{ width:42px; height:42px; border-radius:50%; border:none; background:var(--marigold); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .chat-send-btn:active{ transform:scale(0.94); }
+  .chat-send-btn:disabled{ background:#E3DFD8; cursor:not-allowed; }
 
   /* Home screen: big track-order shortcut */
   .top-row-right{ display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
@@ -1322,9 +1353,18 @@
       </div>
       <div class="taxi-driver-card hidden" id="taxi-driver-card">
         <div class="taxi-driver-avatar" id="taxi-driver-avatar">🧑</div>
-        <div>
+        <div class="taxi-driver-info">
           <p class="taxi-driver-name" id="taxi-driver-name"></p>
           <p class="taxi-driver-meta" id="taxi-driver-meta"></p>
+        </div>
+        <div class="taxi-driver-actions">
+          <a class="taxi-action-btn call" id="taxi-call-btn" href="tel:">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </a>
+          <button class="taxi-action-btn chat" id="taxi-chat-btn" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2B2410" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            <span class="taxi-chat-badge hidden" id="taxi-chat-badge">0</span>
+          </button>
         </div>
       </div>
       <div class="track-map-wrap hidden" id="taxi-track-map-wrap">
@@ -1332,6 +1372,28 @@
       </div>
       <div class="timeline" id="taxi-track-timeline" style="margin-top:20px;"></div>
       <button class="btn-link" id="taxi-cancel-ride-btn" style="margin-top:8px;">Cancel ride</button>
+    </div>
+  </section>
+
+  <!-- TAXI CHAT — message thread with the assigned driver, scoped to the active ride -->
+  <section class="screen" id="screen-taxi-chat">
+    <div class="track-header">
+      <button class="btn-back" id="taxi-chat-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97F00" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <p class="eyebrow">CHAT WITH DRIVER</p>
+        <h1 class="track-title" id="taxi-chat-driver-name">Driver</h1>
+      </div>
+    </div>
+    <div class="chat-body">
+      <div class="chat-messages" id="taxi-chat-messages"></div>
+      <div class="chat-input-bar">
+        <input type="text" id="taxi-chat-input" placeholder="Type a message…" maxlength="300" />
+        <button class="chat-send-btn" id="taxi-chat-send-btn" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#2B2410"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -1833,6 +1895,11 @@ function tryResumeScreen(saved) {
     openTaxiTrack(saved.rideKey);
     resumed = true;
     return true;
+  } else if (saved.id === 'taxi-chat' && saved.rideKey) {
+    openTaxiTrack(saved.rideKey);
+    openTaxiChat();
+    resumed = true;
+    return true;
   }
   // Unrecognized saved.id — nothing we know how to resume.
   resumed = true;
@@ -1997,11 +2064,15 @@ const taxiTrackTimelineEl = document.getElementById('taxi-track-timeline');
 const taxiDriverCard = document.getElementById('taxi-driver-card');
 const taxiDriverName = document.getElementById('taxi-driver-name');
 const taxiDriverMeta = document.getElementById('taxi-driver-meta');
+const taxiCallBtn = document.getElementById('taxi-call-btn');
+let taxiTrackLastRide = null;   // most recent ride payload for the screen currently open — used by the call/chat buttons and the hardware back-button guard
+let taxiTrackLastStatus = 'searching';
 const taxiCancelBtn = document.getElementById('taxi-cancel-ride-btn');
 let taxiTrackMap = null; // live-driver map on the ride tracking screen — created lazily, see renderTaxiTimeline
 let taxiTrackMapDriverId = null; // which driver we're currently watching, so we don't re-subscribe every snapshot
 
 function showTaxiBookingForm() {
+  detachTaxiChatListener();
   showScreen('taxi-book');
   persistScreen('taxi-book');
   taxiActivePin = taxiPickup ? 'drop' : 'pickup';
@@ -2396,6 +2467,8 @@ function renderTaxiTimeline(ride) {
     // Ride is over — free up booking so the customer can request a new one.
     setStoredActiveRideKey(null);
   }
+  taxiTrackLastRide = ride;
+  taxiTrackLastStatus = status;
   if (status === 'cancelled') {
     taxiTrackStatusText.textContent = 'Ride cancelled';
     taxiTrackEtaText.textContent = 'This ride was cancelled.';
@@ -2416,9 +2489,14 @@ function renderTaxiTimeline(ride) {
     taxiDriverCard.classList.remove('hidden');
     taxiDriverName.textContent = ride.driverName;
     taxiDriverMeta.textContent = [ride.driverVehicleNumber, ride.driverPhone].filter(Boolean).join(' · ') || 'Your driver';
+    taxiCallBtn.href = ride.driverPhone ? ('tel:' + ride.driverPhone) : 'tel:';
+    taxiCallBtn.style.display = ride.driverPhone ? 'flex' : 'none';
+    document.getElementById('taxi-chat-driver-name').textContent = ride.driverName;
   } else {
     taxiDriverCard.classList.add('hidden');
   }
+  taxiTrackLastRide = ride;
+  taxiTrackLastStatus = status;
 
   // Live map: only once a driver is on the ride, and only while the trip
   // is actually in progress — hide it again once the ride wraps up.
@@ -2467,6 +2545,7 @@ function openTaxiTrack(rideKey, initialRide) {
     const r = snap.val();
     if (r) renderTaxiTimeline(r);
   });
+  attachTaxiChatListener(rideKey);
 }
 
 function leaveTaxiTrack() {
@@ -2477,6 +2556,143 @@ function leaveTaxiTrack() {
   goToTaxiBooking();
 }
 document.getElementById('taxi-track-back-btn').addEventListener('click', leaveTaxiTrack);
+
+// ---------- TAXI CHAT — message thread with the assigned driver ----------
+// Stored at rides/{rideKey}/chat/{pushId} = { from: 'customer'|'driver', text, ts }.
+// The listener is attached the moment tracking opens (not only when the chat
+// screen is open) so the unread badge on the driver card stays live.
+let taxiChatUnsub = null;
+let taxiChatRideKey = null;
+let taxiChatMessages = [];
+
+function taxiChatReadKey(rideKey) { return 'asfood_taxi_chat_read_' + rideKey; }
+function getTaxiChatLastRead(rideKey) {
+  try { return parseInt(localStorage.getItem(taxiChatReadKey(rideKey)) || '0', 10); } catch (e) { return 0; }
+}
+function setTaxiChatLastRead(rideKey, ts) {
+  try { localStorage.setItem(taxiChatReadKey(rideKey), String(ts)); } catch (e) {}
+}
+
+function attachTaxiChatListener(rideKey) {
+  if (taxiChatRideKey === rideKey && taxiChatUnsub) return; // already watching this ride's chat
+  if (taxiChatUnsub) { taxiChatUnsub(); taxiChatUnsub = null; }
+  taxiChatRideKey = rideKey;
+  taxiChatMessages = [];
+  const { db, ref, onValue } = window.fb;
+  taxiChatUnsub = onValue(ref(db, 'rides/' + rideKey + '/chat'), snap => {
+    const val = snap.val() || {};
+    taxiChatMessages = Object.values(val).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    updateTaxiChatBadge(rideKey);
+    if (document.getElementById('screen-taxi-chat').classList.contains('active')) {
+      renderTaxiChatMessages();
+    }
+  });
+}
+
+function detachTaxiChatListener() {
+  if (taxiChatUnsub) { taxiChatUnsub(); taxiChatUnsub = null; }
+  taxiChatRideKey = null;
+  taxiChatMessages = [];
+}
+
+function updateTaxiChatBadge(rideKey) {
+  const badge = document.getElementById('taxi-chat-badge');
+  const lastRead = getTaxiChatLastRead(rideKey);
+  const unread = taxiChatMessages.filter(m => m.from === 'driver' && (m.ts || 0) > lastRead).length;
+  if (unread > 0) {
+    badge.textContent = unread > 9 ? '9+' : String(unread);
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function renderTaxiChatMessages() {
+  const wrap = document.getElementById('taxi-chat-messages');
+  if (!taxiChatMessages.length) {
+    wrap.innerHTML = '<p class="chat-empty">Say hi to your driver 👋</p>';
+    return;
+  }
+  wrap.innerHTML = taxiChatMessages.map(m => {
+    const mine = m.from === 'customer';
+    const time = m.ts ? new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}">${escapeHtml(m.text)}<span class="chat-msg-time">${time}</span></div>`;
+  }).join('');
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function openTaxiChat() {
+  if (!currentRideKey) return;
+  document.getElementById('taxi-chat-driver-name').textContent = (taxiTrackLastRide && taxiTrackLastRide.driverName) || 'Driver';
+  showScreen('taxi-chat');
+  persistScreen('taxi-chat', { rideKey: currentRideKey });
+  renderTaxiChatMessages();
+  const latestTs = taxiChatMessages.length ? taxiChatMessages[taxiChatMessages.length - 1].ts : Date.now();
+  setTaxiChatLastRead(currentRideKey, latestTs);
+  updateTaxiChatBadge(currentRideKey);
+  setTimeout(() => document.getElementById('taxi-chat-input').focus(), 100);
+}
+
+function closeTaxiChat() {
+  showScreen('taxi-track');
+  persistScreen('taxi-track', { rideKey: currentRideKey });
+}
+
+async function sendTaxiChatMessage() {
+  const input = document.getElementById('taxi-chat-input');
+  const text = input.value.trim();
+  if (!text || !currentRideKey) return;
+  input.value = '';
+  const sendBtn = document.getElementById('taxi-chat-send-btn');
+  sendBtn.disabled = true;
+  try {
+    const { db, ref, push, set } = window.fb;
+    const msgRef = push(ref(db, 'rides/' + currentRideKey + '/chat'));
+    await set(msgRef, { from: 'customer', text, ts: Date.now() });
+    setTaxiChatLastRead(currentRideKey, Date.now());
+  } catch (e) {
+    alert("Couldn't send — check your connection and try again.");
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+document.getElementById('taxi-chat-btn').addEventListener('click', openTaxiChat);
+document.getElementById('taxi-chat-back-btn').addEventListener('click', closeTaxiChat);
+document.getElementById('taxi-chat-send-btn').addEventListener('click', sendTaxiChatMessage);
+document.getElementById('taxi-chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); sendTaxiChatMessage(); }
+});
+
+// ---------- Hardware back-button guard (Android/Capacitor) ----------
+// While a ride is active and the customer is on the trip-tracking or
+// trip-chat screen, the phone's back button must not be able to leave that
+// screen — no matter how many times it's pressed — so the trip stays
+// visible until the ride is completed/cancelled. Everywhere else, this
+// reproduces the same behaviour the app already had (go back in web
+// history if there is any, otherwise exit) so nothing else changes.
+// Only does anything inside the native (Capacitor) wrapped app — a no-op
+// in a plain browser tab.
+(function () {
+  if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.App) return;
+  const CapApp = window.Capacitor.Plugins.App;
+  CapApp.addListener('backButton', ({ canGoBack }) => {
+    const activeScreen = document.querySelector('.screen.active');
+    const activeId = activeScreen ? activeScreen.id.replace('screen-', '') : '';
+    const rideActive = !!currentRideKey && !['completed', 'cancelled'].includes(taxiTrackLastStatus);
+
+    if (rideActive && (activeId === 'taxi-track' || activeId === 'taxi-chat')) {
+      // Trip in progress — swallow the back press, stay right here.
+      return;
+    }
+    if (activeId === 'taxi-chat') { closeTaxiChat(); return; }
+    if (activeId === 'taxi-track') { leaveTaxiTrack(); return; }
+    if (canGoBack) { window.history.back(); return; }
+    if (CapApp.minimizeApp) CapApp.minimizeApp();
+    else if (CapApp.exitApp) CapApp.exitApp();
+  });
+})();
 
 taxiCancelBtn.addEventListener('click', async () => {
   if (!currentRideKey) return;
