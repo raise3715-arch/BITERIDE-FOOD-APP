@@ -505,6 +505,18 @@
   .ride-option-fare{ color:var(--ink); font-weight:700; font-size:15px; font-family:'Poppins',sans-serif; flex-shrink:0; }
   .taxi-driver-card{ display:flex; align-items:center; gap:12px; margin-top:16px; padding:14px; border-radius:14px; background:#fff; border:1px solid var(--field-border); }
   .taxi-driver-card.hidden{ display:none; }
+
+  .taxi-otp-card{
+    margin-top:14px; padding:16px; border-radius:14px; text-align:center;
+    background:var(--field-bg); border:1.5px dashed var(--marigold-dark);
+  }
+  .taxi-otp-card.hidden{ display:none; }
+  .taxi-otp-label{ color:var(--muted-2); font-size:11px; font-weight:700; letter-spacing:1px; margin:0; }
+  .taxi-otp-value{
+    color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:34px; font-weight:600;
+    letter-spacing:10px; margin:6px 0; padding-left:10px;
+  }
+  .taxi-otp-hint{ color:var(--muted-2); font-size:12px; margin:0; }
   .taxi-driver-avatar{ width:44px; height:44px; border-radius:50%; background:var(--marigold); display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Poppins',sans-serif; color:var(--ink); font-size:18px; flex-shrink:0; }
   .taxi-driver-info{ flex:1; min-width:0; }
   .taxi-driver-name{ color:var(--ink); font-weight:700; font-family:'Poppins',sans-serif; font-size:14px; margin:0; }
@@ -1367,6 +1379,11 @@
           </button>
         </div>
       </div>
+      <div class="taxi-otp-card hidden" id="taxi-otp-card">
+        <p class="taxi-otp-label">SHARE THIS OTP WITH YOUR DRIVER</p>
+        <p class="taxi-otp-value" id="taxi-otp-value"></p>
+        <p class="taxi-otp-hint">Your driver will ask for this at pickup to start the trip.</p>
+      </div>
       <div class="track-map-wrap hidden" id="taxi-track-map-wrap">
         <div class="track-map" id="taxi-track-map"></div>
       </div>
@@ -2079,6 +2096,8 @@ const taxiTrackTimelineEl = document.getElementById('taxi-track-timeline');
 const taxiDriverCard = document.getElementById('taxi-driver-card');
 const taxiDriverName = document.getElementById('taxi-driver-name');
 const taxiDriverMeta = document.getElementById('taxi-driver-meta');
+const taxiOtpCard = document.getElementById('taxi-otp-card');
+const taxiOtpValue = document.getElementById('taxi-otp-value');
 const taxiCallBtn = document.getElementById('taxi-call-btn');
 let taxiTrackLastRide = null;   // most recent ride payload for the screen currently open — used by the call/chat buttons and the hardware back-button guard
 let taxiTrackLastStatus = 'searching';
@@ -2429,6 +2448,7 @@ async function submitTaxiBooking() {
     platformFee: currentTaxiPlatformFee(),
     status: 'searching',
     createdAt: Date.now(),
+    otp: String(Math.floor(1000 + Math.random() * 9000)), // 4-digit pickup verification code, shown to the customer once a driver accepts and checked by the driver before starting the trip — same pattern as Uber/Ola
   };
   try {
     await set(rideRef, ride);
@@ -2489,6 +2509,7 @@ function renderTaxiTimeline(ride) {
     taxiTrackEtaText.textContent = 'This ride was cancelled.';
     taxiTrackTimelineEl.innerHTML = '';
     taxiDriverCard.classList.add('hidden');
+    taxiOtpCard.classList.add('hidden');
     taxiCancelBtn.style.display = 'none';
     return;
   }
@@ -2509,6 +2530,16 @@ function renderTaxiTimeline(ride) {
     document.getElementById('taxi-chat-driver-name').textContent = ride.driverName;
   } else {
     taxiDriverCard.classList.add('hidden');
+  }
+
+  // Pickup OTP: shown only once a driver has been assigned and only until
+  // the trip actually starts — after that the driver's already verified it,
+  // and it has no more use.
+  if (ride.otp && ['accepted', 'arriving'].includes(status)) {
+    taxiOtpValue.textContent = ride.otp;
+    taxiOtpCard.classList.remove('hidden');
+  } else {
+    taxiOtpCard.classList.add('hidden');
   }
   taxiTrackLastRide = ride;
   taxiTrackLastStatus = status;
