@@ -7,6 +7,77 @@
     {
       "type": "Feature",
       "properties": {
+        "@id": "node/manual-place-15",
+        "place_name": "Kayalam",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.91744,
+          11.247394
+        ]
+      },
+      "id": "node/manual-place-15"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-14",
+        "place_name": "Vazhakkad",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.951767,
+          11.247082
+        ]
+      },
+      "id": "node/manual-place-14"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-13",
+        "building": "house",
+        "name": "NAYADIKUZHI HOUSE",
+        "addr:city": "Aroor",
+        "addr:postcode": "673640",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.926868,
+          11.224016
+        ]
+      },
+      "id": "node/manual-place-13"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/manual-place-12",
+        "amenity": "hospital",
+        "healthcare": "hospital",
+        "name": "Iqraa Hospital Vazhakkad",
+        "addr:city": "Vazhakkad",
+        "addr:postcode": "673640",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.950947,
+          11.248597
+        ]
+      },
+      "id": "node/manual-place-12"
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "@id": "node/manual-place-11",
         "place_name": "Aroor",
         "@geometry": "center"
