@@ -1728,6 +1728,16 @@
     if (window.applyCategoryOrder) window.applyCategoryOrder(order);
   });
 
+  // Live-listens to the operator-set order for shops *within* a category
+  // (Operator Panel → Shop Order) — e.g. which restaurant shows first
+  // under Food. Keyed by businessType: { hotel: [id,...], groceries:
+  // [id,...], online_shop: [id,...] }. Exposed on window so the plain
+  // <script> below can re-sort the shop list live when it changes.
+  onValue(ref(db, 'app_config/shopOrder'), (snapshot) => {
+    window.SHOP_ORDER = snapshot.val() || {};
+    if (window.onShopOrderUpdated) window.onShopOrderUpdated();
+  });
+
   // Live-listens to the operator-set taxi per-km rate and platform fee
   // (Operator Panel → Taxi Fare). Exposed on window so the taxi booking
   // code (plain <script> below) can read it — 0 on either field means
@@ -1751,6 +1761,12 @@
 // ---------- Live data (populated from Firebase, see module script above) ----------
 let RESTAURANTS = [];
 let restaurantsLoadedOnce = false; // true once the FIRST real snapshot has arrived from Firebase
+let SHOP_ORDER = {}; // operator-set per-category shop order, see app_config/shopOrder
+
+window.onShopOrderUpdated = () => {
+  SHOP_ORDER = window.SHOP_ORDER || {};
+  renderRestaurantList();
+};
 
 // Reorders the four home-screen category cards (Food, Groceries, Other
 // Shop, Taxi) inside .cat-wrap according to the operator-set order coming
@@ -3433,6 +3449,23 @@ function renderRestaurantList() {
   const categoryFiltered = state.category
     ? RESTAURANTS.filter(r => r.businessType === state.category)
     : RESTAURANTS;
+
+  // Apply the operator-set shop order for this category (Operator Panel →
+  // Shop Order), if one has been saved. Shops in the saved order come
+  // first, in that order; any shop not yet in it (a brand new signup, or
+  // the operator has never touched this category) keeps its original
+  // relative order and is appended after — so nothing disappears just
+  // because it hasn't been placed yet.
+  const savedOrder = state.category && Array.isArray(SHOP_ORDER[state.category]) ? SHOP_ORDER[state.category] : null;
+  if (savedOrder && savedOrder.length) {
+    const rank = new Map(savedOrder.map((id, i) => [id, i]));
+    categoryFiltered.sort((a, b) => {
+      const ra = rank.has(a.id) ? rank.get(a.id) : Infinity;
+      const rb = rank.has(b.id) ? rank.get(b.id) : Infinity;
+      return ra - rb; // stable sort keeps original order among untouched shops
+    });
+  }
+
   const searchFiltered = categoryFiltered.filter(r => (r.name + r.cuisine).toLowerCase().includes(q));
 
   // Once the customer has picked a location, only show restaurants whose
