@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>NESH Delivery Services and Taxi</title>
+<title>NESH Taxi and Delivery Services</title>
 <meta name="description" content="NESH Taxi and Delivery Services - Fastest delivery in your area. Book taxis, order groceries and food online with NESH." />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#F2B705" />
@@ -739,15 +739,15 @@
     cursor:pointer; color:#fff;
   }
   .rest-heart.liked svg{ fill:var(--chili); stroke:var(--chili); }
+  .rest-badge-category{
+    position:absolute; left:10px; top:10px; background:var(--chili); color:#fff;
+    font-family:'Inter',sans-serif; font-weight:700; font-size:11px; letter-spacing:.2px;
+    padding:5px 10px; border-radius:8px; box-shadow:0 2px 8px rgba(36,31,27,.25);
+  }
   .rest-badge-discount{
     position:absolute; left:10px; bottom:10px; display:flex; align-items:center; gap:5px;
     background:#fff; color:var(--ink); font-family:'Inter',sans-serif; font-weight:700; font-size:12px;
     padding:6px 10px; border-radius:8px; box-shadow:0 2px 8px rgba(36,31,27,.2);
-  }
-  .rest-badge-time{
-    position:absolute; right:0; bottom:10px; background:#fff; color:var(--ink);
-    font-family:'Inter',sans-serif; font-weight:700; font-size:11px; letter-spacing:.3px;
-    padding:7px 12px 7px 14px; border-radius:8px 0 0 8px; box-shadow:0 2px 8px rgba(36,31,27,.2);
   }
   .rest-info2{ padding:14px 16px 16px; }
   .rest-name2{ color:var(--ink); font-weight:800; font-family:'Poppins',sans-serif; font-size:17px; margin:0; }
@@ -1528,24 +1528,41 @@
 
   // ---------- Reliable reconnect after the app is minimized ----------
   // Mobile browsers/PWAs freeze the RTDB websocket while the tab/app is in
-  // the background. Left alone, the SDK sometimes comes back "stuck" —
-  // connected in name but not actually receiving new data — so re-opening
-  // the app can silently show stale restaurants/orders until something else
-  // happens to trigger a reconnect. Forcing a clean goOffline()/goOnline()
-  // cycle exactly when the page becomes hidden/visible guarantees a fresh
-  // socket every time the customer comes back, with no duplicate listeners
-  // (the existing onValue subscriptions below are only ever attached once —
-  // this just resets the underlying connection they ride on).
-  let wasHidden = false;
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      wasHidden = true;
-      goOffline(db);
-    } else if (wasHidden) {
-      wasHidden = false;
-      goOnline(db);
-    }
+  // the background, and can come back "stuck" — connected in name but not
+  // actually receiving new data — so re-opening the app can silently show
+  // stale restaurants/orders until something else triggers a reconnect.
+  //
+  // A plain goOffline()/goOnline() cycle tied to the web `visibilitychange`
+  // event was tried before and backfired: on many mobile browsers that
+  // event doesn't fire reliably in both directions (hidden fires but the
+  // matching visible doesn't, especially across quick app switches),
+  // leaving the socket stuck offline with nothing to bring it back except
+  // a full reload.
+  //
+  // This app is wrapped as a native Capacitor app, though, which gives a
+  // far more reliable signal than the web event: the OS-level app
+  // lifecycle via Capacitor's App plugin ('pause'/'resume'). That's what
+  // actually frees the connection while backgrounded, with goOffline()
+  // only ever called from the native 'pause' callback. In a plain browser
+  // tab (Capacitor plugin unavailable) we deliberately do NOT force
+  // goOffline() — just the same safe goOnline() "kick" + watchdog as
+  // before, since that's the case the old bug happened in.
+  let isConnected = true;
+  onValue(ref(db, '.info/connected'), snap => {
+    isConnected = snap.val() === true;
   });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) goOnline(db);
+  });
+  setInterval(() => {
+    if (!document.hidden && !isConnected) goOnline(db);
+  }, 15000);
+  (function () {
+    if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.App) return;
+    const CapApp = window.Capacitor.Plugins.App;
+    CapApp.addListener('pause', () => { try { goOffline(db); } catch (e) {} });
+    CapApp.addListener('resume', () => { try { goOnline(db); } catch (e) {} });
+  })();
   const REST_COLORS = ["#C97F00", "#A66600", "#1BA672", "#7C5CBF", "#2E86AB"];
   // Stand-in photography for restaurants/dishes that don't have a real photo
   // uploaded yet — cycled by index so each listing still looks distinct.
@@ -1649,12 +1666,15 @@
           cuisine: v.address || (businessType === 'groceries' ? 'Local store' : businessType === 'online_shop' ? 'Other shop' : 'Local restaurant'),
           rating: 4.5,
           ratingCount: 40 + (i * 37) % 400,
-          time: "30-40 min",
           location: v.location || null,
           priceForTwo: 199 + (i * 23) % 300,
           image: v.photo || storePhotoSet[i % storePhotoSet.length],
           color: REST_COLORS[i++ % REST_COLORS.length],
           businessType,
+          // Operator-set label shown as a badge on top of the shop's photo
+          // in the customer app list (Operator Panel → Partner detail →
+          // Shop Category). Empty string = no badge shown.
+          opCategory: v.opCategory || "",
           items: menuItems,
           gpayNumber: v.gpayNumber || "",
           zone: Array.isArray(v.deliveryZone) && v.deliveryZone.length >= 3 ? v.deliveryZone : null,
@@ -1908,6 +1928,14 @@ function tryResumeScreen(saved) {
     resumed = true;
     return true;
   } else if (saved.id === 'orders') {
+    // Same window.fb-not-ready-yet timing issue documented above for
+    // 'track' and 'taxi-track' — this classic <script> runs before the
+    // deferred module script sets window.fb, so calling openOrdersScreen()
+    // here would throw (destructuring undefined), get swallowed by the
+    // caller's try/catch, and silently leave the customer stuck instead of
+    // resuming their Orders list. Bail out and let the caller retry once
+    // window.fb is actually ready.
+    if (!window.fb) return false;
     openOrdersScreen();
     resumed = true;
     return true;
@@ -3330,6 +3358,7 @@ function renderRestaurantList() {
       <div class="rest-img-wrap">
         <img class="rest-img" src="${r.image}" alt="${r.name}" loading="lazy"
           onerror="this.style.background='${r.color}'; this.src='';" />
+        ${r.opCategory ? `<div class="rest-badge-category">${escapeHtml(r.opCategory)}</div>` : ''}
         <div class="rest-dots"><span></span><span></span><span></span><span></span></div>
         <button class="rest-heart" aria-label="Save restaurant">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
@@ -5139,6 +5168,15 @@ if ('serviceWorker' in navigator) {
 (function () {
   const DISMISS_KEY = 'nesh_install_dismissed_at';
   const DISMISS_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // don't auto-popup for 3 days after "Not now"
+  // FAKE_INSTALLED_KEY covers browsers with no real install signal we can
+  // check (no beforeinstallprompt, and not iOS's navigator.standalone) —
+  // we can't actually confirm the app is still on their home screen, so
+  // this is a best-effort guess, not a fact. It must expire — treating it
+  // as permanent was the bug that made the popup silently stop appearing
+  // forever after a single "Install" tap on one of those browsers (e.g.
+  // during our own testing). It's stored as a timestamp instead of a bare
+  // flag, and re-checked against a cooldown, the same way DISMISS_KEY is.
+  const FAKE_INSTALL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // assume "installed" for 7 days, then ask again
 
   const overlay = document.getElementById('install-overlay');
   const iconBtn = document.getElementById('install-icon-btn');
@@ -5302,9 +5340,10 @@ if ('serviceWorker' in navigator) {
     if (!deferredPrompt) {
       // No native install API available on this browser (iOS Safari,
       // Firefox, etc.) — still run the fake progress for a convincing
-      // feel, then mark as "installed" so the banner/icon go away.
+      // feel, then mark as "installed" (timestamped, not permanent — see
+      // isFakeInstalled below) so the banner/icon go away for a while.
       runInstallProgress(() => {
-        try { localStorage.setItem(FAKE_INSTALLED_KEY, '1'); } catch (e) {}
+        try { localStorage.setItem(FAKE_INSTALLED_KEY, String(Date.now())); } catch (e) {}
         closeSheet();
         hideEntryPoints();
       });
@@ -5324,7 +5363,10 @@ if ('serviceWorker' in navigator) {
   // installed app — don't wait for beforeinstallprompt, since some
   // browsers fire it late (or, on iOS, never at all).
   function isFakeInstalled() {
-    try { return localStorage.getItem(FAKE_INSTALLED_KEY) === '1'; } catch (e) { return false; }
+    try {
+      const at = parseInt(localStorage.getItem(FAKE_INSTALLED_KEY) || '0', 10);
+      return !!(at && (Date.now() - at) < FAKE_INSTALL_COOLDOWN_MS);
+    } catch (e) { return false; }
   }
 
   if (!isStandalone() && !isFakeInstalled()) {
