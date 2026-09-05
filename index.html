@@ -1241,6 +1241,10 @@
         <input type="number" id="item-detail-weight-input" min="1" step="1" style="width:80px; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:14px;" />
         <span id="item-detail-weight-hint" style="font-size:12px; color:var(--muted-2);"></span>
       </div>
+      <div id="item-detail-size-row" style="display:none; margin:4px 0 10px;">
+        <p style="font-size:12px; color:var(--muted-2); margin:0 0 6px;">Select size</p>
+        <div id="item-detail-size-chips" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+      </div>
       <div class="item-detail-qty-row">
         <div class="qty-slot" id="item-detail-qty-slot"></div>
       </div>
@@ -1659,6 +1663,7 @@
                 id: k, name: v.menu[k].name, desc: v.menu[k].desc || '',
                 price: Number(v.menu[k].price) || 0,
                 unit: v.menu[k].unit || 'piece', // 'piece' | 'gram' | 'kg' — set by the shop; for gram/kg, `price` is the rate per gram/kg, not a flat price
+                sizes: Array.isArray(v.menu[k].sizes) ? v.menu[k].sizes.filter(Boolean) : [], // e.g. ['S','M','L','XL','2XL'] — only set on "Sports" shop items
                 image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
                 rating: (4 + (di % 8) / 10).toFixed(1),
                 ratingCount: 2 + (di % 9)
@@ -1860,6 +1865,7 @@ let state = {
   selectedItem: null, // itemId currently shown on the item-detail screen
   cart: {}, // itemId -> qty
   cartGrams: {}, // itemId -> grams chosen, for items priced by weight (unit: gram/kg)
+  cartSizes: {}, // itemId -> size chosen, for items with a sizes list (e.g. Sports shop clothing/footwear)
   lastOrder: null, // { restId, orderKey, orderNumber, restName } for the "Track your Order" screen
   customerPos: null, // { lat, lng } — set via "Select your location", used to filter restaurants by delivery zone
   locationDetectFailed: false, // true once auto-detect has failed/been denied so the UI can nudge the customer to pick manually
@@ -1892,6 +1898,7 @@ function tryResumeScreen(saved) {
     state.selectedRestaurant = rest;
     state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
     state.cartGrams = saved.cartGrams && typeof saved.cartGrams === 'object' ? saved.cartGrams : {};
+    state.cartSizes = saved.cartSizes && typeof saved.cartSizes === 'object' ? saved.cartSizes : {};
     renderMenu();
     showScreen('menu');
     resumed = true;
@@ -1903,6 +1910,7 @@ function tryResumeScreen(saved) {
     state.selectedRestaurant = rest;
     state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
     state.cartGrams = saved.cartGrams && typeof saved.cartGrams === 'object' ? saved.cartGrams : {};
+    state.cartSizes = saved.cartSizes && typeof saved.cartSizes === 'object' ? saved.cartSizes : {};
     renderMenu();
     openItemDetail(saved.itemId);
     resumed = true;
@@ -1917,6 +1925,7 @@ function tryResumeScreen(saved) {
     state.selectedRestaurant = rest;
     state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
     state.cartGrams = saved.cartGrams && typeof saved.cartGrams === 'object' ? saved.cartGrams : {};
+    state.cartSizes = saved.cartSizes && typeof saved.cartSizes === 'object' ? saved.cartSizes : {};
     state.pendingCheckout = saved.pendingCheckout;
     renderMenu();
     showScreen('menu');
@@ -2024,6 +2033,7 @@ function persistCart() {
     if (saved.id === 'menu') {
       saved.cart = state.cart;
       saved.cartGrams = state.cartGrams;
+      saved.cartSizes = state.cartSizes;
       localStorage.setItem('asfood_screen', JSON.stringify(saved));
     }
   } catch (e) {}
@@ -3413,6 +3423,7 @@ function openRestaurant(id) {
   state.selectedRestaurant = RESTAURANTS.find(r => r.id === id);
   state.cart = {};
   state.cartGrams = {};
+  state.cartSizes = {};
   state.menuSearch = '';
   // Fresh shop, fresh discount card — any earlier reveal was scoped to a
   // different shop's checkout (or a completed order) and shouldn't carry over.
@@ -3458,6 +3469,21 @@ function getUnitPrice(it) {
 function weightLabel(it) {
   const grams = getSelectedGrams(it.id);
   return grams >= 1000 ? ((Math.round((grams / 1000) * 100) / 100) + 'kg') : (grams + 'g');
+}
+
+// ---------- Sized items (e.g. Sports shop clothing/footwear) ----------
+// Mirrors the weight-item pattern above: one size chosen per item id,
+// remembered in state.cartSizes, defaulting to the first size the shop
+// listed. Customers pick a size before the item is added to the cart.
+function hasSizes(it) { return Array.isArray(it.sizes) && it.sizes.length > 0; }
+function getSelectedSize(it) {
+  if (!hasSizes(it)) return '';
+  const s = state.cartSizes && state.cartSizes[it.id];
+  return (s && it.sizes.includes(s)) ? s : it.sizes[0];
+}
+function setSelectedSize(itemId, size) {
+  if (!state.cartSizes) state.cartSizes = {};
+  state.cartSizes[itemId] = size;
 }
 
 function renderMenu() {
@@ -3516,6 +3542,8 @@ function renderMenu() {
           <input type="number" class="item-weight-input" min="1" step="1" value="${getSelectedGrams(it.id)}" style="width:60px; padding:4px 6px; border:1px solid #ddd; border-radius:6px; font-size:12px;" />
           <span style="font-size:11px; color:var(--muted-2);">grams (₹${it.price}${UNIT_SUFFIX[it.unit]})</span>
         </div>` : ''}
+        ${hasSizes(it) ? `
+        <div class="item-size-row" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;"></div>` : ''}
         <div class="item-row2">
           <span class="item-price2">₹${getUnitPrice(it)}${isWeightUnit(it.unit) ? ' for ' + weightLabel(it) : ''}</span>
           <div class="qty-slot"></div>
@@ -3533,6 +3561,10 @@ function renderMenu() {
           updateCartBar();
         });
       }
+      const sizeRow = card.querySelector('.item-size-row');
+      if (sizeRow) {
+        renderSizeChips(sizeRow, it, () => {}); // qty/price don't change on size switch, just remember the pick
+      }
       card.querySelector('.item-img-wrap').addEventListener('click', () => openItemDetail(it.id));
       itemListEl.appendChild(card);
     } catch (e) {
@@ -3545,6 +3577,31 @@ menuSearchInput.addEventListener('input', () => {
   state.menuSearch = menuSearchInput.value;
   renderMenu();
 });
+
+// Renders a row of tappable size chips (S, M, L, 2XL, or numeric sizes like
+// shoe sizes) into `container` for item `it`, highlighting whichever size
+// is currently selected for it and persisting the pick to state.cartSizes
+// on tap. `onChange` fires after the pick so the caller can refresh price
+// or any other size-dependent text on screen.
+function renderSizeChips(container, it, onChange) {
+  const selected = getSelectedSize(it);
+  container.innerHTML = it.sizes.map(sz => `
+    <button type="button" class="size-chip-btn" data-size="${sz}" style="
+      padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;
+      border:1.5px solid ${sz === selected ? 'var(--marigold-dark,#C97F00)' : '#ddd'};
+      background:${sz === selected ? 'var(--marigold-dark,#C97F00)' : '#fff'};
+      color:${sz === selected ? '#fff' : '#444'};
+    ">${sz}</button>
+  `).join('');
+  container.querySelectorAll('.size-chip-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setSelectedSize(it.id, btn.dataset.size);
+      renderSizeChips(container, it, onChange);
+      onChange();
+    });
+  });
+}
 
 function renderQtyControl(slot, itemId, qty) {
   slot.innerHTML = "";
@@ -3641,6 +3698,14 @@ function renderItemDetail() {
   } else {
     itemDetailWeightRow.style.display = 'none';
     itemDetailPrice.textContent = `₹${it.price}`;
+  }
+  const sizeRow = document.getElementById('item-detail-size-row');
+  const sizeChips = document.getElementById('item-detail-size-chips');
+  if (hasSizes(it)) {
+    sizeRow.style.display = 'block';
+    renderSizeChips(sizeChips, it, () => {});
+  } else {
+    sizeRow.style.display = 'none';
   }
   renderQtyControl(itemDetailQtySlot, it.id, qty);
 }
@@ -4643,6 +4708,7 @@ function openOrderSummary() {
     const priceLine = isWeightUnit(it.unit)
       ? `₹${unitPrice} (${weightLabel(it)}) × ${qty}`
       : `₹${unitPrice} × ${qty}`;
+    const sizeLine = hasSizes(it) ? `<p class="order-summary-row-price">Size: ${getSelectedSize(it)}</p>` : '';
     const row = document.createElement('div');
     row.className = "order-summary-row";
     row.innerHTML = `
@@ -4650,6 +4716,7 @@ function openOrderSummary() {
       <div class="order-summary-row-mid">
         <p class="order-summary-row-name">${it.name}</p>
         <p class="order-summary-row-price">${priceLine}</p>
+        ${sizeLine}
       </div>
       <div class="order-summary-row-qty qty-slot"></div>
     `;
@@ -4762,9 +4829,20 @@ payConfirmBtn.addEventListener('click', async () => {
     : "ORD-" + Math.floor(1000 + Math.random() * 9000);
   const orderItems = r.items
     .filter(it => state.cart[it.id])
-    .map(it => isWeightUnit(it.unit)
-      ? { name: `${it.name} (${weightLabel(it)})`, price: getUnitPrice(it), qty: state.cart[it.id], unit: it.unit, weightGrams: getSelectedGrams(it.id) }
-      : { name: it.name, price: it.price, qty: state.cart[it.id] });
+    .map(it => {
+      if (isWeightUnit(it.unit)) {
+        return { name: `${it.name} (${weightLabel(it)})`, desc: it.desc || '', price: getUnitPrice(it), qty: state.cart[it.id], unit: it.unit, weightGrams: getSelectedGrams(it.id) };
+      }
+      if (hasSizes(it)) {
+        const size = getSelectedSize(it);
+        // Size is baked into the display name too (not just the `size`
+        // field) so it shows up everywhere an order's items are printed —
+        // shop order popup, order detail, delivery route, payment summary —
+        // without those screens needing to know about sizes at all.
+        return { name: `${it.name} (Size: ${size})`, desc: it.desc || '', price: it.price, qty: state.cart[it.id], size };
+      }
+      return { name: it.name, desc: it.desc || '', price: it.price, qty: state.cart[it.id] };
+    });
   const itemsTotal = orderItems.reduce((sum, it) => sum + it.price * it.qty, 0);
   // Platform fee is a flat amount added once per order/transaction (not per
   // item, not multiplied by quantity) — captured now so it stays fixed for
@@ -4849,6 +4927,7 @@ payConfirmBtn.addEventListener('click', async () => {
     updateHomeTrackBtn();
     state.cart = {};
     state.cartGrams = {};
+  state.cartSizes = {};
     state.pendingCheckout = null;
     state.discountReveal = null;
     closePaymentConfirm();
@@ -5146,6 +5225,7 @@ function logoutUser() {
   state.user = null;
   state.cart = {};
   state.cartGrams = {};
+  state.cartSizes = {};
   state.selectedRestaurant = null;
   state.category = null;
   state.pendingCheckout = null;
