@@ -1237,6 +1237,10 @@
       <p class="item-detail-name" id="item-detail-name"></p>
       <p class="item-detail-desc" id="item-detail-desc" style="display:none;"></p>
       <p class="item-detail-price" id="item-detail-price"></p>
+      <div class="item-detail-weight-row" id="item-detail-weight-row" style="display:none; align-items:center; gap:8px; margin:4px 0 10px;">
+        <input type="number" id="item-detail-weight-input" min="1" step="1" style="width:80px; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:14px;" />
+        <span id="item-detail-weight-hint" style="font-size:12px; color:var(--muted-2);"></span>
+      </div>
       <div class="item-detail-qty-row">
         <div class="qty-slot" id="item-detail-qty-slot"></div>
       </div>
@@ -1654,6 +1658,7 @@
               .map((k, di) => ({
                 id: k, name: v.menu[k].name, desc: v.menu[k].desc || '',
                 price: Number(v.menu[k].price) || 0,
+                unit: v.menu[k].unit || 'piece', // 'piece' | 'gram' | 'kg' — set by the shop; for gram/kg, `price` is the rate per gram/kg, not a flat price
                 image: v.menu[k].photo || itemPhotoSet[di % itemPhotoSet.length],
                 rating: (4 + (di % 8) / 10).toFixed(1),
                 ratingCount: 2 + (di % 9)
@@ -1854,6 +1859,7 @@ let state = {
   selectedRestaurant: null,
   selectedItem: null, // itemId currently shown on the item-detail screen
   cart: {}, // itemId -> qty
+  cartGrams: {}, // itemId -> grams chosen, for items priced by weight (unit: gram/kg)
   lastOrder: null, // { restId, orderKey, orderNumber, restName } for the "Track your Order" screen
   customerPos: null, // { lat, lng } — set via "Select your location", used to filter restaurants by delivery zone
   locationDetectFailed: false, // true once auto-detect has failed/been denied so the UI can nudge the customer to pick manually
@@ -1885,6 +1891,7 @@ function tryResumeScreen(saved) {
     if (!rest) return false;
     state.selectedRestaurant = rest;
     state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+    state.cartGrams = saved.cartGrams && typeof saved.cartGrams === 'object' ? saved.cartGrams : {};
     renderMenu();
     showScreen('menu');
     resumed = true;
@@ -1895,6 +1902,7 @@ function tryResumeScreen(saved) {
     if (!rest.items.some(i => i.id === saved.itemId)) { resumed = true; return true; }
     state.selectedRestaurant = rest;
     state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+    state.cartGrams = saved.cartGrams && typeof saved.cartGrams === 'object' ? saved.cartGrams : {};
     renderMenu();
     openItemDetail(saved.itemId);
     resumed = true;
@@ -1908,6 +1916,7 @@ function tryResumeScreen(saved) {
     if (!rest) return false;
     state.selectedRestaurant = rest;
     state.cart = saved.cart && typeof saved.cart === 'object' ? saved.cart : {};
+    state.cartGrams = saved.cartGrams && typeof saved.cartGrams === 'object' ? saved.cartGrams : {};
     state.pendingCheckout = saved.pendingCheckout;
     renderMenu();
     showScreen('menu');
@@ -2014,6 +2023,7 @@ function persistCart() {
     const saved = raw ? JSON.parse(raw) : {};
     if (saved.id === 'menu') {
       saved.cart = state.cart;
+      saved.cartGrams = state.cartGrams;
       localStorage.setItem('asfood_screen', JSON.stringify(saved));
     }
   } catch (e) {}
@@ -3402,6 +3412,7 @@ const cartBtn = document.getElementById('cart-btn');
 function openRestaurant(id) {
   state.selectedRestaurant = RESTAURANTS.find(r => r.id === id);
   state.cart = {};
+  state.cartGrams = {};
   state.menuSearch = '';
   // Fresh shop, fresh discount card — any earlier reveal was scoped to a
   // different shop's checkout (or a completed order) and shouldn't carry over.
@@ -3415,6 +3426,39 @@ function openRestaurant(id) {
 const itemListLabel = document.getElementById('item-list-label');
 const menuSearchInput = document.getElementById('menu-search-input');
 const menuNoResults = document.getElementById('menu-no-results');
+
+// ---------- Weight-priced items (unit: gram/kg) ----------
+// For these items `it.price` is the shop's RATE for one gram/kilogram
+// (e.g. ₹120 per kg), not what the customer pays per tap. The customer
+// instead types in how many grams they want, and every place that shows
+// or totals a cart line goes through getUnitPrice()/weightLabel() below so
+// the actual amount charged always matches the weight they chose.
+const DEFAULT_GRAMS = 250;
+const UNIT_SUFFIX = { piece: "", gram: "/g", kg: "/kg" };
+function isWeightUnit(unit) { return unit === 'gram' || unit === 'kg'; }
+function getSelectedGrams(itemId) {
+  const g = state.cartGrams && Number(state.cartGrams[itemId]);
+  return g > 0 ? g : DEFAULT_GRAMS;
+}
+function setSelectedGrams(itemId, grams) {
+  if (!state.cartGrams) state.cartGrams = {};
+  const g = Math.max(1, Math.round(Number(grams)) || DEFAULT_GRAMS);
+  state.cartGrams[itemId] = g;
+  return g;
+}
+// Price for ONE portion of this item as currently configured — the flat
+// price for piece items, or the rate scaled to the chosen grams for
+// weight items.
+function getUnitPrice(it) {
+  if (!isWeightUnit(it.unit)) return it.price;
+  const grams = getSelectedGrams(it.id);
+  const perGramRate = it.unit === 'kg' ? it.price / 1000 : it.price;
+  return Math.round(perGramRate * grams * 100) / 100;
+}
+function weightLabel(it) {
+  const grams = getSelectedGrams(it.id);
+  return grams >= 1000 ? ((Math.round((grams / 1000) * 100) / 100) + 'kg') : (grams + 'g');
+}
 
 function renderMenu() {
   const r = state.selectedRestaurant;
@@ -3467,13 +3511,28 @@ function renderMenu() {
         </div>
         <p class="item-name2">${it.name}</p>
         ${it.desc ? `<p class="item-desc" style="margin-top:2px;">${it.desc}</p>` : ''}
+        ${isWeightUnit(it.unit) ? `
+        <div class="item-weight-row" style="display:flex; align-items:center; gap:6px; margin-top:6px;">
+          <input type="number" class="item-weight-input" min="1" step="1" value="${getSelectedGrams(it.id)}" style="width:60px; padding:4px 6px; border:1px solid #ddd; border-radius:6px; font-size:12px;" />
+          <span style="font-size:11px; color:var(--muted-2);">grams (₹${it.price}${UNIT_SUFFIX[it.unit]})</span>
+        </div>` : ''}
         <div class="item-row2">
-          <span class="item-price2">₹${it.price}</span>
+          <span class="item-price2">₹${getUnitPrice(it)}${isWeightUnit(it.unit) ? ' for ' + weightLabel(it) : ''}</span>
           <div class="qty-slot"></div>
         </div>
       `;
       const qtySlot = card.querySelector('.qty-slot');
       renderQtyControl(qtySlot, it.id, qty);
+      const weightInput = card.querySelector('.item-weight-input');
+      if (weightInput) {
+        weightInput.addEventListener('click', e => e.stopPropagation());
+        weightInput.addEventListener('input', () => {
+          setSelectedGrams(it.id, weightInput.value);
+          const priceEl = card.querySelector('.item-price2');
+          if (priceEl) priceEl.textContent = `₹${getUnitPrice(it)} for ${weightLabel(it)}`;
+          updateCartBar();
+        });
+      }
       card.querySelector('.item-img-wrap').addEventListener('click', () => openItemDetail(it.id));
       itemListEl.appendChild(card);
     } catch (e) {
@@ -3534,8 +3593,20 @@ const itemDetailRating = document.getElementById('item-detail-rating');
 const itemDetailName = document.getElementById('item-detail-name');
 const itemDetailDesc = document.getElementById('item-detail-desc');
 const itemDetailPrice = document.getElementById('item-detail-price');
+const itemDetailWeightRow = document.getElementById('item-detail-weight-row');
+const itemDetailWeightInput = document.getElementById('item-detail-weight-input');
+const itemDetailWeightHint = document.getElementById('item-detail-weight-hint');
 const itemDetailQtySlot = document.getElementById('item-detail-qty-slot');
+itemDetailWeightInput.addEventListener('input', () => {
+  if (!state.selectedItem || !state.selectedRestaurant) return;
+  const it = state.selectedRestaurant.items.find(i => i.id === state.selectedItem);
+  if (!it) return;
+  setSelectedGrams(it.id, itemDetailWeightInput.value);
+  itemDetailPrice.textContent = `₹${getUnitPrice(it)} for ${weightLabel(it)}`;
+  updateCartBar();
+});
 document.getElementById('item-detail-back-btn').addEventListener('click', () => {
+  renderMenu(); // pick up any weight/price change made on this screen
   showScreen('menu');
   persistScreen('menu', { restaurantId: state.selectedRestaurant.id, cart: state.cart });
 });
@@ -3562,13 +3633,21 @@ function renderItemDetail() {
   } else {
     itemDetailDesc.style.display = 'none';
   }
-  itemDetailPrice.textContent = `₹${it.price}`;
+  if (isWeightUnit(it.unit)) {
+    itemDetailWeightRow.style.display = 'flex';
+    itemDetailWeightInput.value = getSelectedGrams(it.id);
+    itemDetailWeightHint.textContent = `grams (rate ₹${it.price}${UNIT_SUFFIX[it.unit]})`;
+    itemDetailPrice.textContent = `₹${getUnitPrice(it)} for ${weightLabel(it)}`;
+  } else {
+    itemDetailWeightRow.style.display = 'none';
+    itemDetailPrice.textContent = `₹${it.price}`;
+  }
   renderQtyControl(itemDetailQtySlot, it.id, qty);
 }
 
 function updateCartBar() {
   const count = Object.values(state.cart).reduce((a, b) => a + b, 0);
-  const total = state.selectedRestaurant.items.reduce((sum, it) => sum + (state.cart[it.id] || 0) * it.price, 0);
+  const total = state.selectedRestaurant.items.reduce((sum, it) => sum + (state.cart[it.id] || 0) * getUnitPrice(it), 0);
   if (count > 0) {
     cartBar.classList.add('visible');
     cartCountText.textContent = count + (count > 1 ? " items" : " item");
@@ -3706,7 +3785,7 @@ function currentDeliveryFee() {
 function currentCartItemsTotal() {
   const r = state.selectedRestaurant;
   if (!r) return 0;
-  return r.items.reduce((sum, it) => sum + (state.cart[it.id] || 0) * it.price, 0);
+  return r.items.reduce((sum, it) => sum + (state.cart[it.id] || 0) * getUnitPrice(it), 0);
 }
 function updateLocSummary() {
   const itemsTotal = currentCartItemsTotal();
@@ -4559,14 +4638,18 @@ function openOrderSummary() {
   r.items.forEach(it => {
     const qty = state.cart[it.id] || 0;
     if (qty === 0) return;
-    itemsTotal += qty * it.price;
+    const unitPrice = getUnitPrice(it);
+    itemsTotal += qty * unitPrice;
+    const priceLine = isWeightUnit(it.unit)
+      ? `₹${unitPrice} (${weightLabel(it)}) × ${qty}`
+      : `₹${unitPrice} × ${qty}`;
     const row = document.createElement('div');
     row.className = "order-summary-row";
     row.innerHTML = `
       <img class="order-summary-row-img" src="${it.image || ''}" alt="${it.name}" loading="lazy" />
       <div class="order-summary-row-mid">
         <p class="order-summary-row-name">${it.name}</p>
-        <p class="order-summary-row-price">₹${it.price} × ${qty}</p>
+        <p class="order-summary-row-price">${priceLine}</p>
       </div>
       <div class="order-summary-row-qty qty-slot"></div>
     `;
@@ -4679,7 +4762,9 @@ payConfirmBtn.addEventListener('click', async () => {
     : "ORD-" + Math.floor(1000 + Math.random() * 9000);
   const orderItems = r.items
     .filter(it => state.cart[it.id])
-    .map(it => ({ name: it.name, price: it.price, qty: state.cart[it.id] }));
+    .map(it => isWeightUnit(it.unit)
+      ? { name: `${it.name} (${weightLabel(it)})`, price: getUnitPrice(it), qty: state.cart[it.id], unit: it.unit, weightGrams: getSelectedGrams(it.id) }
+      : { name: it.name, price: it.price, qty: state.cart[it.id] });
   const itemsTotal = orderItems.reduce((sum, it) => sum + it.price * it.qty, 0);
   // Platform fee is a flat amount added once per order/transaction (not per
   // item, not multiplied by quantity) — captured now so it stays fixed for
@@ -4763,6 +4848,7 @@ payConfirmBtn.addEventListener('click', async () => {
     try { localStorage.setItem('asfood_last_order', JSON.stringify(state.lastOrder)); } catch (e) {}
     updateHomeTrackBtn();
     state.cart = {};
+    state.cartGrams = {};
     state.pendingCheckout = null;
     state.discountReveal = null;
     closePaymentConfirm();
@@ -5059,6 +5145,7 @@ ordersBackBtn.addEventListener('click', leaveOrdersScreen);
 function logoutUser() {
   state.user = null;
   state.cart = {};
+  state.cartGrams = {};
   state.selectedRestaurant = null;
   state.category = null;
   state.pendingCheckout = null;
