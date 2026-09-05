@@ -2053,6 +2053,94 @@ function showScreen(id) {
   updateOrderProgressBarVisibility();
 }
 
+// ---------- Back button / hardware-back navigation ----------
+// Screens above are only ever shown/hidden with CSS (no real browser
+// navigation happens), so by default there's nothing on the history
+// stack for the phone's back button/gesture to consume — the OS just
+// closes the whole app on the very first back press. This gives every
+// screen change (and every open sheet/dropdown) a real history entry,
+// so back steps through the app the way people expect, and only lets
+// the app actually exit once there's truly nowhere left to go back to.
+const neshScreenStack = ['category']; // matches the .screen.active in the markup on load
+let neshSkipHistoryPush = false;
+history.replaceState({ neshScreen: 'category' }, '', location.href);
+
+const neshRealShowScreen = showScreen;
+showScreen = function (id) {
+  neshRealShowScreen(id);
+  if (neshSkipHistoryPush) { neshSkipHistoryPush = false; return; }
+  if (neshScreenStack[neshScreenStack.length - 1] !== id) {
+    neshScreenStack.push(id);
+    history.pushState({ neshScreen: id }, '', location.href);
+  }
+};
+
+function neshRearmHistoryBuffer() {
+  // Push a fresh state representing "still here", so the *next* back
+  // press has our own entry to pop instead of leaving the app.
+  history.pushState({ neshScreen: neshScreenStack[neshScreenStack.length - 1] }, '', location.href);
+}
+
+function neshShowExitToast() {
+  let toast = document.getElementById('nesh-exit-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'nesh-exit-toast';
+    toast.textContent = 'Tap back again to exit';
+    toast.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translate(-50%,0);background:#2B2410;color:#fff;padding:10px 18px;border-radius:20px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 6px 16px rgba(0,0,0,.25);opacity:0;transition:opacity .2s;pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+  clearTimeout(neshShowExitToast._t);
+  neshShowExitToast._t = setTimeout(() => { toast.style.opacity = '0'; }, 1600);
+}
+
+let neshExitArmed = false;
+
+window.addEventListener('popstate', () => {
+  // 1) An open sheet/dropdown/modal should close first — same as how a
+  // back press behaves on any app with something layered on top.
+  const overlays = [
+    { id: 'install-overlay', close: null }, // intentionally not dismissable (see openSheet()) — just swallow back
+    { id: 'scratch-modal-overlay', close: () => closeScratchModal() },
+    { id: 'account-dropdown', close: () => closeAccountDropdown() },
+    { id: 'order-summary-overlay', close: () => closeOrderSummary() },
+    { id: 'payment-overlay', close: () => document.getElementById('pay-cancel-btn').click() },
+    { id: 'browse-loc-overlay', close: () => document.getElementById('browse-loc-cancel-btn').click() },
+    { id: 'loc-overlay', close: () => document.getElementById('loc-cancel-btn').click() },
+  ];
+  for (const o of overlays) {
+    const el = document.getElementById(o.id);
+    if (el && el.classList.contains('show')) {
+      if (o.close) o.close();
+      neshRearmHistoryBuffer();
+      return;
+    }
+  }
+
+  // 2) No overlay open — step back to the previous in-app screen, if any.
+  if (neshScreenStack.length > 1) {
+    neshScreenStack.pop();
+    const prevId = neshScreenStack[neshScreenStack.length - 1];
+    neshSkipHistoryPush = true;
+    showScreen(prevId);
+    neshRearmHistoryBuffer();
+    return;
+  }
+
+  // 3) Already on the first screen with nothing left to go back to —
+  // require a second back press (within ~1.6s) before actually letting
+  // the app exit, so one stray back tap can't close it outright.
+  if (!neshExitArmed) {
+    neshExitArmed = true;
+    neshShowExitToast();
+    neshRearmHistoryBuffer();
+    setTimeout(() => { neshExitArmed = false; }, 1600);
+  }
+  // If already armed, we don't re-push a state here, so this second back
+  // press is left free to actually exit the app.
+});
+
 function digitsOnly(v) { return v.replace(/\D/g, ''); }
 
 // ---------- CATEGORY (Food / Groceries) ----------
